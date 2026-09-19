@@ -1,7 +1,10 @@
 # SPDX-FileCopyrightText: 2026 first-uninteresting-username
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
-_: {
+{
+  inputs,
+  ...
+}: {
   flake = {
     nixosModules = {
       gaming-distrobox = {
@@ -51,6 +54,15 @@ _: {
         lib,
         ...
       }: {
+        imports = [
+          inputs.nix-crab.nixosModules.default
+        ];
+
+        programs.nix-crab = {
+          slssteam.enable = true;
+          cloudredirect.enable = true;
+        };
+
         preservation.preserveAt = lib.mkIf config.custom.preservation.enable {
           "/persist" = {
             users.${config.custom.user.name} = {
@@ -75,6 +87,10 @@ _: {
         };
 
         home-manager.users.${config.custom.user.name} = _: {
+          imports = [
+            inputs.nix-crab.homeModules.default
+          ];
+
           home.packages = with pkgs; [
             hydralauncher
             heroic
