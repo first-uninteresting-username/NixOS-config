@@ -1,10 +1,7 @@
 # SPDX-FileCopyrightText: 2026 first-uninteresting-username
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
-{
-  inputs,
-  ...
-}: {
+{inputs, ...}: {
   flake = {
     nixosModules = {
       gaming-distrobox = {
