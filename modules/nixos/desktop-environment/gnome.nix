@@ -38,6 +38,10 @@
         programs = {
           ssh.startAgent = lib.mkForce false;
           dconf.enable = true;
+          nautilus-open-any-terminal = {
+            enable = true;
+            terminal = "ptyxis";
+          };
         };
 
         services = {
@@ -66,11 +70,6 @@
             gnome-tecla
             gnome-software
           ];
-        };
-
-        programs.nautilus-open-any-terminal = {
-          enable = true;
-          terminal = "ptyxis";
         };
 
         xdg.portal = {
