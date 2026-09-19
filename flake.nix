@@ -1,8 +1,8 @@
-# SPDX-FileCopyrightText: 2026 First-Non-Interesting-Username
+# SPDX-FileCopyrightText: 2026 first-uninteresting-username
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 {
-  description = "First-Non-Interesting-Username's NixOS config";
+  description = "first-uninteresting-username's NixOS config";
 
   nixConfig = {
     extra-substituters = [
@@ -39,7 +39,7 @@
     };
 
     stylix = {
-      url = "github:First-Non-Interesting-Username/stylix";
+      url = "github:first-uninteresting-username/stylix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -74,12 +74,12 @@
     };
 
     hack = {
-      url = "github:First-Non-Interesting-Username/hack";
+      url = "github:first-uninteresting-username/hack";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     hexecute-gnome = {
-      url = "github:First-Non-Interesting-Username/Hexecute-gnome";
+      url = "github:first-uninteresting-username/Hexecute-gnome";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 

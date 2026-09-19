@@ -1,11 +1,11 @@
-# SPDX-FileCopyrightText: 2026 First-Non-Interesting-Username
+# SPDX-FileCopyrightText: 2026 first-uninteresting-username
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 [project]
 site_name = "NixOS Config"
-site_url = "https://first-non-interesting-username.github.io/NixOS-config/"
-repo_url = "https://github.com/First-Non-Interesting-Username/NixOS-config"
+site_url = "https://first-uninteresting-username.github.io/NixOS-config/"
+repo_url = "https://github.com/first-uninteresting-username/NixOS-config"
 
 [project.theme]
 features = [

@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2026 First-Non-Interesting-Username
+# SPDX-FileCopyrightText: 2026 first-uninteresting-username
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 {self, ...}: {
@@ -9,7 +9,7 @@
       lib,
       ...
     }: let
-      flakeRef = "github:First-Non-Interesting-Username/NixOS-config/main#${config.custom.hostname}";
+      flakeRef = "github:first-uninteresting-username/NixOS-config/main#${config.custom.hostname}";
     in {
       programs.nh = {
         enable = true;
