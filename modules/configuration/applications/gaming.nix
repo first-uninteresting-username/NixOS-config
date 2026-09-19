@@ -78,7 +78,6 @@
                 ".config/PrismLauncher"
                 ".config/heroic"
                 ".local/share/heroic"
-                ".config/hydra"
                 ".local/share/keyrings"
                 ".cache/ProtonPlus"
                 ".luanti"
@@ -96,7 +95,6 @@
           ];
 
           home.packages = with pkgs; [
-            hydralauncher
             heroic
             protonplus
             luanti
