@@ -81,6 +81,12 @@
                 ".local/share/keyrings"
                 ".cache/ProtonPlus"
                 ".luanti"
+                # nix-crab / host Steam stack (~/.steam is a compat symlink
+                # to .local/share/Steam created by programs.steam itself)
+                ".local/share/Steam"
+                ".config/SLSsteam"
+                ".config/CloudRedirect"
+                ".local/share/Lumen"
               ];
               files = [
                 # User-level files to persist (relative to $HOME)
