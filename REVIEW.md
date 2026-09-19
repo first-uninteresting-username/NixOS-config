@@ -87,7 +87,7 @@ Go top-down through every section. If a section does not apply, say why.
 - [ ] `alejandra .` passes, no `nixpkgs-fmt` mix. **Do not enforce line length** — `AGENTS.md` says lines SHOULD NOT exceed 100 chars, but per `REVIEW.md` do not block on it; flag as NIT only if it hurts readability.
 - [ ] Every `.nix` starts with SPDX header (`AGENTS.md`):
   ```nix
-  # SPDX-FileCopyrightText: 2026 First-Non-Interesting-Username
+  # SPDX-FileCopyrightText: 2026 first-uninteresting-username
   #
   # SPDX-License-Identifier: GPL-3.0-or-later
   ```

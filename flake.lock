@@ -335,13 +335,13 @@
       "locked": {
         "lastModified": 1788269566,
         "narHash": "sha256-YZmLNohdfpNA9kPAkdprYGSOP9a0VYbSTbRD/oNvKvU=",
-        "owner": "First-Non-Interesting-Username",
+        "owner": "first-uninteresting-username",
         "repo": "hack",
         "rev": "d1fd68c19866d9cf5fd535b6251c69f4f797353e",
         "type": "github"
       },
       "original": {
-        "owner": "First-Non-Interesting-Username",
+        "owner": "first-uninteresting-username",
         "repo": "hack",
         "type": "github"
       }
@@ -355,13 +355,13 @@
       "locked": {
         "lastModified": 1786352567,
         "narHash": "sha256-9vbyvh0zHwwXQI+1VqcvP9nHq508ertMOevtlNEgLaI=",
-        "owner": "First-Non-Interesting-Username",
+        "owner": "first-uninteresting-username",
         "repo": "Hexecute-gnome",
         "rev": "e017983f179c0fbad025826b0430b692bb4705b3",
         "type": "github"
       },
       "original": {
-        "owner": "First-Non-Interesting-Username",
+        "owner": "first-uninteresting-username",
         "repo": "Hexecute-gnome",
         "type": "github"
       }
@@ -737,13 +737,13 @@
       "locked": {
         "lastModified": 1787860111,
         "narHash": "sha256-MROUJAUXR81pUPqVZqaPMxhBOZwiOgxTmMXait7Cs8M=",
-        "owner": "First-Non-Interesting-Username",
+        "owner": "first-uninteresting-username",
         "repo": "stylix",
         "rev": "6b1a2f4f9efe9ab8136304add153c6f09c0c317d",
         "type": "github"
       },
       "original": {
-        "owner": "First-Non-Interesting-Username",
+        "owner": "first-uninteresting-username",
         "repo": "stylix",
         "type": "github"
       }

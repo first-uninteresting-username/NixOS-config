@@ -54,4 +54,4 @@ Add checks for features you add.
 
 ## Getting help/reporting issues/asking questions
 
-Use [github issues](https://github.com/First-Non-Interesting-Username/NixOS-config)
+Use [github issues](https://github.com/first-uninteresting-username/NixOS-config)

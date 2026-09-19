@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2026 First-Non-Interesting-Username
+# SPDX-FileCopyrightText: 2026 first-uninteresting-username
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 _: {
@@ -9,7 +9,7 @@ _: {
         nh
       ];
       text = ''
-        nh os boot github:First-Non-Interesting-Username/NixOS-config/main#"$HOSTNAME"
+        nh os boot github:first-uninteresting-username/NixOS-config/main#"$HOSTNAME"
       '';
     };
   };

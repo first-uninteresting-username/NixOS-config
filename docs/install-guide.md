@@ -39,13 +39,13 @@ Run (on the source):
 
 ```bash
 nix run github:nix-community/nixos-anywhere -- \
-  --flake "github:First-Non-Interesting-Username/NixOS-config#HOST-NAME" \
+  --flake "github:first-uninteresting-username/NixOS-config#HOST-NAME" \
   --extra-files ./tmp \
   --target-host "root@IP"
 ```
 
 ```nushell
-^nix run github:nix-community/nixos-anywhere -- --flake 'github:First-Non-Interesting-Username/NixOS-config#HOST-NAME' --extra-files ./tmp --target-host 'root@IP'
+^nix run github:nix-community/nixos-anywhere -- --flake 'github:first-uninteresting-username/NixOS-config#HOST-NAME' --extra-files ./tmp --target-host 'root@IP'
 ```
 
 ## Post installation
