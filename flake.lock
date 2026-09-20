@@ -335,13 +335,13 @@
       "locked": {
         "lastModified": 1789811169,
         "narHash": "sha256-MrRgWtWXYRAdnMB51s02zGTObCrk+Z3rG3t3Y4GbUlQ=",
-        "owner": "First-Non-Interesting-Username",
+        "owner": "first-uninteresting-username",
         "repo": "hack",
         "rev": "37384e602ae810c25f93967dd6f936f9b2a9995b",
         "type": "github"
       },
       "original": {
-        "owner": "First-Non-Interesting-Username",
+        "owner": "first-uninteresting-username",
         "repo": "hack",
         "type": "github"
       }
@@ -355,13 +355,13 @@
       "locked": {
         "lastModified": 1789812319,
         "narHash": "sha256-vsAmkIV3MvGxfnNAAgXm/njuNXFBkZEjA/8dvQdGdbM=",
-        "owner": "First-Non-Interesting-Username",
+        "owner": "first-uninteresting-username",
         "repo": "Hexecute-gnome",
         "rev": "83b73ff018ed8b9bb829127ac41ea3e4b2e97f22",
         "type": "github"
       },
       "original": {
-        "owner": "First-Non-Interesting-Username",
+        "owner": "first-uninteresting-username",
         "repo": "Hexecute-gnome",
         "type": "github"
       }
@@ -702,11 +702,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1789691124,
-        "narHash": "sha256-k+I+R6uwHX3VcJ7326qLV6vCahZUgsVl+i8sSU/Stxk=",
+        "lastModified": 1789815532,
+        "narHash": "sha256-/Ql9UE21iDwOU/JdPV20yZtaMpGf+iD2EhIA1aAi540=",
         "owner": "Mic92",
         "repo": "sops-nix",
-        "rev": "1e73e8f7176d65e1b55e324de099bbfff4b2c574",
+        "rev": "166fc0d3f4fcd0dfc9af102ba8e85fa5dd04e5f7",
         "type": "github"
       },
       "original": {
@@ -737,13 +737,13 @@
       "locked": {
         "lastModified": 1789812377,
         "narHash": "sha256-HUSW7euqa8u6uLomktDKeRnfkdnMfqO3IXs07Fpvu/0=",
-        "owner": "First-Non-Interesting-Username",
+        "owner": "first-uninteresting-username",
         "repo": "stylix",
         "rev": "51d3fdb7afd6b01ad44ab3ee2ac1c53009e6cfdb",
         "type": "github"
       },
       "original": {
-        "owner": "First-Non-Interesting-Username",
+        "owner": "first-uninteresting-username",
         "repo": "stylix",
         "type": "github"
       }

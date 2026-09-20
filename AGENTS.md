@@ -139,7 +139,7 @@ flake-check  # runs: nix flake check --no-build  (devenv.nix:14)
 Every `.nix` file MUST start with:
 
 ```nix
-# SPDX-FileCopyrightText: 2026 First-Non-Interesting-Username
+# SPDX-FileCopyrightText: 2026 first-uninteresting-username
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 ```
@@ -209,7 +209,7 @@ Age keys for `armin`/`victim` are already in `.sops.yaml:13`.
 | Fast check       | `flake-check` or `nix flake check --no-build`                                                                                                      |
 | Full check       | `nix flake check`                                                                                                                                  |
 | Build host       | `nixos-rebuild build --flake .#<hostname>`                                                                                                         |
-| Deploy (on host) | `rebuild` — wraps `nh os boot github:First-Non-Interesting-Username/NixOS-config/main#$HOSTNAME` (`packages/shell-scripts/rebuild/default.nix:12`) |
+| Deploy (on host) | `rebuild` — wraps `nh os boot github:first-uninteresting-username/NixOS-config/main#$HOSTNAME` (`packages/shell-scripts/rebuild/default.nix:12`) |
 | Edit secrets     | `sops secrets/secrets.yaml`                                                                                                                        |
 
 ## Git Conventions

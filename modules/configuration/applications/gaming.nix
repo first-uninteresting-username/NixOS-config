@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2026 First-Non-Interesting-Username
+# SPDX-FileCopyrightText: 2026 first-uninteresting-username
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 _: {
@@ -32,7 +32,7 @@ _: {
             enable = true;
             containers = {
               Gbox = {
-                image = "ghcr.io/first-non-interesting-username/gbox-gnome-amd:20260816";
+                image = "ghcr.io/first-uninteresting-username/gbox-gnome-amd:20260816";
                 init = false;
                 root = false;
                 start_now = false;

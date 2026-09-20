@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2026 First-Non-Interesting-Username
+# SPDX-FileCopyrightText: 2026 first-uninteresting-username
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -55,7 +55,7 @@ jobs:
 
             Please review and merge if correct.
           labels: chore
-          assignees: First-Non-Interesting-Username
+          assignees: first-uninteresting-username
 
       - name: No change needed
         if: steps.diff.outputs.changed == 'false'

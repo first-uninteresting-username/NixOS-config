@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2026 First-Non-Interesting-Username
+# SPDX-FileCopyrightText: 2026 first-uninteresting-username
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 {inputs, ...}: {
@@ -20,10 +20,10 @@
       nix = {
         registry = {
           nixpkgs.flake = inputs.nixpkgs;
-          # Allows me to use shorthand 'config' instead of 'github:First-Non-Interesting-Username/NixOS-config'
+          # Allows me to use shorthand 'config' instead of 'github:first-uninteresting-username/NixOS-config'
           config.to = {
             type = "github";
-            owner = "First-Non-Interesting-Username";
+            owner = "first-uninteresting-username";
             repo = "NixOS-config";
             ref = "main";
           };

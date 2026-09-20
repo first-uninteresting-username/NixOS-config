@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2026 First-Non-Interesting-Username
+# SPDX-FileCopyrightText: 2026 first-uninteresting-username
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 {self, ...}: {
@@ -38,6 +38,10 @@
         programs = {
           ssh.startAgent = lib.mkForce false;
           dconf.enable = true;
+          nautilus-open-any-terminal = {
+            enable = true;
+            terminal = "ptyxis";
+          };
         };
 
         services = {

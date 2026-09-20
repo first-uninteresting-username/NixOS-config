@@ -11,7 +11,7 @@
 Fork this repo. You can do that with github webui or `gh` CLI tool:
 
 ```bash
-gh repo fork First-Non-Interesting-Username/NixOS-config
+gh repo fork first-uninteresting-username/NixOS-config
 ```
 
 It might be a good idea to let me know that you are a user of this config, so I can provide assistance to you and ship less breaking changes.
