@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2026 first-uninteresting-username
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
-_: {
+{inputs, ...}: {
   flake = {
     nixosModules = {
       gaming-distrobox = {
@@ -51,6 +51,19 @@ _: {
         lib,
         ...
       }: {
+        imports = [
+          inputs.nix-crab.nixosModules.default
+        ];
+
+        programs.nix-crab = {
+          slssteam.enable = true;
+          # LuaTools stack: use the slsteam-moon fork (Lua manifest importer)
+          # for downloads from the Steam CDN; takes precedence over slssteam
+          slssteam-moon.enable = true;
+          cloudredirect.enable = true;
+          cloudredirect.moon.enable = true;
+        };
+
         preservation.preserveAt = lib.mkIf config.custom.preservation.enable {
           "/persist" = {
             users.${config.custom.user.name} = {
@@ -62,10 +75,15 @@ _: {
                 ".config/PrismLauncher"
                 ".config/heroic"
                 ".local/share/heroic"
-                ".config/hydra"
                 ".local/share/keyrings"
                 ".cache/ProtonPlus"
                 ".luanti"
+                # nix-crab / host Steam stack (~/.steam is a compat symlink
+                # to .local/share/Steam created by programs.steam itself)
+                ".local/share/Steam"
+                ".config/SLSsteam"
+                ".config/CloudRedirect"
+                ".local/share/Lumen"
               ];
               files = [
                 # User-level files to persist (relative to $HOME)
@@ -75,13 +93,25 @@ _: {
         };
 
         home-manager.users.${config.custom.user.name} = _: {
+          imports = [
+            inputs.nix-crab.homeModules.default
+          ];
+
           home.packages = with pkgs; [
-            hydralauncher
             heroic
             protonplus
             luanti
           ];
           programs = {
+            nix-crab = {
+              luatools = {
+                enable = true;
+                # Run Lumen as a systemd user service instead of shadowing
+                # the steam command with a wrapper sidecar
+                lumenService = true;
+              };
+              cloudredirect.moon.enable = true;
+            };
             lutris = {
               enable = true;
             };

@@ -107,6 +107,7 @@ _: {
               show_edit_predictions = true;
               edit_predictions = {
                 provider = "codestral";
+                mode = "subtle";
               };
               agent = {
                 enabled = false;

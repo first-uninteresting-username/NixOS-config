@@ -23,17 +23,17 @@ Flake-based NixOS configuration using [flake-parts](https://github.com/hercules-
 │   │   ├── applications/ desktop/ development/ iso/ services/ system/ user/
 │   │   └── _template.nix
 │   └── nixos/           # Flake-level plumbing -> flake.nixosModules.<name>
-│       ├── args/        # custom.* options (hostname, user, preservation, stylix)
-│       ├── desktop-envinroment/
-│       ├── server/  shell/
+│       ├── args/                # custom.* options (hostname, user, preservation, stylix)
+│       ├── desktop-environment/ # GNOME + DE options
+│       ├── shell/               # shell options (zsh, nushell, programs)
 │       └── _template.nix
 ├── packages/            # perSystem packages (import-tree)
 │   ├── mirrors/  shell-scripts/  # rebuild, sops-easy, template, etc.
-│   └── docs/
+│   ├── docs/  vm-hosts/
 ├── checks/              # flake checks (import-tree)
 ├── github-actions/      # nix-github-actions wiring (import-tree)
 ├── secrets/             # sops-nix encrypted secrets (age)
-├── docs/                # User-facing documentation
+├── docs/                # User-facing documentation (see docs/module-reference.md for the module list)
 ├── devenv.nix / devenv.yaml
 ├── .sops.yaml
 └── zensical.toml
@@ -43,7 +43,7 @@ Flake-based NixOS configuration using [flake-parts](https://github.com/hercules-
 
 ### Flake Wiring
 
-`flake.nix:85` uses `import-tree`:
+`flake.nix` uses `import-tree` inside `mkFlake`:
 
 ```nix
 imports = [
@@ -57,10 +57,11 @@ imports = [
 
 - `modules/`, `packages/`, `checks/`, `github-actions/` — recursive import, every `default.nix` contributes outputs.
 - `hosts/` — only `*/default.nix` one level deep is matched. A host that should not be auto-exported uses `_default.nix` (e.g. `hosts/template/_default.nix`).
+- `perSystem.formatter` is `alejandra`.
 
 ### Host Definition
 
-Each host's `default.nix` follows `hosts/armin/default.nix:11`:
+Each host's `default.nix` follows `hosts/armin/default.nix`:
 
 ```nix
 let Hostname = "armin"; in {
@@ -80,7 +81,7 @@ let Hostname = "armin"; in {
 
 ISO hosts (`wall-e`, `john`) also expose `flake.packages.<system>.<name>` as `config.system.build.isoImage`.
 
-`hosts/common/desktop-modules.nix:4` is the shared desktop base — it imports `self.nixosModules.hostname`, `user`, `stylix`, etc. and sets `custom.hostname = hostName` from `_module.args.hostName`.
+`hosts/common/desktop-modules.nix` is the shared desktop base — it imports `self.nixosModules.DE`, `user`, `hostname`, `stylix`, `preservation`, `shell`, and sets `custom.hostname = hostName` from `_module.args.hostName`.
 
 ### Modules
 
@@ -91,9 +92,26 @@ Two layers, both exposed as `flake.nixosModules.<name>`:
 
 Hosts opt in by listing `self.nixosModules.<name>` in `default.nix` (system-level) and configuring via `custom.*` in `modules.nix`.
 
+Module index (name -> defining file):
+
+| Module(s)                                              | File                                                    |
+| ------------------------------------------------------ | ------------------------------------------------------- |
+| `browser`, `gaming`, `gaming-distrobox`, `llama-cpp`, `programs-desktop`, `sudo` | `modules/configuration/applications/`          |
+| `audio`, `input`, `printing`, `tty`, `wayland`         | `modules/configuration/desktop/`                        |
+| `IDE`, `agents`, `git`, `secretless-git`, `languages`  | `modules/configuration/development/`                    |
+| `iso`, `iso-graphical`, `iso-terminal`                 | `modules/configuration/iso/`                            |
+| `smart`, `ssh`, `ssh-server`, `ssh-debug`, `secretless-ssh`, `sunshine`, `moonlight`, `update`, `virtualization-desktop` | `modules/configuration/services/` |
+| `bootloader`, `locale`, `networking-desktop`, `networking-minimal`, `secretless-networking-desktop`, `nix`, `power`, `secrets`, `sops` | `modules/configuration/system/` |
+| `home-manager`, `xdg`                                  | `modules/configuration/user/`                           |
+| `hostname`, `preservation`, `stylix`, `user`           | `modules/nixos/args/`                                   |
+| `GNOME`, `DE`, `DE-programs-gnome`                     | `modules/nixos/desktop-environment/`                    |
+| `shell`, `shell-programs`, `shell-secret-programs`, `zsh`, `nushell` | `modules/nixos/shell/`                      |
+
+Note: a single file may export several modules, and module names do not always match file names (e.g. `sunshine.nix` also exports `moonlight`, `networking.nix` exports `networking-desktop`). Check the file's `flake.nixosModules` attribute set when unsure. `docs/module-reference.md` mirrors this list for users.
+
 Canonical module shapes:
 
-No flake inputs needed (`modules/configuration/_template.nix:4`):
+No flake inputs needed (`modules/configuration/_template.nix`):
 
 ```nix
 _: {
@@ -103,7 +121,7 @@ _: {
 }
 ```
 
-Needs flake inputs (`modules/nixos/args/hostname.nix:4` style):
+Needs flake inputs (`modules/configuration/applications/gaming.nix` imports `inputs.nix-crab`):
 
 ```nix
 { inputs, ... }: {
@@ -115,6 +133,17 @@ Needs flake inputs (`modules/nixos/args/hostname.nix:4` style):
 
 Templates: `modules/configuration/_template.nix` and `modules/nixos/_template.nix`.
 
+### External Flake Inputs Used by Modules
+
+Inputs are declared in `flake.nix` and consumed inside modules via the flake-parts `inputs` argument:
+
+- `preservation` — persisted `/persist` state; gated on `config.custom.preservation.enable`.
+- `nix-crab` — Steam tools wired up in the `gaming` module; both `nixosModules.default` and `homeModules.default` are imported together. Uses the LuaTools stack: `slssteam-moon` + `cloudredirect.moon` on the NixOS side, `luatools` + `cloudredirect.moon` on the home side (mutually exclusive with Millennium).
+- `nixflix` — used by `moonlight`/`sunshine`.
+- `stylix` (fork), `home-manager`, `sops-nix`, `disko`, `nix-index-database`, `llm-agents`, `hack`, `hexecute-gnome`, `firefox-addons`, `nix-cachyos-kernel`, `nixos-hardware`, `flake-registry` (non-flake), `nix-github-actions`.
+
+When adding an input that a module needs, follow its `inputs.nixpkgs.follows = "nixpkgs";` convention where the upstream supports it, and run `nix flake update` (never hand-edit `flake.lock`).
+
 ## Development Environment
 
 Provided by [devenv](https://devenv.sh/) (`devenv.nix`, `devenv.yaml`), not `devShells`.
@@ -124,12 +153,12 @@ devenv shell   # enter dev shell
 direnv allow   # auto-enter via direnv
 ```
 
-Provides `alejandra` (Nix formatter, also a git-hook), `nixd` (language server), `yamllint`. Editor settings for VS Code/Zed are generated via `files.".vscode/settings.json"` and `files.".zed/settings.json"` in `devenv.nix:18`.
+Provides `alejandra` (Nix formatter, also a git-hook), `nixd` (language server), `yamllint`. Editor settings for VS Code/Zed are generated via `files.".vscode/settings.json"` and `files.".zed/settings.json"` in `devenv.nix`.
 
 Custom script:
 
 ```bash
-flake-check  # runs: nix flake check --no-build  (devenv.nix:14)
+flake-check  # runs: nix flake check --no-build
 ```
 
 ## Code Standards
@@ -146,10 +175,11 @@ Every `.nix` file MUST start with:
 
 ### Nix Style
 
-- Format with `alejandra` (`alejandra .`). Enforced by git-hooks (`devenv.nix:54`).
+- Format with `alejandra` (`alejandra .`). Enforced by git-hooks (`devenv.nix`).
 - Lines SHOULD NOT exceed 100 characters.
 - Attribute names MUST be `camelCase`; file names MUST be `kebab-case`.
 - NEVER use `with lib;` at top level — use explicit `lib.` prefix.
+- Module names exported as `flake.nixosModules.<name>` MAY use kebab-case (`llama-cpp`, `networking-desktop`); reference them as `self.nixosModules.<kebab-name>`.
 
 ### Hostname Convention
 
@@ -157,10 +187,20 @@ Do not use a `hostname` specialArg. Instead:
 
 1. Host `default.nix` sets `_module.args.hostName = Hostname` inside `nixosSystem` modules list.
 2. Shared or host `modules.nix` sets `custom.hostname = hostName` (where `hostName` comes from `_module.args`).
-3. `self.nixosModules.hostname` (`modules/nixos/args/hostname.nix:22`) sets `networking.hostName = config.custom.hostname`.
+3. `self.nixosModules.hostname` (`modules/nixos/args/hostname.nix`) sets `networking.hostName = config.custom.hostname`.
 4. All other modules read `config.custom.hostname`.
 
-Example: `hosts/common/desktop-modules.nix:30`.
+Example: `hosts/common/desktop-modules.nix`.
+
+### Home-Manager Convention
+
+User-level config lives inside system modules via:
+
+```nix
+home-manager.users.${config.custom.user.name} = { config, pkgs, ... }: { ... };
+```
+
+Persistence of user state goes through `preservation.preserveAt` gated on `config.custom.preservation.enable` (see `llama-cpp.nix`, `gaming.nix`, `IDE.nix` for examples).
 
 ### Docs Style
 
@@ -199,18 +239,18 @@ Adding a secret:
 2. Edit `secrets/secrets.yaml` via `sops`.
 3. For user passwords use `mkpasswd -m yescrypt` ( `custom.user.hashedPasswordFile` expects yescrypt).
 
-Age keys for `armin`/`victim` are already in `.sops.yaml:13`.
+Age keys for `armin`/`victim` are already in `.sops.yaml`.
 
 ## Commands
 
-| Task             | Command                                                                                                                                            |
-| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Format           | `alejandra .`                                                                                                                                      |
-| Fast check       | `flake-check` or `nix flake check --no-build`                                                                                                      |
-| Full check       | `nix flake check`                                                                                                                                  |
-| Build host       | `nixos-rebuild build --flake .#<hostname>`                                                                                                         |
-| Deploy (on host) | `rebuild` — wraps `nh os boot github:first-uninteresting-username/NixOS-config/main#$HOSTNAME` (`packages/shell-scripts/rebuild/default.nix:12`) |
-| Edit secrets     | `sops secrets/secrets.yaml`                                                                                                                        |
+| Task             | Command                                                                                                          |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Format           | `alejandra .`                                                                                                    |
+| Fast check       | `flake-check` or `nix flake check --no-build`                                                                    |
+| Full check       | `nix flake check`                                                                                                |
+| Build host       | `nixos-rebuild build --flake .#<hostname>`                                                                       |
+| Deploy (on host) | `rebuild` — wraps `nh os boot github:first-uninteresting-username/NixOS-config/main#$HOSTNAME` (`packages/shell-scripts/rebuild/`) |
+| Edit secrets     | `sops secrets/secrets.yaml`                                                                                      |
 
 ## Git Conventions
 
@@ -244,4 +284,5 @@ Checklist from `.github/pull_request_template.md`:
 - Verify changes with `nix flake check --no-build` or `alejandra` when touching Nix.
 - Do not mutate `flake.lock` manually — use `nix flake update`.
 - Do not commit plaintext secrets or modify `.sops.yaml` keys without user confirmation.
+- The `gaming` module requires network-fetched inputs (`nix-crab` pulls SLSsteam/CloudRedirect artifacts); evaluation may fail in a sandbox without network or flake-lock access.
 - Host `iroh` referenced in older docs no longer exists; current hosts are `armin`, `victim`, `wall-e`, `john`, `template`.
