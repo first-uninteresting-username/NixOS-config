@@ -41,6 +41,7 @@ nixosModules.moonlight
 nixosModules.update
 nixosModules.virtualization-desktop
 nixosModules.virtualization-server
+nixosModules.windows-vm
 nixosModules.locale
 nixosModules.networking-desktop
 nixosModules.secretless-networking-desktop

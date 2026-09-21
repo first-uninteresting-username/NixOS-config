@@ -42,6 +42,7 @@ in {
       self.nixosModules.update
       self.nixosModules.virtualization-desktop
       self.nixosModules.wayland
+      self.nixosModules.windows-vm
       self.nixosModules.xdg
       inputs.home-manager.nixosModules.home-manager
       {

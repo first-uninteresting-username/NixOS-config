@@ -110,8 +110,9 @@ tree
 │           ├── developement
 │           │   ├── agents.nix
 │           │   └── IDE
-│           ├── services
-│           │   └── update.nix
+│         ├── services
+│         │   ├── update.nix
+│         │   └── windows-vm.nix
 │           └── system
 │               └── networking.nix
 ├── CLA.md # Controversial CLA, I hope you can understand my motives after reading the comment
@@ -190,8 +191,9 @@ tree
 │   │   │   ├── smart.nix
 │   │   │   ├── ssh.nix
 │   │   │   ├── sunshine.nix
-│   │   │   ├── update.nix
-│   │   │   └── virtualization.nix
+│   │   │   ├── update.nix
+│   │   │   ├── virtualization.nix
+│   │   │   └── windows-vm.nix
 │   │   ├── system # System modules
 │   │   │   ├── bootloader.nix
 │   │   │   ├── locale.nix
