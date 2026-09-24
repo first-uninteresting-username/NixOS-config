@@ -45,7 +45,10 @@
         };
 
         services = {
-          xserver.enable = true;
+          xserver = {
+            enable = true;
+            excludePackages = [pkgs.xterm];
+          };
           desktopManager.gnome.enable = true;
           displayManager.gdm.enable = true;
           gnome = {
@@ -69,6 +72,8 @@
             gnome-system-monitor
             gnome-tecla
             gnome-software
+            gnome-console
+            yelp
           ];
         };
 
