@@ -39,19 +39,6 @@ modules = [
 ];
 ```
 
-### HackaStats
-
-The GNOME module installs and enables [HackaStats](https://github.com/first-uninteresting-username/hackastats)
-to display today's Hackatime coding time in the top panel.
-Rebuild the system and log out and back in to load the extension.
-The `hackastats` flake input follows the shared `nixpkgs` input and tracks upstream
-updates through the existing automated flake update workflow. The mirrored
-`packages.<system>.hackastats` output uses the existing package build and cache workflow.
-
-HackaStats reads the API URL and key from `~/.wakatime.cfg`, which the `IDE` module
-generates from the existing encrypted Hackatime secret. Configure panel position
-and refresh interval in the extension preferences.
-
 ### Zed with ChatGPT Plus
 
 The `IDE` module enables Zed's Agent panel and its status bar button.
