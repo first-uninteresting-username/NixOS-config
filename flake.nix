@@ -84,6 +84,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    hackastats = {
+      url = "github:first-uninteresting-username/hackastats";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     hexecute-gnome = {
       url = "github:first-uninteresting-username/Hexecute-gnome";
       inputs.nixpkgs.follows = "nixpkgs";
