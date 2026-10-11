@@ -4,6 +4,8 @@
 
 | Keybind             | Action                   |
 | ------------------- | ------------------------ |
+| Alt + Tab           | Disabled                 |
+| Super + Tab         | Switch applications      |
 | Super + 1-4         | Switch workspace         |
 | Super + Shift + 1-4 | Move window to workspace |
 | Super + d           | Show desktop             |
