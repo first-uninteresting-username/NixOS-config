@@ -39,6 +39,21 @@ modules = [
 ];
 ```
 
+### CloudRedirect release updates
+
+The `nix-crab` input pins CloudRedirect's upstream hook to a versioned release URL.
+This keeps dependency updates and CI from fetching different files through the moving `latest` URL.
+
+To update the hook, change the release version in
+`inputs.nix-crab.inputs.cloudredirect.url` in `flake.nix`, then run:
+
+```bash
+nix flake update nix-crab/cloudredirect
+nix flake check --no-build
+```
+
+The regular flake update keeps this release pinned until you change its URL.
+
 ### Zed with ChatGPT Plus
 
 The `IDE` module enables Zed's Agent panel and its status bar button.

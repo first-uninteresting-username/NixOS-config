@@ -119,11 +119,11 @@
       "locked": {
         "narHash": "sha256-THlPEtlACX7zQQjLHNNNJip4dEimlyC7RqOvExgHAIs=",
         "type": "file",
-        "url": "https://github.com/Selectively11/CloudRedirect/releases/latest/download/cloud_redirect.so"
+        "url": "https://github.com/Selectively11/CloudRedirect/releases/download/v2.6.6/cloud_redirect.so"
       },
       "original": {
         "type": "file",
-        "url": "https://github.com/Selectively11/CloudRedirect/releases/latest/download/cloud_redirect.so"
+        "url": "https://github.com/Selectively11/CloudRedirect/releases/download/v2.6.6/cloud_redirect.so"
       }
     },
     "cloudredirect-cli": {
