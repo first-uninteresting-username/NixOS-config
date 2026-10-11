@@ -400,6 +400,26 @@
         "type": "github"
       }
     },
+    "hackastats": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1791712379,
+        "narHash": "sha256-pZIJ6bBE7OMURdeKVjfxqFNuTD8jawxAa5GMIH9l9x0=",
+        "owner": "first-uninteresting-username",
+        "repo": "hackastats",
+        "rev": "805c49f7d2a80ebdd645af7bbdd0b7f0d5f26187",
+        "type": "github"
+      },
+      "original": {
+        "owner": "first-uninteresting-username",
+        "repo": "hackastats",
+        "type": "github"
+      }
+    },
     "hexecute-gnome": {
       "inputs": {
         "nixpkgs": [
@@ -889,6 +909,7 @@
         "flake-parts": "flake-parts",
         "flake-registry": "flake-registry",
         "hack": "hack",
+        "hackastats": "hackastats",
         "hexecute-gnome": "hexecute-gnome",
         "home-manager": "home-manager",
         "import-tree": "import-tree",

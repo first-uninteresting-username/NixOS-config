@@ -127,6 +127,7 @@
                   vitals
                   hide-cursor
                   tiling-shell
+                  self.packages.${pkgs.stdenv.hostPlatform.system}.hackastats
                 ]
               );
             };
