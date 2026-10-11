@@ -407,11 +407,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1791712141,
+        "lastModified": 1791712379,
         "narHash": "sha256-pZIJ6bBE7OMURdeKVjfxqFNuTD8jawxAa5GMIH9l9x0=",
         "owner": "first-uninteresting-username",
         "repo": "hackastats",
-        "rev": "9720eae821c26a6e0420a8713ae3ae0c4e8c66e7",
+        "rev": "805c49f7d2a80ebdd645af7bbdd0b7f0d5f26187",
         "type": "github"
       },
       "original": {
