@@ -23,13 +23,23 @@
     include = map (entry: entry // {type = attrPrefix;}) rawMatrix.include;
   };
 
+  # These are the ISO package exports in hosts/{john,wall-e}/default.nix.
+  isoPackageNamesBySystem."x86_64-linux" = ["john" "wall-e"];
+  isIsoPackage = system: name:
+    builtins.elem name (isoPackageNamesBySystem.${system} or []);
+  filterPackages = predicate:
+    lib.mapAttrs (
+      system: packages:
+        lib.filterAttrs (name: _: predicate system name) packages
+    )
+    config.flake.packages;
+
   hostsBySystem = lib.foldl' (
     bySystem: hostName: let
       host = config.flake.nixosConfigurations.${hostName};
       system = host.pkgs.stdenv.hostPlatform.system;
     in
-      bySystem
-      // {
+      lib.recursiveUpdate bySystem {
         ${system}.${hostName} = host.config.system.build.toplevel;
       }
   ) {} (builtins.attrNames config.flake.nixosConfigurations);
@@ -38,13 +48,23 @@ in {
     hosts = hostsBySystem;
 
     githubActions = let
-      checks = mkMatrix "checks" config.flake.checks;
-      packages = mkMatrix "packages" config.flake.packages;
+      tests = mkMatrix "checks" (
+        lib.mapAttrs (_: lib.filterAttrs (name: _: !lib.hasPrefix "iso-" name))
+        config.flake.checks
+      );
+      isoTests = mkMatrix "checks" (
+        lib.mapAttrs (_: lib.filterAttrs (name: _: lib.hasPrefix "iso-" name))
+        config.flake.checks
+      );
+      packages = mkMatrix "packages" (filterPackages (system: name: !isIsoPackage system name));
+      isos = mkMatrix "packages" (filterPackages isIsoPackage);
       hosts = mkMatrix "hosts" hostsBySystem;
     in {
-      inherit checks packages hosts;
-
-      fullMatrix.include = checks.include ++ packages.include ++ hosts.include;
+      inherit tests packages hosts isos isoTests;
+      # Preserve the old check matrix name for local consumers.
+      checks = tests;
+      fullMatrix.include =
+        packages.include ++ tests.include ++ hosts.include ++ isos.include ++ isoTests.include;
     };
   };
 }

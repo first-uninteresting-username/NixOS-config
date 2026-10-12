@@ -14,3 +14,5 @@ result
 *.orig
 keys.txt
 john.qcow2
+__pycache__/
+*.pyc

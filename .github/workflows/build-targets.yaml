@@ -1,0 +1,104 @@
+# SPDX-FileCopyrightText: 2026 first-uninteresting-username
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+name: Build CI targets
+
+on:
+  workflow_call:
+    inputs:
+      matrix:
+        type: string
+        required: true
+      ref:
+        type: string
+        default: ""
+      cache-write:
+        type: boolean
+        default: false
+    secrets:
+      CACHIX_AUTH_TOKEN:
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.type }} - ${{ matrix.name }} (${{ matrix.system }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      max-parallel: 17
+      matrix: ${{ fromJSON(inputs.matrix) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
+
+      - uses: wimpysworld/nothing-but-nix@687c797a730352432950c707ab493fcc951818d7 # v10
+        with:
+          hatchet-protocol: cleave
+
+      - name: Configure Nix and VM acceleration
+        shell: bash
+        env:
+          ENABLE_KVM: ${{ matrix.type == 'checks' && matrix.system == 'x86_64-linux' }}
+        run: |
+          set -Eeuo pipefail
+          if [[ "$ENABLE_KVM" == true ]]; then
+            test -c /dev/kvm
+            sudo chmod a+rw /dev/kvm
+          fi
+          {
+            echo 'NIX_CONF<<EOF'
+            cat .github/nix.conf
+            if [[ "$ENABLE_KVM" == true ]]; then
+              echo 'system-features = benchmark big-parallel nixos-test kvm'
+            fi
+            echo 'EOF'
+          } >> "$GITHUB_ENV"
+
+      - uses: DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa # v23
+        with:
+          extra-conf: ${{ env.NIX_CONF }}
+
+      - uses: cachix/cachix-action@38b082610b782e7e93e209c35fd730d399dee866 # v17
+        with:
+          name: matrix
+          authToken: ${{ inputs.cache-write && secrets.CACHIX_AUTH_TOKEN || '' }}
+          installCommand: "nix profile add nixpkgs#cachix"
+
+      - name: Build target and skip cached outputs
+        shell: bash
+        env:
+          BUILD_ATTR: ${{ matrix.attr }}
+          CACHE_WRITE: ${{ inputs.cache-write }}
+          CACHIX_AUTH_TOKEN: ${{ inputs.cache-write && secrets.CACHIX_AUTH_TOKEN || '' }}
+        run: |
+          set -Eeuo pipefail
+          mkdir -p logs
+          args=(--no-nom --skip-cached --flake ".#${BUILD_ATTR}")
+          if [[ "$CACHE_WRITE" == true && -n "$CACHIX_AUTH_TOKEN" ]]; then
+            args+=(--cachix-cache matrix)
+          fi
+          nix run github:Mic92/nix-fast-build -- "${args[@]}" 2>&1 | tee logs/build.log
+
+      - name: Collect derivation failure logs
+        if: failure()
+        shell: bash
+        env:
+          BUILD_ATTR: ${{ matrix.attr }}
+        run: |
+          mkdir -p logs
+          drv=$(nix eval --raw ".#${BUILD_ATTR}.drvPath" 2>> logs/evaluation.log) || exit 0
+          nix log "$drv" > logs/derivation.log 2>&1 || true
+
+      - name: Retain build failure logs
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: logs-${{ matrix.type }}-${{ matrix.system }}-${{ matrix.name }}
+          path: logs/
+          retention-days: 14

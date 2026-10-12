@@ -1,0 +1,7 @@
+# SPDX-FileCopyrightText: 2026 first-uninteresting-username
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# Independent flake exports and module options intentionally use separate attribute paths.
+disabled = ["repeated_keys"]
+ignore = [".direnv"]

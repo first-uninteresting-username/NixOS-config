@@ -1,0 +1,72 @@
+# SPDX-FileCopyrightText: 2026 first-uninteresting-username
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+name: Prove check regressions
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  regression-checks:
+    name: Positive and negative controls - ${{ matrix.case }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 7
+      matrix:
+        case:
+          - persistence-without-user-state
+          - networkmanager-secrets-without-reload
+          - gnome-session
+          - upgrade
+          - printing-discovery
+          - iso-john
+          - iso-wall-e
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - uses: wimpysworld/nothing-but-nix@687c797a730352432950c707ab493fcc951818d7 # v10
+        with:
+          hatchet-protocol: cleave
+
+      - name: Configure Nix and VM acceleration
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test -c /dev/kvm
+          sudo chmod a+rw /dev/kvm
+          {
+            echo 'NIX_CONF<<EOF'
+            cat .github/nix.conf
+            echo 'system-features = benchmark big-parallel nixos-test kvm'
+            echo 'EOF'
+          } >> "$GITHUB_ENV"
+
+      - uses: DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa # v23
+        with:
+          extra-conf: ${{ env.NIX_CONF }}
+
+      - name: Require the positive control and the representative assertion failure
+        shell: bash
+        env:
+          REGRESSION_CASE: ${{ matrix.case }}
+        run: |
+          set -Eeuo pipefail
+          mkdir -p logs
+          python3 .github/scripts/prove-regression.py \
+            --case "$REGRESSION_CASE" --system x86_64-linux \
+            --summary "$GITHUB_STEP_SUMMARY" 2>&1 | tee logs/regression.log
+
+      - name: Retain positive and negative proof logs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: regression-proof-${{ matrix.case }}
+          path: logs/
+          retention-days: 14

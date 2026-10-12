@@ -6,6 +6,11 @@ name: Update Packages
 
 on:
   workflow_dispatch:
+    inputs:
+      packages:
+        description: JSON array of package names (empty array updates all packages)
+        type: string
+        default: "[]"
   schedule:
     - cron: 0 6 * * 1,4
 
@@ -40,6 +45,8 @@ jobs:
 
       - name: List packages
         id: list
+        env:
+          PACKAGE_FILTER: ${{ inputs.packages || '[]' }}
         run: |
           PKGS=$(nix eval .#packages \
             --apply 'p:
@@ -48,7 +55,7 @@ jobs:
             ' \
             --json)
 
-          P_FILTER='${{ inputs.packages }}'
+          P_FILTER="$PACKAGE_FILTER"
           if [ "$P_FILTER" != "[]" ] && [ -n "$P_FILTER" ]; then
             PKGS=$(echo "$PKGS" | jq --argjson filter "$P_FILTER" \
               '[.[] | select(. as $n | $filter | index($n))]')
@@ -86,10 +93,3 @@ jobs:
           branch: "chore(update)/package-updates"
           delete-branch: true
           labels: dependencies
-
-      - name: Enable PR auto-merge
-        if: steps.cpr.outputs.pull-request-operation == 'created' || steps.cpr.outputs.pull-request-operation == 'updated'
-        run: gh pr merge "$PR_NUMBER" --auto --squash
-        env:
-          GH_TOKEN: ${{ secrets.PAT }}
-          PR_NUMBER: ${{ steps.cpr.outputs.pull-request-number }}

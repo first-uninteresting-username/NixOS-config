@@ -6,6 +6,7 @@ name: Flake check
 
 on:
   push:
+    branches: [main]
   workflow_call:
     outputs:
       success:
@@ -16,10 +17,8 @@ permissions:
 
 jobs:
   check:
+    name: Basic validation
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
     outputs:
       success: ${{ steps.check.outputs.success }}
     steps:
@@ -35,68 +34,49 @@ jobs:
             cat .github/nix.conf
             echo 'EOF'
           } >> "$GITHUB_ENV"
+
       - uses: DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa # v23
         with:
           extra-conf: ${{ env.NIX_CONF }}
 
-      - uses: cachix/cachix-action@38b082610b782e7e93e209c35fd730d399dee866 # v17
-        with:
-          name: matrix
-          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
-          installCommand: "nix profile add nixpkgs#cachix"
-
-      - name: Run Nix Fixes and Formatters
+      - name: Validate formatting and lints
+        shell: bash
         run: |
-          nix run nixpkgs#deadnix -- --edit --exclude \
-            modules/configuration/template.nix \
-            modules/nixos/template.nix \
-            hosts/template/configuration.nix \
-            hosts/template/_default.nix \
-            hosts/template/disko.nix \
-            hosts/template/hardware.nix \
-            hosts/template/modules.nix \
-            packages/shell-scripts/template/default.nix \
-            checks/template.nix
-          nix run nixpkgs#statix -- fix . \
-            --ignore "modules/configuration/template.nix" \
-            --ignore "hosts/template" \
-            --ignore "modules/nixos/template.nix" \
-            --ignore "checks/template.nix"
-          nix run nixpkgs#alejandra -- .
+          set -Eeuo pipefail
+          mkdir -p logs
+          {
+            nix run --inputs-from . nixpkgs#alejandra -- --check .
+            nix run --inputs-from . nixpkgs#deadnix -- --fail --exclude \
+              modules/configuration/_template.nix \
+              modules/nixos/_template.nix \
+              hosts/template \
+              packages/shell-scripts/_template \
+              checks/_example-checks
+            nix run --inputs-from . nixpkgs#statix -- check . \
+              --ignore modules/configuration/_template.nix \
+              --ignore modules/nixos/_template.nix \
+              --ignore hosts/template \
+              --ignore checks/_example-checks
+          } 2>&1 | tee logs/lints.log
 
-      - name: Enable aarch64 via QEMU
-        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4
-        with:
-          platforms: arm64
-
-      - name: Add aarch64 as extra platform
+      - name: Validate CI selection and merge policy
+        shell: bash
         run: |
-          echo "extra-platforms = aarch64-linux" | sudo tee -a /etc/nix/nix.conf
-          sudo systemctl restart nix-daemon
+          set -Eeuo pipefail
+          python3 -m unittest discover -s .github/scripts/tests -v 2>&1 | tee logs/policy.log
 
-      - name: Check flake
+      - name: Evaluate every supported system
         id: check
+        shell: bash
         run: |
-          nix flake check --no-build && echo "success=true" >> $GITHUB_OUTPUT
+          set -Eeuo pipefail
+          nix flake check --no-build --all-systems 2>&1 | tee logs/evaluation.log
+          echo 'success=true' >> "$GITHUB_OUTPUT"
 
-      - name: Check for formatter changes
-        id: changes
-        if: github.event_name == 'push' && github.ref_name != github.event.repository.default_branch
-        run: |
-          git diff --exit-code || echo "has_changes=true" >> $GITHUB_OUTPUT
-
-      - name: Create Maintenance Pull Request
-        if: steps.changes.outputs.has_changes == 'true'
-        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8
+      - name: Retain validation failure logs
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "style: nix maintenance (statix, deadnix, alejandra)"
-          title: "style: Auto-fixes for ${{ github.ref_name }}"
-          body: |
-            Automated maintenance for branch `${{ github.ref_name }}`:
-            - **Statix**: Fixed linting suggestions.
-            - **Deadnix**: Removed unused code.
-            - **Alejandra**: Applied standard formatting.
-          branch: chore/nix-maintenance-${{ github.ref_name }}
-          base: ${{ github.ref_name }}
-          delete-branch: true
+          name: basic-validation-logs
+          path: logs/
+          retention-days: 14

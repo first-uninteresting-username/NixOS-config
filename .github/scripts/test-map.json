@@ -1,0 +1,33 @@
+{
+  "shared": [
+    "flake.nix", "flake.lock", "github-actions/**", ".github/scripts/**",
+    ".github/workflows/**", ".github/nix.conf", "checks/**", "lib/**", "devenv.nix", "devenv.yaml",
+    "hosts/common/**", "modules/nixos/args/user.nix",
+    "modules/configuration/user/home-manager.nix"
+  ],
+  "tests": {
+    "persistence": [
+      "modules/nixos/args/preservation.nix", "modules/configuration/services/ssh.nix",
+      "modules/configuration/system/bootloader.nix"
+    ],
+    "networkmanager-secrets": [
+      "modules/configuration/system/networking.nix",
+      "modules/configuration/system/secrets.nix", "secrets/**", ".sops.yaml"
+    ],
+    "gnome-session": [
+      "modules/nixos/desktop-environment/**", "modules/configuration/desktop/wayland.nix",
+      "modules/nixos/args/stylix.nix", "modules/nixos/shell/**",
+      "modules/configuration/user/xdg.nix", "packages/flow-desktop/**",
+      "packages/mirrors/hexecute-gnome/**"
+    ],
+    "upgrade": [
+      "modules/configuration/services/update.nix", "packages/shell-scripts/rebuild/**"
+    ],
+    "printing-discovery": [
+      "modules/configuration/desktop/printing.nix",
+      "modules/configuration/system/networking.nix"
+    ],
+    "module-docs": ["modules/**", "packages/docs/**", "docs/module-reference.md"]
+  },
+  "configuration": ["modules/**", "hosts/**", "packages/**", "secrets/**", ".sops.yaml", "*.nix"]
+}

@@ -8,21 +8,41 @@ on:
   schedule:
     - cron: "0 8 * * 4"
   workflow_dispatch:
+    inputs:
+      prove-regressions:
+        description: Build positive controls and prove the intentional regressions fail
+        type: boolean
+        default: false
   pull_request:
-    branches: ["main"]
+    branches: [main]
 
 permissions:
   contents: read
 
+concurrency:
+  group: flake-build-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
+  basic:
+    name: Basic validation
+    uses: ./.github/workflows/flake-check.yaml
+
   discover:
     name: Discover CI targets
     runs-on: ubuntu-latest
     outputs:
-      fullMatrix: ${{ steps.matrices.outputs.fullMatrix }}
-
+      packagesMatrix: ${{ steps.matrices.outputs.packagesMatrix }}
+      testsMatrix: ${{ steps.matrices.outputs.testsMatrix }}
+      testsSelected: ${{ steps.matrices.outputs.testsSelected }}
+      hostsMatrix: ${{ steps.matrices.outputs.hostsMatrix }}
+      isosMatrix: ${{ steps.matrices.outputs.isosMatrix }}
+      fullRun: ${{ steps.matrices.outputs.fullRun }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
 
       - name: Read Nix config
         shell: bash
@@ -37,69 +57,147 @@ jobs:
         with:
           extra-conf: ${{ env.NIX_CONF }}
 
-      - name: Generate matrices
+      - name: Generate matrices and select behavioral tests
         id: matrices
         shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           set -Eeuo pipefail
+          mkdir -p ci-matrices
+          nix eval --json '.#githubActions.packages' > ci-matrices/packages.json
+          nix eval --json '.#githubActions.tests' > ci-matrices/tests.json
+          jq -e '.include | length > 0' ci-matrices/packages.json > /dev/null
+          jq -e '.include | length > 0' ci-matrices/tests.json > /dev/null
+          echo "packagesMatrix=$(cat ci-matrices/packages.json)" >> "$GITHUB_OUTPUT"
 
-          echo "fullMatrix=$(nix eval --json '.#githubActions.fullMatrix')" \
-            >> "$GITHUB_OUTPUT"
+          mode=pr
+          full_run=false
+          if [[ "$EVENT_NAME" != pull_request ]]; then
+            mode=weekly
+            full_run=true
+            nix eval --json '.#githubActions.hosts' > ci-matrices/hosts.json
+            nix eval --json '.#githubActions.isos' > ci-matrices/isos.json
+            nix eval --json '.#githubActions.isoTests' > ci-matrices/iso-tests.json
+            jq -e '.include | length == 4' ci-matrices/hosts.json > /dev/null
+            jq -e '.include | length == 2' ci-matrices/isos.json > /dev/null
+            jq -e '.include | length == 2' ci-matrices/iso-tests.json > /dev/null
+            echo "hostsMatrix=$(cat ci-matrices/hosts.json)" >> "$GITHUB_OUTPUT"
+            echo "isosMatrix=$(jq -cs '{include: (.[0].include + .[1].include)}' \
+              ci-matrices/isos.json ci-matrices/iso-tests.json)" >> "$GITHUB_OUTPUT"
+          fi
+          echo "fullRun=$full_run" >> "$GITHUB_OUTPUT"
+          python3 .github/scripts/select-tests.py \
+            --base "$BASE_SHA" --head "$HEAD_SHA" \
+            --matrix-json ci-matrices/tests.json --mode "$mode" \
+            --github-output "$GITHUB_OUTPUT" --summary "$GITHUB_STEP_SUMMARY"
+          {
+            echo
+            echo 'All exported non-ISO packages run on every supported system.'
+            if [[ "$full_run" == true ]]; then
+              echo 'This full run also builds all four hosts, both ISO images, and both ISO smoke tests.'
+            else
+              echo 'Host and ISO jobs are intentionally omitted from the PR gate.'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
 
-  build:
-    name: ${{matrix.type}} - ${{ matrix.name }} (${{ matrix.system }})
+      - name: Retain discovered matrices
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ci-target-selection
+          path: ci-matrices/
+          retention-days: 14
+
+  packages:
+    name: Non-ISO packages
     needs: discover
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      max-parallel: 17
-      matrix: ${{ fromJSON(needs.discover.outputs.fullMatrix) }}
+    uses: ./.github/workflows/build-targets.yaml
+    with:
+      matrix: ${{ needs.discover.outputs.packagesMatrix }}
+      cache-write: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+    secrets:
+      CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
+  tests:
+    name: Selected behavioral tests
+    needs: discover
+    if: needs.discover.outputs.testsSelected == 'true'
+    uses: ./.github/workflows/build-targets.yaml
+    with:
+      matrix: ${{ needs.discover.outputs.testsMatrix }}
+      cache-write: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+    secrets:
+      CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+  hosts:
+    name: All hosts
+    needs: discover
+    if: needs.discover.outputs.fullRun == 'true'
+    uses: ./.github/workflows/build-targets.yaml
+    with:
+      matrix: ${{ needs.discover.outputs.hostsMatrix }}
+      cache-write: true
+    secrets:
+      CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+  isos:
+    name: ISO images and smoke tests
+    needs: discover
+    if: needs.discover.outputs.fullRun == 'true'
+    uses: ./.github/workflows/build-targets.yaml
+    with:
+      matrix: ${{ needs.discover.outputs.isosMatrix }}
+      cache-write: true
+    secrets:
+      CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+  regressions:
+    name: Prove intentional regressions
+    if: github.event_name == 'workflow_dispatch' && inputs.prove-regressions
+    uses: ./.github/workflows/regression-checks.yaml
+
+  all-systems-passed:
+    name: all-systems-passed
+    runs-on: ubuntu-latest
+    needs: [basic, discover, packages, tests, hosts, isos, regressions]
+    if: always()
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-      - uses: wimpysworld/nothing-but-nix@687c797a730352432950c707ab493fcc951818d7 # v10
         with:
-          hatchet-protocol: cleave
+          persist-credentials: false
 
-      - name: Read Nix config
+      - name: Require every applicable tier to pass
         shell: bash
+        env:
+          BASIC: ${{ needs.basic.result }}
+          DISCOVER: ${{ needs.discover.result }}
+          PACKAGES: ${{ needs.packages.result }}
+          TESTS: ${{ needs.tests.result }}
+          HOSTS: ${{ needs.hosts.result }}
+          ISOS: ${{ needs.isos.result }}
+          REGRESSIONS: ${{ needs.regressions.result }}
+          PROVE_REGRESSIONS: ${{ github.event_name == 'workflow_dispatch' && inputs.prove-regressions || false }}
+          SELECTED_TESTS: ${{ needs.discover.outputs.testsSelected }}
+          FULL_RUN: ${{ github.event_name != 'pull_request' }}
         run: |
-          {
-            echo 'NIX_CONF<<EOF'
-            cat .github/nix.conf
-            echo 'EOF'
-          } >> "$GITHUB_ENV"
-
-      - uses: DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa # v23
-        with:
-          extra-conf: ${{ env.NIX_CONF }}
-
-      - uses: cachix/cachix-action@38b082610b782e7e93e209c35fd730d399dee866 # v17
-        with:
-          name: matrix
-          authToken: "${{matrix.type != 'checks' && secrets.CACHIX_AUTH_TOKEN || ''}}"
-          installCommand: "nix profile add nixpkgs#cachix"
-
-      - name: Build check
-        run: |
-          CHECKS_ONLY_FLAGS=""
-          if [ "${{ matrix.type }}" != "checks" ] && [ -n "${{ secrets.CACHIX_AUTH_TOKEN }}" ]; then
-            CHECKS_ONLY_FLAGS="--cachix-cache matrix"
-          fi
-
-          nix run github:Mic92/nix-fast-build -- \
-            --no-nom \
-            --skip-cached \
-            --flake '.#${{ matrix.attr }}' \
-            $CHECKS_ONLY_FLAGS
+          python3 .github/scripts/aggregate-status.py \
+            --job "basic=$BASIC" --job "discover=$DISCOVER" \
+            --job "packages=$PACKAGES" --job "tests=$TESTS" \
+            --job "hosts=$HOSTS" --job "isos=$ISOS" --job "regressions=$REGRESSIONS" \
+            --selected-tests "${SELECTED_TESTS:-true}" --weekly "$FULL_RUN" \
+            --prove-regressions "$PROVE_REGRESSIONS"
 
   report:
+    name: Report weekly failures
     runs-on: ubuntu-latest
-    needs: [discover, build]
-    if: always() && (failure() || cancelled()) && github.event_name != 'pull_request'
+    needs: all-systems-passed
+    if: always() && github.event_name == 'schedule' && needs.all-systems-passed.result != 'success'
     permissions:
       contents: read
+      actions: read
       issues: write
     steps:
       - name: Report failures to issue
@@ -115,32 +213,23 @@ jobs:
                 per_page: 100,
                 page,
               });
-              failed.push(
-                ...data.jobs
-                  .filter(j =>
-                    ['failure', 'cancelled'].includes(j.conclusion) &&
-                    !['Discover CI targets', 'report', 'All Systems Passed'].includes(j.name)
-                  )
-                  .map(j => `- \`${j.name}\` — [logs](${j.html_url})`)
-              );
+              failed.push(...data.jobs
+                .filter(job => ['failure', 'cancelled'].includes(job.conclusion))
+                .map(job => `- \`${job.name}\` — [logs](${job.html_url})`));
               if (data.jobs.length < 100) break;
             }
-
             const { data: issues } = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
               labels: 'ci-failure',
               state: 'open'
             });
-
-            const title = 'Flake build failures';
-            const body =
-              `## Flake Build Failures\n\n` +
-              `**Workflow:** ${context.workflow}\n` +
+            const title = 'Weekly master check failures';
+            const body = `## Weekly master check failures\n\n` +
               `**Run:** [${context.runId}](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})\n\n` +
-              `### Failed steps\n${failed.join('\n') || 'Unknown — check run logs'}`;
-
-            const existing = issues.find(i => i.title === title);
+              `${failed.join('\n') || 'Check discovery and required tier logs.'}\n\n` +
+              'Failure artifacts retain validation and derivation logs for 14 days.';
+            const existing = issues.find(issue => issue.title === title);
             if (existing) {
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
@@ -157,27 +246,3 @@ jobs:
                 labels: ['ci-failure']
               });
             }
-
-  all-systems-passed:
-    name: all-systems-passed
-    runs-on: ubuntu-latest
-    needs: [discover, build]
-    if: always()
-    steps:
-      - name: Check build status
-        env:
-          DISCOVER: ${{ needs.discover.result }}
-          BUILD: ${{ needs.build.result }}
-        run: |
-          set -Eeuo pipefail
-          echo "discover=${DISCOVER}"
-          echo "build=${BUILD}"
-
-          if [ "$DISCOVER" != success ]; then
-            echo "::error::discover ended as ${DISCOVER}"
-            exit 1
-          fi
-          if [ "$BUILD" != success ] && [ "$BUILD" != skipped ]; then
-            echo "::error::build ended as ${BUILD}"
-            exit 1
-          fi

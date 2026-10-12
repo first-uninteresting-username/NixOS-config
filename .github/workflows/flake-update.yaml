@@ -14,9 +14,6 @@ permissions:
 jobs:
   check:
     uses: ./.github/workflows/flake-check.yaml
-    permissions:
-      contents: write
-      pull-requests: write
 
   update:
     runs-on: ubuntu-latest
