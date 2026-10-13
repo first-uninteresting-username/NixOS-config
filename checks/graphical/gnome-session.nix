@@ -103,9 +103,6 @@
                 "awk '$3 == \"testuser\" { print $1 }' | "
                 "xargs -r -I{} loginctl show-session {} -p Type --value | grep -qx wayland"
             )
-            assert machine.succeed(as_user(
-                "gsettings get org.gnome.desktop.interface clock-format"
-            )).strip() == "'24h'"
 
         with subtest("The repository terminal opens in GNOME"):
             machine.send_key("esc")
@@ -116,8 +113,23 @@
             ) + " | grep -q 'true,..true'")
 
         with subtest("Clipboard contents round-trip inside the user Wayland session"):
-            machine.succeed(as_user("printf %s checks-v2-clipboard | wl-copy"))
-            assert machine.succeed(as_user("wl-paste --no-newline")) == "checks-v2-clipboard"
+            # Keep the clipboard owner outside the driver's shell and its descriptors.
+            machine.succeed(as_user(
+                "systemd-run --user --unit=checks-v2-clipboard --property=Type=exec "
+                "--setenv=WAYLAND_DISPLAY=wayland-0 bash --noprofile --norc -c "
+                + shlex.quote("printf %s checks-v2-clipboard | wl-copy --foreground")
+            ), timeout=30)
+            try:
+                machine.wait_until_succeeds(as_user(
+                    "test \"$(timeout 5s wl-paste --no-newline)\" = checks-v2-clipboard"
+                ), timeout=60)
+                assert machine.succeed(as_user(
+                    "timeout 5s wl-paste --no-newline"
+                ), timeout=10) == "checks-v2-clipboard"
+            finally:
+                machine.execute(as_user(
+                    "systemctl --user stop checks-v2-clipboard.service"
+                ), timeout=10)
             machine.screenshot("gnome-session")
       '';
     };

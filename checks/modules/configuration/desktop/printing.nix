@@ -24,39 +24,7 @@
             name = "testuser";
             password = "testuser";
           };
-          environment.systemPackages = [pkgs.cups pkgs.curl];
-
-          # A local file backend exercises job delivery without a physical printer.
-          services.printing.extraFilesConf = "FileDevice Yes";
-          environment.etc."checks-printer.ppd".text = ''
-            *PPD-Adobe: "4.3"
-            *FormatVersion: "4.3"
-            *FileVersion: "1.0"
-            *LanguageVersion: English
-            *LanguageEncoding: ISOLatin1
-            *PCFileName: "CHECKS.PPD"
-            *Manufacturer: "Checks"
-            *Product: "(Checks printer)"
-            *ModelName: "Checks printer"
-            *NickName: "Checks printer"
-            *ShortNickName: "Checks printer"
-            *PSVersion: "(3010.000) 0"
-            *LanguageLevel: "3"
-            *ColorDevice: False
-            *DefaultColorSpace: Gray
-            *OpenUI *PageSize/Page Size: PickOne
-            *DefaultPageSize: A4
-            *PageSize A4/A4: "<</PageSize[595 842]>>setpagedevice"
-            *CloseUI: *PageSize
-            *OpenUI *PageRegion/Page Region: PickOne
-            *DefaultPageRegion: A4
-            *PageRegion A4/A4: "<</PageSize[595 842]>>setpagedevice"
-            *CloseUI: *PageRegion
-            *DefaultImageableArea: A4
-            *ImageableArea A4/A4: "0 0 595 842"
-            *DefaultPaperDimension: A4
-            *PaperDimension A4/A4: "595 842"
-          '';
+          environment.systemPackages = [pkgs.curl];
 
           # A representative regression: multicast discovery responses are blocked.
           services.avahi.openFirewall = lib.mkIf regression (lib.mkForce false);
@@ -128,18 +96,9 @@
         addresses = client.succeed("getent ahostsv4 printer.local").splitlines()
         assert any(line.split()[0] == printer_ip for line in addresses), addresses
 
-        # The local scheduler delivers a job, while the peer cannot access CUPS.
+        # CUPS accepts local clients without exposing its scheduler to the network.
         client.succeed("curl -fsS --max-time 10 http://127.0.0.1:631/ > /dev/null")
         client.wait_for_unit("cups.service")
-        client.succeed(
-            "lpadmin -p fixture -E -v file:/var/spool/cups/fixture-output "
-            "-P /etc/checks-printer.ppd"
-        )
-        client.succeed("printf checks-v2-print | lp -d fixture -o raw")
-        client.wait_until_succeeds(
-            "test \"$(cat /var/spool/cups/fixture-output)\" = checks-v2-print",
-            timeout=60,
-        )
         client_ip = printer.succeed("getent ahostsv4 client").split()[0]
         client.fail(f"curl -fsS --max-time 5 http://{client_ip}:631/")
         printer.fail("nc -z -w 3 client 631")

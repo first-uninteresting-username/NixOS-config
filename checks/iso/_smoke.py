@@ -45,7 +45,7 @@ ssh = [
 
 def guest(script, timeout=30):
     return subprocess.run(
-        ssh + ["bash -eu -c " + shlex.quote(script)],
+        ssh + ["bash --noprofile --norc -e -c " + shlex.quote(script)],
         capture_output=True,
         text=True,
         timeout=timeout,

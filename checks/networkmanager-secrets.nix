@@ -61,8 +61,9 @@
         environment.systemPackages = [pkgs.python3];
 
         # Preserve the generated files but prevent NetworkManager from ingesting them.
-        systemd.services.NetworkManager.serviceConfig.ExecReload =
-          lib.mkIf skipReload (lib.mkForce "${pkgs.coreutils}/bin/true");
+        systemd.services.nm-wifi-secret.path = lib.mkIf skipReload (lib.mkForce [
+          (pkgs.writeShellScriptBin "nmcli" "exit 0")
+        ]);
       };
 
       testScript = ''

@@ -83,9 +83,9 @@ a distinct integration failure:
 | Previous check | Replacement and observable failure mode |
 | --- | --- |
 | `networking` | `networkmanager-secrets` uses the actual secret-backed desktop networking module and disposable encrypted sops data; checks keyfile contents, root ownership, 0600 permissions, and profiles loaded by NetworkManager. It catches missing secret-service ordering and a failed profile reload. |
-| `gnome-minimal`, `john`, `wayland` | `gnome-session` starts an actual GNOME Wayland user session, opens the configured terminal, round-trips clipboard text, and checks Home Manager activation and settings. Starting a display-manager unit or running `wl-copy --version` alone cannot establish a usable session. |
+| `gnome-minimal`, `john`, `wayland` | `gnome-session` starts an actual GNOME Wayland user session, opens the configured terminal, round-trips clipboard text, and checks Home Manager activation. Starting a display-manager unit or running `wl-copy --version` alone cannot establish a usable session. |
 | `update` | `upgrade` runs the actual service with a local recording `nixos-rebuild` substitute. It checks the boot command, selected hostname/flake, environment, and propagation of a nonzero exit status. It never upgrades from remote main. |
-| `printing` | `printing-discovery` resolves a real independent DNS-SD printer announcement from a client, resolves its mDNS hostname, delivers a local CUPS job, and checks that a peer cannot reach local CUPS. |
+| `printing` | `printing-discovery` resolves a real independent DNS-SD printer announcement from a client, resolves its mDNS hostname, and verifies that CUPS accepts loopback clients while rejecting access through the desktop network address and from a peer. |
 | No previous equivalent | `persistence` reboots a VM with tmpfs root and a disposable persistence disk. User/system state, machine ID, and SSH identities survive; unpreserved state disappears. |
 | No actual-image equivalent | `iso-john` and `iso-wall-e` boot the exported installation ISO with QEMU, exercise the public installer SSH/shell interface, and check Home Manager. John additionally checks the real GDM D-Bus interface; wall-e checks its terminal boot target. |
 | `module-docs` | Retained: compares generated custom-option documentation against the committed reference. Evaluation cannot detect stale committed documentation. |
@@ -93,8 +93,10 @@ a distinct integration failure:
 Underscore-prefixed examples and the disabled application example remain teaching fixtures
 and do not enter discovery. Tests use public disposable passwords, generated test-only age
 keys, isolated disks, and local service substitutes. They never use production credentials.
-The networking integration now orders its keyfile writer after NetworkManager and the
-actual sops installation service, and propagates reload errors.
+The networking integration orders its keyfile writer after NetworkManager and the
+actual sops installation service, reloads connection profiles through `nmcli`, and propagates
+reload errors. Persistence creates the machine-ID symlink target on the first boot so
+systemd can initialize and preserve the identity.
 
 ## Local validation and deliberate regressions
 
