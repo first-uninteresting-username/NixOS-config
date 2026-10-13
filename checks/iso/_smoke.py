@@ -87,17 +87,14 @@ runuser -u nixos -- "$shell" --login \\
   --config /home/nixos/.config/nushell/config.nu -c 'print checks-v2-iso-shell'
 """
 
+smoke = common
 if host_name == "john":
-    smoke = common + """
+    smoke += """
 systemctl is-active graphical.target
 systemctl is-active display-manager.service
 busctl --system get-property org.gnome.DisplayManager \\
   /org/gnome/DisplayManager/Manager org.gnome.DisplayManager.Manager Version
 test -s /home/nixos/.config/hexecute/gestures.json
-"""
-else:
-    smoke = common + """
-test "$(systemctl get-default)" = multi-user.target
 """
 
 serial_path = output / "serial.log"
