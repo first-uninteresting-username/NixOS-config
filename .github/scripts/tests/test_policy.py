@@ -484,6 +484,11 @@ class MergeRaceTests(unittest.TestCase):
     SHA = "a" * 40
     REPOSITORY = UpdateTrustTests.REPOSITORY
 
+    def workflow_run(self, sha=None, actor=None):
+        return {"head_sha": sha or self.SHA, "check_suite_id": 123,
+                "repository": {"id": 101}, "head_repository": {"id": 101},
+                "actor": copy.deepcopy(actor if actor is not None else self.REPOSITORY["owner"])}
+
     def pr(self, sha=None):
         return {"number": 42, "state": "open", "draft": False,
                 "base": {"ref": "main", "sha": "c" * 40, "repo": {"id": 101}},
@@ -525,13 +530,13 @@ class MergeRaceTests(unittest.TestCase):
         return FakeAPI()
 
     def exercise(self, changed=False, fetched=None, retargeted=False, base_advanced=False,
-                 untrusted=False, forked=False):
+                 untrusted=False, forked=False, actor=None):
         api = self.api(changed, retargeted, base_advanced, untrusted, forked)
         revisions = iter([("c" * 40 + "\n").encode(), ((fetched or self.SHA) + "\n").encode()])
         with patch.object(merge, "git", side_effect=lambda *args: next(revisions)
                           if args[0] == "rev-parse" else b""), \
                 patch.object(merge, "revision_changes", return_value=[("M", "flake.lock", b"{}", b'{"version":7}')]):
-            result = merge.process(api, {"head_sha": self.SHA, "check_suite_id": 123}, self.pr(),
+            result = merge.process(api, self.workflow_run(actor=actor), self.pr(),
                                    "main", self.REPOSITORY)
         return api.merges, result
 
@@ -559,7 +564,7 @@ class MergeRaceTests(unittest.TestCase):
     def test_superseded_workflow_run_never_fetches_or_merges(self):
         api = self.api()
         with patch.object(merge, "git") as mocked:
-            result = merge.process(api, {"head_sha": "b" * 40}, self.pr(), "main", self.REPOSITORY)
+            result = merge.process(api, self.workflow_run("b" * 40), self.pr(), "main", self.REPOSITORY)
         mocked.assert_not_called()
         self.assertEqual(api.merges, [])
         self.assertIn("superseded", result)
@@ -573,7 +578,7 @@ class MergeRaceTests(unittest.TestCase):
                 pr["head"]["repo"]["id"] = 202
             api = self.api()
             with patch.object(merge, "git") as mocked_git, patch.object(api, "request") as requests:
-                result = merge.process(api, {"head_sha": self.SHA, "check_suite_id": 123}, pr,
+                result = merge.process(api, self.workflow_run(), pr,
                                        "main", self.REPOSITORY)
             mocked_git.assert_not_called()
             requests.assert_not_called()
@@ -586,6 +591,43 @@ class MergeRaceTests(unittest.TestCase):
                 writes, result = self.exercise(**options)
                 self.assertEqual(writes, [])
                 self.assertIn("trust changed", result)
+
+    def test_unknown_commit_actor_cannot_reuse_a_trusted_pr_author(self):
+        for author in [self.REPOSITORY["owner"], UpdateTrustTests.BOT]:
+            for actor in [None, {"id": 99, "login": "owner", "type": "User"},
+                          {"id": 99, "login": "github-actions[bot]", "type": "Bot"}]:
+                pr = self.pr()
+                pr["user"] = copy.deepcopy(author)
+                run = self.workflow_run()
+                run["actor"] = actor
+                # A later owner rerun must not launder an outsider's original workflow actor.
+                run["triggering_actor"] = copy.deepcopy(self.REPOSITORY["owner"])
+                api = self.api()
+                with patch.object(merge, "git") as mocked_git, patch.object(api, "request") as requests:
+                    result = merge.process(api, run, pr, "main", self.REPOSITORY)
+                mocked_git.assert_not_called()
+                requests.assert_not_called()
+                self.assertEqual(api.merges, [])
+                self.assertIn("workflow identity", result)
+
+    def test_foreign_workflow_cannot_authorize_same_repository_pr(self):
+        for field in ["repository", "head_repository"]:
+            for source in [None, {"id": 202}, {"id": True}]:
+                run = self.workflow_run(actor=UpdateTrustTests.BOT)
+                run[field] = source
+                api = self.api()
+                with patch.object(merge, "git") as mocked_git, patch.object(api, "request") as requests:
+                    result = merge.process(api, run, self.pr(), "main", self.REPOSITORY)
+                mocked_git.assert_not_called()
+                requests.assert_not_called()
+                self.assertEqual(api.merges, [])
+                self.assertIn("workflow identity", result)
+
+    def test_owner_and_verified_bot_workflow_actors_can_merge_trusted_updates(self):
+        for actor in [self.REPOSITORY["owner"], UpdateTrustTests.BOT]:
+            with self.subTest(actor=actor):
+                writes, _ = self.exercise(actor=actor)
+                self.assertEqual(writes, [{"sha": self.SHA, "merge_method": "merge"}])
 
 
 if __name__ == "__main__":

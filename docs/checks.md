@@ -193,8 +193,12 @@ out policy code from the trusted default branch, fetches PR objects only for rea
 inspection, and never executes PR code with its write token. Titles, authors, labels, and
 update-workflow claims alone cannot establish eligibility.
 
-Automatic merging also requires matching base/head repository IDs and a verified author
-ID: the personal repository owner's account or GitHub's `github-actions[bot]` identity.
+Automatic merging also requires matching base/head repository IDs and verified identities
+for both the PR author and the checked workflow's original actor: the personal repository
+owner's account or GitHub's `github-actions[bot]` identity. A trusted author does not make
+another person's later push eligible, and an owner rerun does not override an untrusted
+original workflow actor. The checked workflow and its head source must also belong to the
+target repository; the global Actions bot identity from a fork cannot authorize merging.
 Fork PRs, outside contributors, other collaborators, and other bots require manual review,
 even when their diffs contain only lock or hash updates and every check passes. Missing
 identity data blocks automation. Repository and author trust are checked again immediately
