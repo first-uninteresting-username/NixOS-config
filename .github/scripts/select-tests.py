@@ -8,6 +8,7 @@ import argparse
 import fnmatch
 import json
 from pathlib import Path
+import re
 import subprocess
 
 
@@ -27,7 +28,27 @@ def matches(path, patterns):
 
 def select(matrix, paths, mapping, mode="pr", iso="both"):
     rows = matrix["include"]
+    targets = set()
+    for row in rows:
+        name, system = row.get("name"), row.get("system")
+        if not isinstance(name, str) or not name or not isinstance(system, str) or not system:
+            raise ValueError(f"Invalid test matrix target: {row}")
+        attributes = {f"checks.{system}.{json.dumps(name, ensure_ascii=False)}"}
+        if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_'\-]*", name):
+            attributes.add(f"checks.{system}.{name}")
+        if row.get("attr") not in attributes:
+            raise ValueError(f"Test matrix attribute does not match its name and system: {row}")
+        if (name, system) in targets:
+            raise ValueError(f"Duplicate test matrix target: {name} ({system})")
+        targets.add((name, system))
     names = {row["name"] for row in rows}
+    if mode != "iso":
+        behavioral = {name for name in names if not name.startswith("iso-")}
+        unmapped = behavioral - mapping["tests"].keys()
+        missing = mapping["tests"].keys() - behavioral
+        if unmapped or missing or not behavioral:
+            raise ValueError("Test matrix and dependency mapping disagree: "
+                             f"unmapped checks={sorted(unmapped)}, missing checks={sorted(missing)}")
     reasons = {}
     if mode == "iso":
         wanted = {"iso-john", "iso-wall-e"} if iso == "both" else {f"iso-{iso}"}
@@ -42,9 +63,6 @@ def select(matrix, paths, mapping, mode="pr", iso="both"):
     else:
         # ISO checks run with their corresponding builds, never in the ordinary PR tier.
         names = {name for name in names if not name.startswith("iso-")}
-        unknown = names - mapping["tests"].keys()
-        if unknown:
-            raise ValueError(f"Tests need an explicit dependency mapping: {sorted(unknown)}")
         for path in sorted(set(paths)):
             if matches(path, mapping["shared"]):
                 for name in names:

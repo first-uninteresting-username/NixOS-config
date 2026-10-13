@@ -63,6 +63,11 @@ VM tests run on x86_64-linux; all supported systems run exported package builds 
 reserved for the ISO tier, including after lock changes. Adding a behavioral check requires
 updating its dependency mapping and coverage tests.
 
+The exported non-ISO check names and mapping must agree in both directions. Discovery
+rejects missing mapped checks, unmapped exports, duplicate system/name targets, and attributes
+that would build a different check. Policy fixtures model the actual architecture coverage:
+VM and ISO checks on x86_64-linux, and documentation freshness on both supported systems.
+
 ## Required status and logs
 
 Keep **all-systems-passed** as the stable required branch-protection status. It requires
@@ -112,6 +117,10 @@ Run policy tests without Nix or virtualization:
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s .github/scripts/tests -v
 ```
 
+Git policy fixtures use disposable repositories and isolate global Git configuration,
+hooks, signing, and repository environment variables. Merge/API cases use mocked responses
+and never merge a real PR.
+
 Evaluate the flake and build a selected behavioral test:
 
 ```bash
@@ -147,8 +156,10 @@ Record both positive and negative execution results in the PR. An evaluation-onl
 or an environmental failure is not evidence that a regression assertion executed.
 
 The optional CI proof tier uses `.github/scripts/prove-regression.py`. A normal build must
-succeed first; the mutated build must fail with its specific assertion marker. Fetch,
-evaluation, VM transport, and builder failures do not count as a successful negative control.
+succeed first; the mutated Nix build must exit with its normal failure status and include
+the expected terminal exception in a Python traceback. Printed or traced marker text,
+cancelled builds, fetch, evaluation, VM transport, and builder failures do not count as a
+successful negative control. ANSI colors and ordinary Nix log prefixes are accepted.
 The workflow retains both logs for 14 days. Run the complete demonstration on a KVM runner:
 
 ```bash
@@ -195,6 +206,11 @@ policy requires a successful aggregate from the completed triggering check suite
 current PR head SHA, plus every applicable classic/ruleset required status. Missing,
 pending, cancelled, failed, or skipped required checks block merging. A superseded run or
 a PR retargeted while checking cannot authorize a merge.
+
+A newer successful full run at the same revision does not hide the triggering PR's
+successful aggregate. The PR's own aggregate must still exist and pass, and newer pending
+or unsuccessful required results still block merging. Source metadata comparisons preserve
+JSON types as well as values, so a hash update cannot also change a number into a boolean.
 
 The final GitHub merge request specifies the validated head SHA and uses the repository's
 supported merge-commit method. GitHub still enforces branch protections, strict up-to-date

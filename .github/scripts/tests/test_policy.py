@@ -6,6 +6,7 @@ import base64
 import copy
 import importlib.util
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -30,10 +31,12 @@ aggregate = load("aggregate-status")
 merge = load("auto-merge")
 regression = load("prove-regression")
 MAPPING = json.loads((SCRIPTS / "test-map.json").read_text())
-NAMES = set(MAPPING["tests"])
-MATRIX = {"include": [{"name": name, "system": system, "attr": f"checks.{system}.{name}"}
+NAMES = {"persistence", "networkmanager-secrets", "gnome-session", "upgrade",
+         "printing-discovery", "module-docs"}
+MATRIX = {"include": [{"name": name, "system": system, "attr": f'checks.{system}."{name}"'}
                       for name in sorted(NAMES | {"iso-john", "iso-wall-e"})
-                      for system in ["x86_64-linux", "aarch64-linux"]]}
+                      for system in (["x86_64-linux", "aarch64-linux"] if name == "module-docs"
+                                     else ["x86_64-linux"])]}
 
 
 class SelectionTests(unittest.TestCase):
@@ -52,7 +55,9 @@ class SelectionTests(unittest.TestCase):
     def test_precise_network_mapping_and_all_systems(self):
         names, matrix, reasons = self.selected(["modules/configuration/system/networking.nix"])
         self.assertEqual(names, {"networkmanager-secrets", "printing-discovery", "module-docs"})
-        self.assertEqual(len(matrix["include"]), 6)
+        self.assertEqual({(row["name"], row["system"]) for row in matrix["include"]}, {
+            ("networkmanager-secrets", "x86_64-linux"), ("printing-discovery", "x86_64-linux"),
+            ("module-docs", "x86_64-linux"), ("module-docs", "aarch64-linux")})
         self.assertIn("mapped to networkmanager-secrets", reasons["networkmanager-secrets"][0])
 
     def test_packages_and_documentation(self):
@@ -68,10 +73,38 @@ class SelectionTests(unittest.TestCase):
         self.assertEqual(self.selected([], "weekly")[0], NAMES | {"iso-john", "iso-wall-e"})
 
     def test_new_check_needs_mapping(self):
-        with self.assertRaises(ValueError):
-            selection.select({"include": [{"name": "forgotten-check"}]}, [], MAPPING)
+        unknown = {"name": "forgotten-check", "system": "x86_64-linux",
+                   "attr": "checks.x86_64-linux.forgotten-check"}
+        for mode in ["pr", "weekly"]:
+            with self.subTest(mode=mode), self.assertRaisesRegex(ValueError, "unmapped"):
+                selection.select({"include": MATRIX["include"] + [unknown]}, [], MAPPING, mode)
         with self.assertRaises(ValueError):
             selection.select({"include": []}, [], MAPPING, "weekly")
+
+    def test_mapped_checks_cannot_silently_disappear(self):
+        rows = [row for row in MATRIX["include"] if row["name"] != "upgrade"]
+        for mode in ["pr", "weekly"]:
+            with self.subTest(mode=mode), self.assertRaisesRegex(ValueError, "missing.*upgrade"):
+                selection.select({"include": rows}, ["packages/shell-scripts/rebuild/default.nix"],
+                                 MAPPING, mode)
+
+    def test_invalid_or_duplicate_matrix_targets_are_rejected(self):
+        wrong = {**MATRIX["include"][0], "attr": "checks.x86_64-linux.module-docs"}
+        missing_system = {key: value for key, value in MATRIX["include"][0].items() if key != "system"}
+        for rows in [[wrong] + MATRIX["include"][1:], [missing_system] + MATRIX["include"][1:],
+                     MATRIX["include"] + [MATRIX["include"][0]]]:
+            with self.subTest(rows=rows), self.assertRaises(ValueError):
+                selection.select({"include": rows}, [], MAPPING)
+
+    def test_generator_quoted_attributes_and_plain_identifiers_are_accepted(self):
+        selected, _ = selection.select(MATRIX, ["flake.lock"], MAPPING)
+        self.assertTrue(all(row["attr"].endswith(f'."{row["name"]}"')
+                            for row in selected["include"]))
+        plain = {"include": [{**row, "attr": f'checks.{row["system"]}.{row["name"]}'}
+                             for row in MATRIX["include"]]}
+        chosen, _ = selection.select(plain, ["flake.lock"], MAPPING)
+        self.assertEqual({(row["name"], row["system"]) for row in chosen["include"]},
+                         {(row["name"], row["system"]) for row in selected["include"]})
 
     def test_summary_records_names_systems_and_reasons(self):
         _, matrix, reasons = self.selected(["modules/configuration/services/update.nix"])
@@ -84,7 +117,14 @@ class SelectionTests(unittest.TestCase):
 
 class GitDiffTests(unittest.TestCase):
     def setUp(self):
+        environment = {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
+        environment.update({"GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull,
+                            "GIT_TERMINAL_PROMPT": "0"})
+        isolation = patch.dict(os.environ, environment, clear=True)
+        isolation.start()
+        self.addCleanup(isolation.stop)
         self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
         self.git("init", "--initial-branch=main")
         self.git("config", "user.name", "CI policy test")
@@ -94,9 +134,6 @@ class GitDiffTests(unittest.TestCase):
         self.write("flake.lock", '{"version": 7}\n')
         self.commit()
         self.base = self.git("rev-parse", "HEAD").strip()
-
-    def tearDown(self):
-        self.temp.cleanup()
 
     def git(self, *args):
         return subprocess.run(["git", *args], cwd=self.root, check=True,
@@ -143,6 +180,35 @@ class GitDiffTests(unittest.TestCase):
         self.assertFalse(merge.eligible(changes)[0])
 
 
+class GitEnvironmentTests(unittest.TestCase):
+    def test_git_fixtures_ignore_user_hooks_signing_and_repository_environment(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            hooks = root / "hooks"
+            hooks.mkdir()
+            hook = hooks / "pre-commit"
+            hook.write_text("#!/bin/sh\nexit 73\n")
+            hook.chmod(0o755)
+            config = root / "gitconfig"
+            config.write_text(f"[core]\n hooksPath = {hooks}\n fileMode = false\n"
+                              "[commit]\n gpgSign = true\n")
+            environment = {**os.environ, "GIT_CONFIG_GLOBAL": str(config),
+                           "GIT_DIR": str(root / "foreign-repository"),
+                           "GIT_WORK_TREE": str(root),
+                           "GIT_INDEX_FILE": str(root / "foreign-index"),
+                           "GIT_CONFIG_COUNT": "1", "GIT_CONFIG_KEY_0": "commit.gpgsign",
+                           "GIT_CONFIG_VALUE_0": "true"}
+            result = subprocess.run(
+                [sys.executable, str(Path(__file__).resolve()),
+                 "GitDiffTests.test_added_deleted_and_renamed_paths_are_selected",
+                 "GitDiffTests.test_mode_changes_cannot_be_automatic_updates"],
+                env=environment, capture_output=True, text=True, timeout=30,
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertFalse((root / "foreign-index").exists())
+            self.assertFalse((root / "foreign-repository").exists())
+
+
 class AggregateTests(unittest.TestCase):
     def jobs(self, selected=False, weekly=False, prove=False):
         return {"basic": "success", "discover": "success", "packages": "success",
@@ -179,6 +245,12 @@ class AggregateTests(unittest.TestCase):
 
 
 class RegressionProofTests(unittest.TestCase):
+    def failure(self, exception, marker, prefix="test-run> "):
+        return (f"{prefix}Traceback (most recent call last):\n"
+                f'{prefix}  File "/nix/store/test-driver/driver.py", line 41, in run_tests\n'
+                f"{prefix}    run_test()\n"
+                f"{prefix}{exception}: CHECKS_V2_REGRESSION:{marker}: command output\n")
+
     def runner(self, results):
         calls = []
 
@@ -193,9 +265,7 @@ class RegressionProofTests(unittest.TestCase):
         for case, (normal, exception, marker) in regression.CASES.items():
             with self.subTest(case=case):
                 run, calls = self.runner([regression.BuildResult(0, "normal succeeds\n"),
-                                         regression.BuildResult(1, f"test-run> {exception}: "
-                                                                f"CHECKS_V2_REGRESSION:{marker}: "
-                                                                "command output\n")])
+                                         regression.BuildResult(1, self.failure(exception, marker))])
                 outcome = regression.prove(case, runner=run)
                 self.assertIn("deliberate regression failed", outcome)
                 self.assertEqual(calls, [
@@ -213,11 +283,37 @@ class RegressionProofTests(unittest.TestCase):
         with self.assertRaisesRegex(regression.ProofError, "unexpectedly passed"):
             regression.prove("upgrade", runner=run)
 
+    def test_negative_cancellation_cannot_count_as_proof(self):
+        output = self.failure("AssertionError", "upgrade-failure-propagation")
+        for status in [-15, -9, 130, 137, 143, 2]:
+            with self.subTest(status=status):
+                run, _ = self.runner([regression.BuildResult(0, ""), regression.BuildResult(status, output)])
+                with self.assertRaisesRegex(regression.ProofError, "exit status"):
+                    regression.prove("upgrade", runner=run)
+
+    def test_plain_prefixed_summary_and_colored_tracebacks_are_accepted(self):
+        for prefix in ["", "vm-test-run-upgrade> ", "       > "]:
+            for colored in [False, True]:
+                with self.subTest(prefix=prefix, colored=colored):
+                    output = self.failure("AssertionError", "upgrade-failure-propagation", prefix)
+                    # An annotated Python source line is not the terminal exception.
+                    output = output.replace("run_test()", "command: str = run_test()")
+                    if colored:
+                        output = "\x1b[35m" + output + "\x1b[0m"
+                    run, _ = self.runner([regression.BuildResult(0, ""), regression.BuildResult(1, output)])
+                    self.assertIn("deliberate regression failed", regression.prove("upgrade", runner=run))
+
     def test_unrelated_failures_and_logged_source_do_not_count(self):
         for output in ["error: hash mismatch in fixed-output derivation", "error: evaluation failed",
                        "QEMU exited with status 1", "No space left on device", "cannot access /dev/kvm",
                        'assert status != 0, "CHECKS_V2_REGRESSION:upgrade-failure-propagation"',
                        "CHECKS_V2_REGRESSION:upgrade-failure-propagation",
+                       "AssertionError: CHECKS_V2_REGRESSION:upgrade-failure-propagation",
+                       "trace: AssertionError: CHECKS_V2_REGRESSION:upgrade-failure-propagation",
+                       self.failure("AssertionError", "upgrade-failure-propagation", "trace: "),
+                       self.failure("AssertionError", "persistence-user-state")
+                       + "test-run> AssertionError: CHECKS_V2_REGRESSION:upgrade-failure-propagation",
+                       self.failure("AssertionError", "upgrade-failure-propagation-extra"),
                        "AssertionError: CHECKS_V2_REGRESSION:persistence-user-state",
                        "AssertionError: CHECKS_V2_REGRESSION:upgrade-failure-propagation-extra"]:
             with self.subTest(output=output):
@@ -278,6 +374,13 @@ class EligibilityTests(unittest.TestCase):
         self.assertFalse(merge.source_hash_only('{"sources":{},"sources":{}}', json.dumps(self.new)))
         self.assertFalse(merge.eligible([("M", "flake.lock", b"{}", b"not JSON")])[0])
 
+    def test_source_metadata_types_cannot_change_with_hashes(self):
+        before = {**self.old, "releaseNumber": 1}
+        for value in [True, 1.0]:
+            with self.subTest(value=value):
+                after = {**self.new, "releaseNumber": value}
+                self.assertFalse(merge.eligible([self.change(before=before, after=after)])[0])
+
 
 class CurrentStatusTests(unittest.TestCase):
     SHA = "a" * 40
@@ -321,6 +424,14 @@ class CurrentStatusTests(unittest.TestCase):
         pending = {"context": "lint", "id": 3, "state": "pending"}
         self.assertEqual(self.problems([self.check()], [success], required), [])
         self.assertTrue(self.problems([self.check()], [success, pending], required))
+
+    def test_newer_full_run_success_does_not_replace_or_invalidate_pr_success(self):
+        full = self.check(11, check_suite={"id": 999})
+        self.assertEqual(self.problems([self.check(), full]), [])
+        self.assertTrue(self.problems([self.check(conclusion="failure"), full]))
+        for changes in [{"status": "in_progress", "conclusion": None}, {"conclusion": "failure"}]:
+            with self.subTest(changes=changes):
+                self.assertTrue(self.problems([self.check(), {**full, **changes}]))
 
 
 class MergeRaceTests(unittest.TestCase):

@@ -33,6 +33,30 @@ class BuildResult:
     output: str
 
 
+def assertion_failed(output, exception, marker):
+    """Require the terminal exception of a Python traceback, allowing Nix log prefixes."""
+    clean = re.sub(r"\x1b\[[0-?]*[ -/]*[@-~]", "", output)
+    log_line = re.compile(r"^[ \t]*(?P<prefix>[A-Za-z0-9+._?=-]*>)[ ]?(?P<text>.*)$")
+    expected = re.compile(rf"{exception}: CHECKS_V2_REGRESSION:{re.escape(marker)}"
+                          r"(?:[ \t]*|:[^\r\n]*)$")
+    frame = re.compile(r'File "[^"]+", line [0-9]+(?:, in .*)?$')
+    terminal = re.compile(r"[A-Za-z_][\w.]*:.*$")
+    tracebacks = {}
+    for line in clean.splitlines():
+        match = log_line.fullmatch(line)
+        prefix = match.group("prefix") if match else ""
+        text = match.group("text") if match else line
+        if text.strip() == "Traceback (most recent call last):":
+            tracebacks[prefix] = False
+        elif prefix in tracebacks and frame.fullmatch(text.strip()):
+            tracebacks[prefix] = True
+        elif expected.fullmatch(text.rstrip()) and tracebacks.get(prefix, False):
+            return True
+        elif terminal.fullmatch(text.rstrip()):
+            tracebacks.pop(prefix, None)
+    return False
+
+
 def build(command):
     print("+ " + " ".join(command), flush=True)
     try:
@@ -56,11 +80,10 @@ def prove(case, system="x86_64-linux", runner=build):
     negative = runner(["nix", "build", f".#regressionChecks.{system}.{case}", "--no-link", "-L"])
     if negative.returncode == 0:
         raise ProofError(f"Deliberate regression {case} unexpectedly passed")
-    # Driver prefixes are allowed, but only a terminal Python exception line counts.
-    # Merely logging the test script, subtest name or an unrelated failed dependency cannot pass.
-    expected = re.compile(rf"\b{exception}: CHECKS_V2_REGRESSION:{re.escape(marker)}"
-                          r"(?=[:\s]|$)[^\r\n]*$", re.MULTILINE)
-    if not expected.search(negative.output):
+    if negative.returncode != 1:
+        raise ProofError(f"{case}: negative Nix build was interrupted or returned an unexpected "
+                         f"exit status ({negative.returncode})")
+    if not assertion_failed(negative.output, exception, marker):
         raise ProofError(f"{case} failed without its expected assertion; environment, evaluation and "
                          "dependency failures do not count as regression proof")
     return f"{case}: normal {normal} passed; deliberate regression failed at {marker}"

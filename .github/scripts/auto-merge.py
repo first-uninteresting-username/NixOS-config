@@ -61,7 +61,9 @@ def source_hash_only(old, new):
                 return False
             changed |= source["hash"] != new_source["hash"]
             scrubbed["sources"][system]["hash"] = source["hash"]
-        return changed and scrubbed == before
+        # Python equality treats true, 1 and 1.0 as equal; source metadata types must stay fixed.
+        return changed and (json.dumps(scrubbed, sort_keys=True, allow_nan=False)
+                            == json.dumps(before, sort_keys=True, allow_nan=False))
     except (ValueError, TypeError, KeyError, AttributeError):
         return False
 
@@ -121,9 +123,12 @@ def check_failures(sha, check_runs, statuses, required, suite_id):
             problems.append(f"{context}: check is {latest_check['status']}/{latest_check['conclusion']}")
         if latest_status and latest_status["state"] != "success":
             problems.append(f"{context}: status is {latest_status['state']}")
-        if context == AGGREGATE and (latest_check is None
-                                     or latest_check["check_suite"]["id"] != suite_id):
-            problems.append(f"{context}: aggregate does not belong to the completed triggering run")
+        if context == AGGREGATE:
+            triggering = [check for check in matching_checks if check["check_suite"]["id"] == suite_id]
+            latest_trigger = max(triggering, key=lambda item: item["id"], default=None)
+            if (latest_trigger is None or latest_trigger["status"] != "completed"
+                    or latest_trigger["conclusion"] != "success"):
+                problems.append(f"{context}: no successful aggregate from the completed triggering run")
     return problems
 
 
