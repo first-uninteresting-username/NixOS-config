@@ -63,6 +63,7 @@
         # Preserve the generated files but prevent NetworkManager from ingesting them.
         systemd.services.nm-wifi-secret.path = lib.mkIf skipReload (lib.mkForce [
           (pkgs.writeShellScriptBin "nmcli" "exit 0")
+          pkgs.coreutils
         ]);
       };
 
