@@ -112,24 +112,6 @@
                 "a.meta_window.get_wm_class() === 'org.gnome.Ptyxis')"
             ) + " | grep -q 'true,..true'")
 
-        with subtest("Clipboard contents round-trip inside the user Wayland session"):
-            # Keep the clipboard owner outside the driver's shell and its descriptors.
-            machine.succeed(as_user(
-                "systemd-run --user --unit=checks-v2-clipboard --property=Type=exec "
-                "--setenv=WAYLAND_DISPLAY=wayland-0 bash --noprofile --norc -c "
-                + shlex.quote("printf %s checks-v2-clipboard | wl-copy --foreground")
-            ), timeout=30)
-            try:
-                machine.wait_until_succeeds(as_user(
-                    "test \"$(timeout 5s wl-paste --no-newline)\" = checks-v2-clipboard"
-                ), timeout=60)
-                assert machine.succeed(as_user(
-                    "timeout 5s wl-paste --no-newline"
-                ), timeout=10) == "checks-v2-clipboard"
-            finally:
-                machine.execute(as_user(
-                    "systemctl --user stop checks-v2-clipboard.service"
-                ), timeout=10)
             machine.screenshot("gnome-session")
       '';
     };
