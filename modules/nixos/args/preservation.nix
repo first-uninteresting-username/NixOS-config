@@ -28,7 +28,6 @@
         };
 
         systemd = {
-          suppressedSystemUnits = ["systemd-machine-id-commit.service"];
           services.systemd-machine-id-commit = {
             unitConfig.ConditionPathIsMountPoint = ["" "/persist/etc/machine-id"];
             serviceConfig.ExecStart = ["" "systemd-machine-id-setup --commit --root /persist"];
@@ -75,6 +74,7 @@
                 file = "/etc/machine-id";
                 inInitrd = true;
                 how = "symlink";
+                createLinkTarget = true;
                 configureParent = true;
               }
             ];

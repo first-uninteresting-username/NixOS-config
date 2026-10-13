@@ -1,0 +1,95 @@
+# SPDX-FileCopyrightText: 2026 first-uninteresting-username
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+name: ISO build
+
+on:
+  workflow_dispatch:
+    inputs:
+      iso:
+        description: Installation ISO to build and boot-test
+        type: choice
+        options: [john, wall-e, both]
+        default: both
+      ref:
+        description: Branch, tag, or commit (empty uses the selected workflow ref)
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  discover:
+    name: Discover ISO targets
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrices.outputs.matrix }}
+      ref: ${{ steps.matrices.outputs.ref }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
+
+      - name: Read Nix config
+        shell: bash
+        run: |
+          {
+            echo 'NIX_CONF<<EOF'
+            cat .github/nix.conf
+            echo 'EOF'
+          } >> "$GITHUB_ENV"
+
+      - uses: DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa # v23
+        with:
+          extra-conf: ${{ env.NIX_CONF }}
+
+      - name: Select actual ISO packages and matching boot checks
+        id: matrices
+        shell: bash
+        env:
+          ISO: ${{ inputs.iso }}
+        run: |
+          set -Eeuo pipefail
+          mkdir -p ci-matrices
+          nix eval --json '.#githubActions.isos' > ci-matrices/isos.json
+          nix eval --json '.#githubActions.isoTests' > ci-matrices/smoke.json
+          jq --arg iso "$ISO" \
+            '{include: [.include[] | select($iso == "both" or .name == $iso)]}' \
+            ci-matrices/isos.json > ci-matrices/selected-images.json
+          python3 .github/scripts/select-tests.py --mode iso --iso "$ISO" \
+            --matrix-json ci-matrices/smoke.json --summary "$GITHUB_STEP_SUMMARY" \
+            > ci-matrices/selected-smoke.json
+          expected=1
+          if [[ "$ISO" == both ]]; then expected=2; fi
+          jq -e --argjson expected "$expected" '.include | length == $expected' \
+            ci-matrices/selected-images.json > /dev/null
+          jq -e --argjson expected "$expected" '.include | length == $expected' \
+            ci-matrices/selected-smoke.json > /dev/null
+          echo "matrix=$(jq -cs '{include: (.[0].include + .[1].include)}' \
+            ci-matrices/selected-images.json ci-matrices/selected-smoke.json)" \
+            >> "$GITHUB_OUTPUT"
+          echo "ref=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo 'The selected ISO packages and their actual-image boot tests both run.' \
+            >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Retain ISO selection
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: iso-target-selection
+          path: ci-matrices/
+          retention-days: 14
+
+  build:
+    name: ISO images and smoke tests
+    needs: discover
+    uses: ./.github/workflows/build-targets.yaml
+    with:
+      matrix: ${{ needs.discover.outputs.matrix }}
+      ref: ${{ needs.discover.outputs.ref }}
+      cache-write: true
+    secrets:
+      CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}

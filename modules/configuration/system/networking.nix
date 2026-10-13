@@ -6,6 +6,7 @@ _: {
     nixosModules.networking-desktop = {
       lib,
       config,
+      pkgs,
       ...
     }: {
       preservation.preserveAt = lib.mkIf config.custom.preservation.enable {
@@ -41,7 +42,13 @@ _: {
       systemd.services.nm-wifi-secret = {
         description = "Write WiFi secret to NetworkManager keyfile";
         wantedBy = ["multi-user.target"];
-        after = ["sops-nix.service"];
+        after =
+          ["NetworkManager.service"]
+          ++ lib.optional config.sops.useSystemdActivation "sops-install-secrets.service";
+        requires =
+          ["NetworkManager.service"]
+          ++ lib.optional config.sops.useSystemdActivation "sops-install-secrets.service";
+        path = [pkgs.networkmanager];
         serviceConfig.Type = "oneshot";
         script = ''
             mkdir -p /etc/NetworkManager/system-connections
@@ -92,7 +99,7 @@ _: {
 
             chmod 600 /etc/NetworkManager/system-connections/malti.nmconnection
             chmod 600 /etc/NetworkManager/system-connections/malti_5g.nmconnection
-            systemctl reload NetworkManager || true
+            nmcli connection reload
         '';
       };
     };
