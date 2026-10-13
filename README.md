@@ -93,27 +93,24 @@ Docs are built with Zensical and hosted on github pages ([link](https://first-un
 tree
 .
 ├── AGENTS.md
-├── checks # Checks
-│   ├── _example-checks # Templates for checks
-│   │   ├── application.nix
-│   │   ├── basic.nix
-│   │   └── module-test.nix
-│   ├── graphical
-│   │   ├── gnome-minimal.nix # This checks if my gnome config can even boot
-│   └── modules
-│       └── configuration # Checks that test corresponding modules
-│           ├── applications
-│           │   └── _programs.nix # This check isn't ready, that's why it is ignored
-│           ├── desktop
-│           │   ├── printing.nix
-│           │   └── wayland.nix
-│           ├── developement
-│           │   ├── agents.nix
-│           │   └── IDE
-│           ├── services
-│           │   └── update.nix
-│           └── system
-│               └── networking.nix
+├── checks # Repository integration checks; see docs/checks.md
+│   ├── _example-checks # Excluded teaching fixtures
+│   ├── default.nix # Opt-in intentional regression outputs
+│   ├── graphical
+│   │   └── gnome-session.nix # Wayland login, Home Manager, and configured terminal
+│   ├── iso
+│   │   ├── _smoke.py # Boots actual exported installation images
+│   │   └── default.nix
+│   ├── modules
+│   │   └── configuration
+│   │       ├── applications
+│   │       │   └── _programs.nix # Excluded example
+│   │       ├── desktop
+│   │       │   └── printing.nix # mDNS discovery and CUPS network boundaries
+│   │       └── services
+│   │           └── update.nix # Upgrade command selection and failure propagation
+│   ├── networkmanager-secrets.nix
+│   └── persistence.nix
 ├── CLA.md # Controversial CLA, I hope you can understand my motives after reading the comment
 ├── CONTRIBUTING.md
 ├── devenv.lock # Full devenv suite
