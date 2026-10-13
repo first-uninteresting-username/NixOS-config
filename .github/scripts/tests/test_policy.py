@@ -434,14 +434,63 @@ class CurrentStatusTests(unittest.TestCase):
                 self.assertTrue(self.problems([self.check(), {**full, **changes}]))
 
 
+class UpdateTrustTests(unittest.TestCase):
+    REPOSITORY = {"id": 101, "owner": {"id": 7, "login": "owner", "type": "User"}}
+    BOT = {"id": merge.ACTION_BOT_ID, "login": "github-actions[bot]", "type": "Bot"}
+
+    def pr(self, author=None, head_id=101):
+        return {"base": {"repo": {"id": 101}}, "head": {"repo": {"id": head_id}},
+                "user": copy.deepcopy(author if author is not None else self.REPOSITORY["owner"])}
+
+    def test_owner_and_verified_actions_bot_are_trusted_in_same_repository(self):
+        for author in [self.REPOSITORY["owner"], self.BOT]:
+            with self.subTest(author=author):
+                self.assertTrue(merge.trusted_update(self.pr(author), self.REPOSITORY)[0])
+
+    def test_forks_are_rejected_even_for_owner_and_verified_bot(self):
+        for author in [self.REPOSITORY["owner"], self.BOT]:
+            for head_id in [202, None]:
+                with self.subTest(author=author, head_id=head_id):
+                    self.assertFalse(merge.trusted_update(self.pr(author, head_id), self.REPOSITORY)[0])
+
+    def test_unknown_authors_and_username_impersonation_are_rejected(self):
+        for author in [{"id": 99, "login": "stranger", "type": "User"},
+                       {"id": 99, "login": "owner", "type": "User"},
+                       {"id": 99, "login": "github-actions[bot]", "type": "Bot"},
+                       {**self.BOT, "id": float(merge.ACTION_BOT_ID)},
+                       {**self.BOT, "type": "User"}, {**self.BOT, "login": "other-bot"}]:
+            with self.subTest(author=author):
+                self.assertFalse(merge.trusted_update(self.pr(author), self.REPOSITORY)[0])
+
+    def test_missing_or_invalid_identity_requires_manual_review(self):
+        for side in ["base", "head"]:
+            for repository in [None, {}, {"id": True}, {"id": 202}]:
+                pr = self.pr()
+                pr[side]["repo"] = repository
+                with self.subTest(side=side, repository=repository):
+                    self.assertFalse(merge.trusted_update(pr, self.REPOSITORY)[0])
+        for repository in [{}, {"id": None}, {"id": True}, {"id": 0}]:
+            self.assertFalse(merge.trusted_update(self.pr(), repository)[0])
+        for author in [{}, {"id": None, "type": "User"}, {"id": True, "type": "User"}]:
+            self.assertFalse(merge.trusted_update(self.pr(author), self.REPOSITORY)[0])
+
+    def test_organization_members_are_not_implicitly_trusted(self):
+        repository = {"id": 101, "owner": {"id": 7, "login": "organization", "type": "Organization"}}
+        self.assertFalse(merge.trusted_update(self.pr(), repository)[0])
+        self.assertTrue(merge.trusted_update(self.pr(self.BOT), repository)[0])
+
+
 class MergeRaceTests(unittest.TestCase):
     SHA = "a" * 40
+    REPOSITORY = UpdateTrustTests.REPOSITORY
 
     def pr(self, sha=None):
         return {"number": 42, "state": "open", "draft": False,
-                "base": {"ref": "main", "sha": "c" * 40}, "head": {"sha": sha or self.SHA}}
+                "base": {"ref": "main", "sha": "c" * 40, "repo": {"id": 101}},
+                "head": {"sha": sha or self.SHA, "repo": {"id": 101}},
+                "user": copy.deepcopy(self.REPOSITORY["owner"])}
 
-    def api(self, changed=False, retargeted=False, base_advanced=False):
+    def api(self, changed=False, retargeted=False, base_advanced=False, untrusted=False, forked=False):
         class FakeAPI:
             merges = []
 
@@ -456,6 +505,10 @@ class MergeRaceTests(unittest.TestCase):
                         result["base"]["ref"] = "other-branch"
                     if base_advanced:
                         result["base"]["sha"] = "d" * 40
+                    if untrusted:
+                        result["user"]["id"] = 99
+                    if forked:
+                        result["head"]["repo"]["id"] = 202
                     return result
                 if path == "/pulls/42/merge":
                     inner.merges.append(body)
@@ -471,13 +524,15 @@ class MergeRaceTests(unittest.TestCase):
 
         return FakeAPI()
 
-    def exercise(self, changed=False, fetched=None, retargeted=False, base_advanced=False):
-        api = self.api(changed, retargeted, base_advanced)
+    def exercise(self, changed=False, fetched=None, retargeted=False, base_advanced=False,
+                 untrusted=False, forked=False):
+        api = self.api(changed, retargeted, base_advanced, untrusted, forked)
         revisions = iter([("c" * 40 + "\n").encode(), ((fetched or self.SHA) + "\n").encode()])
         with patch.object(merge, "git", side_effect=lambda *args: next(revisions)
                           if args[0] == "rev-parse" else b""), \
                 patch.object(merge, "revision_changes", return_value=[("M", "flake.lock", b"{}", b'{"version":7}')]):
-            result = merge.process(api, {"head_sha": self.SHA, "check_suite_id": 123}, self.pr(), "main")
+            result = merge.process(api, {"head_sha": self.SHA, "check_suite_id": 123}, self.pr(),
+                                   "main", self.REPOSITORY)
         return api.merges, result
 
     def test_merge_sends_exact_sha_and_supported_merge_method(self):
@@ -504,10 +559,33 @@ class MergeRaceTests(unittest.TestCase):
     def test_superseded_workflow_run_never_fetches_or_merges(self):
         api = self.api()
         with patch.object(merge, "git") as mocked:
-            result = merge.process(api, {"head_sha": "b" * 40}, self.pr(), "main")
+            result = merge.process(api, {"head_sha": "b" * 40}, self.pr(), "main", self.REPOSITORY)
         mocked.assert_not_called()
         self.assertEqual(api.merges, [])
         self.assertIn("superseded", result)
+
+    def test_outsider_or_fork_never_reaches_fetch_checks_or_merge(self):
+        for outsider, forked in [(True, False), (False, True), (True, True)]:
+            pr = self.pr()
+            if outsider:
+                pr["user"]["id"] = 99
+            if forked:
+                pr["head"]["repo"]["id"] = 202
+            api = self.api()
+            with patch.object(merge, "git") as mocked_git, patch.object(api, "request") as requests:
+                result = merge.process(api, {"head_sha": self.SHA, "check_suite_id": 123}, pr,
+                                       "main", self.REPOSITORY)
+            mocked_git.assert_not_called()
+            requests.assert_not_called()
+            self.assertEqual(api.merges, [])
+            self.assertIn("manual merge", result)
+
+    def test_author_and_repository_trust_are_rechecked_before_merge(self):
+        for options in [{"untrusted": True}, {"forked": True}]:
+            with self.subTest(options=options):
+                writes, result = self.exercise(**options)
+                self.assertEqual(writes, [])
+                self.assertIn("trust changed", result)
 
 
 if __name__ == "__main__":

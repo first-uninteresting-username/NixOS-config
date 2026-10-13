@@ -18,7 +18,31 @@ import urllib.request
 
 AGGREGATE = "all-systems-passed"
 ACTIONS_APP = 15368
+ACTION_BOT_ID = 41898282
 HASH_FILE = "packages/flow-desktop/release.json"
+
+
+def trusted_update(pr, repository):
+    """Trust same-repository PRs from its personal owner or the verified Actions bot."""
+    repository_id = repository.get("id")
+    if type(repository_id) is not int or repository_id <= 0:
+        return False, "repository identity is missing"
+    for side in ["base", "head"]:
+        source = pr.get(side, {}).get("repo") or {}
+        if type(source.get("id")) is not int or source["id"] != repository_id:
+            return False, "fork or missing repository identity requires manual review"
+    author = pr.get("user") or {}
+    owner = repository.get("owner") or {}
+    if type(author.get("id")) is not int or author["id"] <= 0:
+        return False, "author identity is missing or invalid"
+    if (author.get("type") == "User" and owner.get("type") == "User"
+            and type(owner.get("id")) is int
+            and owner["id"] > 0 and author["id"] == owner["id"]):
+        return True, "same-repository update authored by the repository owner"
+    if (author.get("id") == ACTION_BOT_ID and author.get("type") == "Bot"
+            and author.get("login") == "github-actions[bot]"):
+        return True, "same-repository update authored by the verified GitHub Actions bot"
+    return False, "author is not the repository owner or verified GitHub Actions bot"
 
 
 def unique_object(pairs):
@@ -180,10 +204,13 @@ def revision_changes(base, head):
     return result
 
 
-def process(api, run, pr, default_branch):
+def process(api, run, pr, default_branch, repository):
     number = pr["number"]
     if pr["state"] != "open" or pr["draft"] or pr["base"]["ref"] != default_branch:
         return f"PR #{number}: not an open, ready PR against {default_branch}"
+    trusted, reason = trusted_update(pr, repository)
+    if not trusted:
+        return f"PR #{number}: manual merge required ({reason})"
     sha = pr["head"]["sha"]
     if sha != run["head_sha"]:
         return f"PR #{number}: completed run is for a superseded revision"
@@ -208,6 +235,9 @@ def process(api, run, pr, default_branch):
     if (current["head"]["sha"] != sha or current["state"] != "open" or current["draft"]
             or current["base"]["ref"] != default_branch or current["base"]["sha"] != base):
         return f"PR #{number}: PR changed while checking; leaving it open"
+    trusted, reason = trusted_update(current, repository)
+    if not trusted:
+        return f"PR #{number}: update trust changed while checking; leaving it open ({reason})"
     # The SHA precondition closes the final race; GitHub still enforces all branch protection.
     response = api.request(f"/pulls/{number}/merge", "PUT", {"sha": sha, "merge_method": "merge"})
     return f"PR #{number}: {response['message']} (revision {sha})"
@@ -233,7 +263,7 @@ def main():
     for associated in api.pages(f"/commits/{run['head_sha']}/pulls"):
         try:
             pr = api.request(f"/pulls/{associated['number']}")
-            results.append(process(api, run, pr, default_branch))
+            results.append(process(api, run, pr, default_branch, repository))
         except urllib.error.HTTPError as error:
             # Missing authorization or protection restrictions must never turn into a bypass.
             results.append(f"PR #{associated['number']}: GitHub refused the operation (HTTP {error.code})")

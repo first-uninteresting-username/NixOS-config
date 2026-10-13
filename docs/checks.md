@@ -191,7 +191,15 @@ nix build -L .#checks.x86_64-linux.iso-wall-e
 **Merge verified dependency updates** runs after a successful PR **Flake build**. It checks
 out policy code from the trusted default branch, fetches PR objects only for read-only diff
 inspection, and never executes PR code with its write token. Titles, authors, labels, and
-update-workflow claims cannot establish eligibility.
+update-workflow claims alone cannot establish eligibility.
+
+Automatic merging also requires matching base/head repository IDs and a verified author
+ID: the personal repository owner's account or GitHub's `github-actions[bot]` identity.
+Fork PRs, outside contributors, other collaborators, and other bots require manual review,
+even when their diffs contain only lock or hash updates and every check passes. Missing
+identity data blocks automation. Repository and author trust are checked again immediately
+before the merge request. A PAT belonging to another service account does not implicitly
+grant automatic-merge eligibility.
 
 Eligible diffs contain only modifications to `flake.lock` and/or existing SHA256 source
 hash leaves in `packages/flow-desktop/release.json`. Every existing source key, URL,
