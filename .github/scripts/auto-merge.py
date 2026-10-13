@@ -28,7 +28,7 @@ def same_repository(source, repository):
             and type(source.get("id")) is int and source["id"] == repository_id)
 
 
-def trusted_identity(author, repository):
+def allowed_identity(author, repository):
     """Bind trusted authors and workflow actors to authenticated GitHub account IDs."""
     author = author or {}
     owner = repository.get("owner") or {}
@@ -44,7 +44,7 @@ def trusted_identity(author, repository):
     return False, "author is not the repository owner or verified GitHub Actions bot"
 
 
-def trusted_update(pr, repository):
+def allowed_update(pr, repository):
     """Trust same-repository PRs from its personal owner or the verified Actions bot."""
     repository_id = repository.get("id")
     if type(repository_id) is not int or repository_id <= 0:
@@ -52,14 +52,14 @@ def trusted_update(pr, repository):
     for side in ["base", "head"]:
         if not same_repository(pr.get(side, {}).get("repo"), repository):
             return False, "fork or missing repository identity requires manual review"
-    return trusted_identity(pr.get("user"), repository)
+    return allowed_identity(pr.get("user"), repository)
 
 
-def trusted_workflow(run, repository):
+def allowed_workflow(run, repository):
     for field in ["repository", "head_repository"]:
         if not same_repository(run.get(field), repository):
             return False, "checked workflow has a fork or missing repository identity"
-    return trusted_identity(run.get("actor"), repository)
+    return allowed_identity(run.get("actor"), repository)
 
 
 def unique_object(pairs):
@@ -225,11 +225,11 @@ def process(api, run, pr, default_branch, repository):
     number = pr["number"]
     if pr["state"] != "open" or pr["draft"] or pr["base"]["ref"] != default_branch:
         return f"PR #{number}: not an open, ready PR against {default_branch}"
-    trusted, reason = trusted_update(pr, repository)
-    if not trusted:
+    allowed, reason = allowed_update(pr, repository)
+    if not allowed:
         return f"PR #{number}: manual merge required ({reason})"
-    trusted, reason = trusted_workflow(run, repository)
-    if not trusted:
+    allowed, reason = allowed_workflow(run, repository)
+    if not allowed:
         return f"PR #{number}: manual merge required (checked workflow identity: {reason})"
     sha = pr["head"]["sha"]
     if sha != run["head_sha"]:
@@ -255,8 +255,8 @@ def process(api, run, pr, default_branch, repository):
     if (current["head"]["sha"] != sha or current["state"] != "open" or current["draft"]
             or current["base"]["ref"] != default_branch or current["base"]["sha"] != base):
         return f"PR #{number}: PR changed while checking; leaving it open"
-    trusted, reason = trusted_update(current, repository)
-    if not trusted:
+    allowed, reason = allowed_update(current, repository)
+    if not allowed:
         return f"PR #{number}: update trust changed while checking; leaving it open ({reason})"
     # The SHA precondition closes the final race; GitHub still enforces all branch protection.
     response = api.request(f"/pulls/{number}/merge", "PUT", {"sha": sha, "merge_method": "merge"})

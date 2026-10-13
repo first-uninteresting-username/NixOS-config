@@ -445,13 +445,13 @@ class UpdateTrustTests(unittest.TestCase):
     def test_owner_and_verified_actions_bot_are_trusted_in_same_repository(self):
         for author in [self.REPOSITORY["owner"], self.BOT]:
             with self.subTest(author=author):
-                self.assertTrue(merge.trusted_update(self.pr(author), self.REPOSITORY)[0])
+                self.assertTrue(merge.allowed_update(self.pr(author), self.REPOSITORY)[0])
 
     def test_forks_are_rejected_even_for_owner_and_verified_bot(self):
         for author in [self.REPOSITORY["owner"], self.BOT]:
             for head_id in [202, None]:
                 with self.subTest(author=author, head_id=head_id):
-                    self.assertFalse(merge.trusted_update(self.pr(author, head_id), self.REPOSITORY)[0])
+                    self.assertFalse(merge.allowed_update(self.pr(author, head_id), self.REPOSITORY)[0])
 
     def test_unknown_authors_and_username_impersonation_are_rejected(self):
         for author in [{"id": 99, "login": "stranger", "type": "User"},
@@ -460,7 +460,7 @@ class UpdateTrustTests(unittest.TestCase):
                        {**self.BOT, "id": float(merge.ACTION_BOT_ID)},
                        {**self.BOT, "type": "User"}, {**self.BOT, "login": "other-bot"}]:
             with self.subTest(author=author):
-                self.assertFalse(merge.trusted_update(self.pr(author), self.REPOSITORY)[0])
+                self.assertFalse(merge.allowed_update(self.pr(author), self.REPOSITORY)[0])
 
     def test_missing_or_invalid_identity_requires_manual_review(self):
         for side in ["base", "head"]:
@@ -468,16 +468,16 @@ class UpdateTrustTests(unittest.TestCase):
                 pr = self.pr()
                 pr[side]["repo"] = repository
                 with self.subTest(side=side, repository=repository):
-                    self.assertFalse(merge.trusted_update(pr, self.REPOSITORY)[0])
+                    self.assertFalse(merge.allowed_update(pr, self.REPOSITORY)[0])
         for repository in [{}, {"id": None}, {"id": True}, {"id": 0}]:
-            self.assertFalse(merge.trusted_update(self.pr(), repository)[0])
+            self.assertFalse(merge.allowed_update(self.pr(), repository)[0])
         for author in [{}, {"id": None, "type": "User"}, {"id": True, "type": "User"}]:
-            self.assertFalse(merge.trusted_update(self.pr(author), self.REPOSITORY)[0])
+            self.assertFalse(merge.allowed_update(self.pr(author), self.REPOSITORY)[0])
 
     def test_organization_members_are_not_implicitly_trusted(self):
         repository = {"id": 101, "owner": {"id": 7, "login": "organization", "type": "Organization"}}
-        self.assertFalse(merge.trusted_update(self.pr(), repository)[0])
-        self.assertTrue(merge.trusted_update(self.pr(self.BOT), repository)[0])
+        self.assertFalse(merge.allowed_update(self.pr(), repository)[0])
+        self.assertTrue(merge.allowed_update(self.pr(self.BOT), repository)[0])
 
 
 class MergeRaceTests(unittest.TestCase):
@@ -623,7 +623,7 @@ class MergeRaceTests(unittest.TestCase):
                 self.assertEqual(api.merges, [])
                 self.assertIn("workflow identity", result)
 
-    def test_owner_and_verified_bot_workflow_actors_can_merge_trusted_updates(self):
+    def test_owner_and_verified_bot_workflow_actors_can_merge_allowed_updates(self):
         for actor in [self.REPOSITORY["owner"], UpdateTrustTests.BOT]:
             with self.subTest(actor=actor):
                 writes, _ = self.exercise(actor=actor)
