@@ -73,9 +73,13 @@
     nix-crab = {
       url = "github:first-uninteresting-username/nix-crab";
       inputs.nixpkgs.follows = "nixpkgs";
-      # Pin the release so updates and CI fetch the same CloudRedirect binary.
+      # The original release repositories are unavailable; use the pinned Moon fork.
       inputs.cloudredirect = {
-        url = "https://github.com/Selectively11/CloudRedirect/releases/download/v2.6.6/cloud_redirect.so";
+        url = "https://raw.githubusercontent.com/swwayps/cloudredirect-moon/19da05507dc8294a744d74c04ba875d4ca3cf2f7/cloud_redirect.so";
+        flake = false;
+      };
+      inputs.cloudredirect-cli = {
+        url = "https://raw.githubusercontent.com/swwayps/cloudredirect-moon/19da05507dc8294a744d74c04ba875d4ca3cf2f7/cloud_redirect_cli";
         flake = false;
       };
     };

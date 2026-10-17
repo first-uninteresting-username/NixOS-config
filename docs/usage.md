@@ -39,20 +39,25 @@ modules = [
 ];
 ```
 
-### CloudRedirect release updates
+### CloudRedirect download updates
 
-The `nix-crab` input pins CloudRedirect's upstream hook to a versioned release URL.
-This keeps dependency updates and CI from fetching different files through the moving `latest` URL.
+The original CloudRedirect and h3adcr-b release repositories are unavailable.
+The `nix-crab` input pins the hook and CLI downloads to commit
+`19da05507dc8294a744d74c04ba875d4ca3cf2f7` of `swwayps/cloudredirect-moon`,
+which also supplies the configured Moon hook. The fallback hook now uses the Moon fork too.
+The CLI loads the hook and calls its `CloudRedirect_CliMain` entry point.
 
-To update the hook, change the release version in
-`inputs.nix-crab.inputs.cloudredirect.url` in `flake.nix`, then run:
+To update these downloads, change the commit in both
+`inputs.nix-crab.inputs.cloudredirect.url` and
+`inputs.nix-crab.inputs.cloudredirect-cli.url` in `flake.nix`, then run:
 
 ```bash
-nix flake update nix-crab/cloudredirect
+nix flake update nix-crab/cloudredirect nix-crab/cloudredirect-cli
 nix flake check --no-build
 ```
 
-The regular flake update keeps this release pinned until you change its URL.
+Keep the download commit aligned with the `nix-crab/cloudredirect-moon` input when
+updating the fork. Regular flake updates leave these two download URLs pinned.
 
 ### Zed with ChatGPT Plus
 

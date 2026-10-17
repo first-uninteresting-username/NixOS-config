@@ -117,25 +117,25 @@
     "cloudredirect": {
       "flake": false,
       "locked": {
-        "narHash": "sha256-THlPEtlACX7zQQjLHNNNJip4dEimlyC7RqOvExgHAIs=",
+        "narHash": "sha256-pKAsNlqh+l3En5tL6VxmB04ILWH3+RmGaKbU8Yizqok=",
         "type": "file",
-        "url": "https://github.com/Selectively11/CloudRedirect/releases/download/v2.6.6/cloud_redirect.so"
+        "url": "https://raw.githubusercontent.com/swwayps/cloudredirect-moon/19da05507dc8294a744d74c04ba875d4ca3cf2f7/cloud_redirect.so"
       },
       "original": {
         "type": "file",
-        "url": "https://github.com/Selectively11/CloudRedirect/releases/download/v2.6.6/cloud_redirect.so"
+        "url": "https://raw.githubusercontent.com/swwayps/cloudredirect-moon/19da05507dc8294a744d74c04ba875d4ca3cf2f7/cloud_redirect.so"
       }
     },
     "cloudredirect-cli": {
       "flake": false,
       "locked": {
-        "narHash": "sha256-694YaLIyMi1YZ06iuDiUlK9qW3zLuax9ghjRhMlOCU0=",
+        "narHash": "sha256-Mj8O+x8QglkFQcz+EMWRd89l3k+1v2CAJGlgjiqG5bo=",
         "type": "file",
-        "url": "https://github.com/Selectively11/h3adcr-b/releases/download/linux-test/cloud_redirect_cli"
+        "url": "https://raw.githubusercontent.com/swwayps/cloudredirect-moon/19da05507dc8294a744d74c04ba875d4ca3cf2f7/cloud_redirect_cli"
       },
       "original": {
         "type": "file",
-        "url": "https://github.com/Selectively11/h3adcr-b/releases/download/linux-test/cloud_redirect_cli"
+        "url": "https://raw.githubusercontent.com/swwayps/cloudredirect-moon/19da05507dc8294a744d74c04ba875d4ca3cf2f7/cloud_redirect_cli"
       }
     },
     "cloudredirect-moon": {
