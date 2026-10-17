@@ -71,17 +71,8 @@
     };
 
     nix-crab = {
-      url = "github:first-uninteresting-username/nix-crab";
+      url = "github:first-uninteresting-username/nix-crab/ec6d747d347c7cd4317c8e526124970d05059191";
       inputs.nixpkgs.follows = "nixpkgs";
-      # The original release repositories are unavailable; use the pinned Moon fork.
-      inputs.cloudredirect = {
-        url = "https://raw.githubusercontent.com/swwayps/cloudredirect-moon/19da05507dc8294a744d74c04ba875d4ca3cf2f7/cloud_redirect.so";
-        flake = false;
-      };
-      inputs.cloudredirect-cli = {
-        url = "https://raw.githubusercontent.com/swwayps/cloudredirect-moon/19da05507dc8294a744d74c04ba875d4ca3cf2f7/cloud_redirect_cli";
-        flake = false;
-      };
     };
 
     llm-agents = {
