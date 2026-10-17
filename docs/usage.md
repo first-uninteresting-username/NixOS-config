@@ -1,27 +1,5 @@
 # Usage docs
 
-## Home directories and terminals
-
-XDG user folders live directly under your home directory: `~/Downloads`, `~/Documents`,
-`~/Pictures`, `~/Templates`, `~/Videos`, `~/Projects`, and `~/Games`.
-When preservation is enabled, each folder is persisted separately. `~/persist` remains
-persisted for other files. Terminal shells keep the directory supplied by their launcher,
-so **Open in Terminal** in Files opens the selected folder.
-
-### Migrate existing folders
-
-Before rebooting into this configuration, move existing files from the old persistent
-layout to the new backing directories under `/persist/home/<user>/`. For example,
-`/persist/home/<user>/persist/Documents` moves to `/persist/home/<user>/Documents`.
-Repeat for each folder listed above. If a destination already contains files, merge its
-contents carefully instead of replacing the directory. Also preserve files that applications
-have already placed in the corresponding folders directly under your home directory.
-
-Do this while the affected applications are closed, and reboot after the configuration
-is installed so preservation mounts the new folders. The configuration does not move
-existing files automatically. Update bookmarks, shortcuts, and project paths that still
-refer to `~/persist/Projects` or the other old locations.
-
 ## Internal
 
 ### Packages
