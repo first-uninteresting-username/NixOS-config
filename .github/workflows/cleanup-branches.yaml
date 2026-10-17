@@ -1,0 +1,35 @@
+# SPDX-FileCopyrightText: 2026 first-uninteresting-username
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+name: Clean stale branches
+
+on:
+  schedule:
+    - cron: "17 7 1 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: cleanup-branches
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+
+      - name: Delete inactive branches without open PRs
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        with:
+          script: |
+            const cleanup = require('./.github/scripts/cleanup-branches.cjs');
+            await cleanup({github, context, core});
