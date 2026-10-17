@@ -188,7 +188,7 @@ nix build -L .#checks.x86_64-linux.iso-wall-e
 
 ## Stale branch cleanup
 
-**Clean stale branches** runs on the first of each month at 07:17 UTC and can also run
+**Clean stale branches** runs on the 9th of each month at 18:03 UTC and can also run
 manually from the default branch. It deletes branches with no open PR and no commits
 in the preceding calendar month. Closed and merged PRs do not prevent cleanup.
 The default branch, `main`, protected branches, and open PR head or base branches
