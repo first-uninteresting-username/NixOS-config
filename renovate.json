@@ -16,7 +16,7 @@
     {
       "customType": "regex",
       "description": "Update OCI container images in .nix files",
-      "fileMatch": ["\\.nix$"],
+      "managerFilePatterns": ["/\\.nix$/"],
       "matchStrings": [
         "(?:# renovate: (?:versioning=(?<versioning>[^\\s]+)\\s+)?(?:extractVersion=(?<extractVersion>[^\\s]+)\\s*)?)?image\\s*=\\s*\"(?<depName>[^:\"]+):(?<currentValue>[^\"\\s]+)\"\\s*;"
       ],
