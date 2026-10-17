@@ -6,7 +6,7 @@ name: Clean stale branches
 
 on:
   schedule:
-    - cron: "17 7 1 * *"
+    - cron: "3 18 9 * *"
   workflow_dispatch:
 
 permissions:
