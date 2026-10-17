@@ -71,13 +71,8 @@
     };
 
     nix-crab = {
-      url = "github:first-uninteresting-username/nix-crab";
+      url = "github:first-uninteresting-username/nix-crab/9a566afbe3d494060c79ef78798845e727a2232d";
       inputs.nixpkgs.follows = "nixpkgs";
-      # Pin the release so updates and CI fetch the same CloudRedirect binary.
-      inputs.cloudredirect = {
-        url = "https://github.com/Selectively11/CloudRedirect/releases/download/v2.6.6/cloud_redirect.so";
-        flake = false;
-      };
     };
 
     llm-agents = {
