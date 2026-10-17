@@ -105,6 +105,9 @@ module over creating a parallel implementation. Keep changes scoped to the reque
 
 ## Formatting and documentation
 
+- Do not edit `docs/usage.md` unless the user explicitly requests it.
+- Keep progress updates and code comments concise.
+
 Every new or edited Nix file starts with the repository's license header:
 
 ```nix
