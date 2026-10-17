@@ -42,6 +42,7 @@
 
       home-manager.users.${config.custom.user.name} = _: {
         home.packages = [
+          pkgs.inkscape
           self.packages.${pkgs.stdenv.hostPlatform.system}.flow-desktop
         ];
       };
