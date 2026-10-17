@@ -71,7 +71,7 @@
     };
 
     nix-crab = {
-      url = "github:first-uninteresting-username/nix-crab/ec6d747d347c7cd4317c8e526124970d05059191";
+      url = "github:first-uninteresting-username/nix-crab/9a566afbe3d494060c79ef78798845e727a2232d";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 

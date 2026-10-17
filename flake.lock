@@ -610,7 +610,6 @@
         "luatools-moon": "luatools-moon",
         "lumen": "lumen",
         "millennium": "millennium",
-        "nix-flatpak": "nix-flatpak",
         "nixpkgs": [
           "nixpkgs"
         ],
@@ -620,32 +619,17 @@
         "steamnetsock": "steamnetsock"
       },
       "locked": {
-        "lastModified": 1792262992,
-        "narHash": "sha256-azh3XIZNaDwLsyfrtTbZo9BfIj1g0mPl7Y9t1ReDf7s=",
+        "lastModified": 1792263287,
+        "narHash": "sha256-M9j1KnxKEWfn2CX0N7JeF6uzmH+VCby1Cmd0/X9rHrU=",
         "owner": "first-uninteresting-username",
         "repo": "nix-crab",
-        "rev": "ec6d747d347c7cd4317c8e526124970d05059191",
+        "rev": "9a566afbe3d494060c79ef78798845e727a2232d",
         "type": "github"
       },
       "original": {
         "owner": "first-uninteresting-username",
         "repo": "nix-crab",
-        "rev": "ec6d747d347c7cd4317c8e526124970d05059191",
-        "type": "github"
-      }
-    },
-    "nix-flatpak": {
-      "locked": {
-        "lastModified": 1791644268,
-        "narHash": "sha256-f7Z4PmfnRxf7+37NN48ep+KsQauGtL5REE99pJtMNp8=",
-        "owner": "gmodena",
-        "repo": "nix-flatpak",
-        "rev": "02656785ab214fa1c9655f1beaaf0269eeeec2ca",
-        "type": "github"
-      },
-      "original": {
-        "owner": "gmodena",
-        "repo": "nix-flatpak",
+        "rev": "9a566afbe3d494060c79ef78798845e727a2232d",
         "type": "github"
       }
     },
