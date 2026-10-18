@@ -1,9 +1,12 @@
-# Checks v2
+# Checks
 
 Checks target failures that evaluation and package builds cannot detect. Use a check when
 an integration is likely to break, or when a regression escaped earlier validation. Test
 observable behavior through the repository's real modules and disposable fixtures. Avoid
 repeating upstream tests or asserting only that an option has its assigned value.
+
+The modules-v3 conversion keeps the existing manual CI selector until checks-v3
+ownership-based selection is implemented. The names below describe the converted outputs.
 
 ## CI tiers
 
@@ -44,12 +47,13 @@ old and new renamed paths. Package build selection is independent of this mappin
 
 | Test | Principal affected dependencies |
 | --- | --- |
-| `persistence` | Preservation, SSH identity, and boot configuration |
-| `networkmanager-secrets` | Desktop networking, sops integration, encrypted secrets, and recipient rules |
-| `gnome-session` | GNOME/DE, Wayland tools, theme, shells, XDG, Flow Desktop, and Hexecute package wiring |
-| `upgrade` | Upgrade service and rebuild helper |
+| `preservation-persistence` | Preservation, SSH identity, and boot configuration |
+| `networking-desktop-secrets` | Desktop networking, sops integration, encrypted secrets, and recipient rules |
+| `GNOME-session` | GNOME/DE, Wayland tools, theme, shells, XDG, Flow Desktop, and Hexecute package wiring |
+| `update` | Upgrade service and rebuild helper |
 | `printing-discovery` | Printing and desktop networking/firewall integration |
-| `module-docs` | Custom module sources, the documentation generator, and the generated module reference |
+| `module-docs` | Common arguments, module sources, the generator, and the generated reference |
+| `module-library-evaluation`, `module-library-exports`, `module-library-standalone` | Constructor fixtures and production standalone Home Manager integration |
 
 Lock files, shared flake/host wiring, test infrastructure, CI workflows, selection logic,
 and shared user/Home Manager composition select all non-ISO tests. Unclassified module,
@@ -66,7 +70,7 @@ updating its dependency mapping and coverage tests.
 The exported non-ISO check names and mapping must agree in both directions. Discovery
 rejects missing mapped checks, unmapped exports, duplicate system/name targets, and attributes
 that would build a different check. Policy fixtures model the actual architecture coverage:
-VM and ISO checks on x86_64-linux, and documentation freshness on both supported systems.
+VM and ISO checks on x86_64-linux, and documentation freshness plus library/standalone evaluation fixtures on both supported systems.
 
 ## Required status and logs
 
@@ -87,13 +91,13 @@ a distinct integration failure:
 
 | Previous check | Replacement and observable failure mode |
 | --- | --- |
-| `networking` | `networkmanager-secrets` uses the actual secret-backed desktop networking module and disposable encrypted sops data; checks keyfile contents, root ownership, 0600 permissions, and profiles loaded by NetworkManager. It catches missing secret-service ordering and a failed profile reload. |
-| `gnome-minimal`, `john`, `wayland` | `gnome-session` starts an actual GNOME Wayland user session, opens the configured terminal, and checks Home Manager activation. Starting a display-manager unit or running `wl-copy --version` alone cannot establish a usable session. |
-| `update` | `upgrade` runs the actual service with a local recording `nixos-rebuild` substitute. It checks the boot command, selected hostname/flake, environment, and propagation of a nonzero exit status. It never upgrades from remote main. |
+| `networking` | `networking-desktop-secrets` uses the actual secret-backed desktop networking module and disposable encrypted sops data; checks keyfile contents, root ownership, 0600 permissions, and profiles loaded by NetworkManager. It catches missing secret-service ordering and a failed profile reload. |
+| `gnome-minimal`, `john`, `wayland` | `GNOME-session` starts an actual GNOME Wayland user session, opens the configured terminal, and checks Home Manager activation. Starting a display-manager unit or running `wl-copy --version` alone cannot establish a usable session. |
+| `update` | `update` runs the actual service with a local recording `nixos-rebuild` substitute. It checks the boot command, selected hostname/flake, environment, and propagation of a nonzero exit status. It never upgrades from remote main. |
 | `printing` | `printing-discovery` resolves a real independent DNS-SD printer announcement from a client, resolves its mDNS hostname, and verifies that CUPS accepts loopback clients while rejecting access through the desktop network address and from a peer. |
-| No previous equivalent | `persistence` reboots a VM with tmpfs root and a disposable persistence disk. User/system state, machine ID, and SSH identities survive; unpreserved state disappears. |
+| No previous equivalent | `preservation-persistence` reboots a VM with tmpfs root and a disposable persistence disk. User/system state, machine ID, and SSH identities survive; unpreserved state disappears. |
 | No actual-image equivalent | `iso-john` and `iso-wall-e` boot the exported installation ISO with QEMU, exercise the public installer SSH/shell interface, and check Home Manager. John additionally checks the real GDM D-Bus interface; wall-e exercises its configured Nushell interface. |
-| `module-docs` | Retained: compares generated custom-option documentation against the committed reference. Evaluation cannot detect stale committed documentation. |
+| `module-docs` | Compares generated common-argument documentation against the committed reference. Evaluation cannot detect stale committed documentation. |
 
 The clipboard candidate is deferred until a repository-specific integration failure
 justifies it. The background clipboard probe primarily exercised upstream tooling and
@@ -101,8 +105,7 @@ fixture focus management, so it is removed. The fabricated local CUPS output que
 the clock-format assignment assertion are also removed; discovery, access boundaries,
 actual session usability, and Home Manager activation provide the retained integration value.
 
-Underscore-prefixed examples and the disabled application example remain teaching fixtures
-and do not enter discovery. Tests use public disposable passwords, generated test-only age
+Underscore-prefixed examples do not enter discovery. Tests use public disposable passwords, generated test-only age
 keys, isolated disks, and local service substitutes. They never use production credentials.
 The networking integration orders its keyfile writer after NetworkManager and the
 actual sops installation service, reloads connection profiles through `nmcli`, and propagates
