@@ -2,8 +2,8 @@
 
 This library implements the modules-v3 constructors and output-ownership metadata in
 `MIGRATION.md`. The root flake discovers all production modules, hosts, and common arguments
-through it. Generated host documentation and checks-v3 affected-target selection remain
-later work; the current CI selector uses an updated manual map in the meantime.
+through it and generates local documentation for every host. Checks-v3 affected-target
+selection remains later work; CI uses an updated manual map in the meantime.
 
 ## Entry points
 
@@ -90,8 +90,45 @@ Each module sees only its own package set. Installing exported packages is expli
 Host-dependent package construction stays in local lambdas inside `module` or its sections.
 Exporting a function instead of a package derivation fails.
 
-`docs` and `imperativeSteps` remain separate, unevaluated fields on `registry.declarations`.
-This stage preserves them for the later documentation implementation.
+## Host documentation
+
+Every constructed host automatically installs its documentation package. `open-docs` opens
+the local HTML in Lynx, even in a graphical session. It accepts Lynx flags, for example
+`open-docs -dump`. The application menu's host documentation entry uses `xdg-open` to open
+the same site in a graphical browser. Neither entry point executes imperative steps.
+
+The host result exposes `documentation.source`, `documentation.site`, `documentation.openDocs`,
+`documentation.desktop`, and `documentation.package` derivations. For example:
+
+```bash
+nix build .#nixosConfigurations.armin.documentation.package
+./result/bin/open-docs
+```
+
+Zensical builds static HTML with relative file links and bundled assets; no web server is
+required. Worker-based search is disabled for local-file access; use the page navigation
+and the browser's find command. Each module with content gets a page, and the site includes
+a combined imperative-steps page sorted by module name and the common-argument reference.
+Missing, null, empty, and whitespace-only content is omitted. Selection uses host IDs,
+including selected NixOS-only modules on standalone Home Manager hosts.
+
+`docs` and `imperativeSteps` each accept Markdown text, null, or a function returning either.
+Functions request named host arguments and library context explicitly, using the same
+host-value, function-default, common-default precedence as configuration. Documentation
+functions also have explicit `role` and `system` context, but no evaluated system or home
+`config`. Documentation-only arguments are recognized when validating host arguments.
+
+```nix
+docs = { hostName }: "Local documentation for `${hostName}`.";
+imperativeSteps = { role, preservationEnable }:
+  if role != "nixos" then null
+  else "Prepare the ${if preservationEnable then "/persist" else "system"} state.";
+```
+
+Use `role` guards for system-specific text on standalone Home Manager hosts. Documentation
+arguments are lazy: the home branch above does not require `preservationEnable`. Do not
+interpolate secret values into documentation, which is stored in the public Nix store.
+Read companion Markdown explicitly with `builtins.readFile` when plain strings are unwieldy.
 
 ## Output ownership
 

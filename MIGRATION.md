@@ -5,15 +5,16 @@
 This document records the agreed design for replacing the current module system and
 checks v2. It specifies the target contract for the complete migration.
 
-Steps 1–3 are implemented under [`lib/modules`](lib/modules/README.md), `modules/`,
+Steps 1–4 are implemented under [`lib/modules`](lib/modules/README.md), `modules/`,
 `hosts/`, and `arguments/`. All four production hosts use the v3 registry together;
 module-owned packages and checks replace the previous flake-parts declarations.
 Common-argument reference generation replaces the custom-option reference generator.
 
 The library implements step 5's per-system output-ownership metadata and extra watched
 files. CI still uses its manual selector, updated for the converted names and paths.
-Per-host HTML documentation, affected-target selection from base/head metadata, and the
-remaining guidance cleanup are unfinished. This branch is the migration workspace;
+Every host installs local HTML documentation, a desktop launcher, and `open-docs` for Lynx.
+Affected-target selection from base/head metadata and the remaining guidance cleanup are
+unfinished. This branch is the migration workspace;
 validation and review precede the final cutover.
 Replace the old system in one migration. Do not introduce a supported period of mixed
 v2 and v3 hosts. Preserve existing host behavior unless a change is explicitly part of

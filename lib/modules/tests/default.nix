@@ -198,7 +198,81 @@
         })
       ];
     }).perSystem {inherit system pkgs;}).checks;
+  documented = moduleLib.mkRegistry {
+    inherit commonArgs;
+    modules = [
+      base
+      (moduleLib.mkModule {
+        name = "zeta";
+        docs = {
+          userName,
+          hostName,
+          shared ? 23,
+        }: "${hostName}: ${userName}, ${toString shared}";
+        imperativeSteps = "Zeta setup marker.";
+      })
+      (moduleLib.mkModule {
+        name = "alpha";
+        imperativeSteps = {documentationOnly ? "default"}: "Alpha setup marker: ${documentationOnly}.";
+      })
+      (moduleLib.mkModule {
+        name = "empty";
+        docs = " \n\t";
+        imperativeSteps = "";
+      })
+      (moduleLib.mkModule {
+        name = "unselected";
+        ids = ["absent"];
+        docs = _: throw "unselected documentation evaluated";
+      })
+      (nixosOnly
+        // {
+          docs = "Selected NixOS-only documentation marker.";
+          imperativeSteps = {
+            role,
+            missingSystemArgument,
+          }:
+            if role == "nixos"
+            then missingSystemArgument
+            else null;
+        })
+    ];
+  };
+  documentedHome = args:
+    documented.mkHost {
+      name = "documented-home";
+      role = "home";
+      inherit system args;
+    };
+  documentedFixture = documentedHome {
+    shared = 31;
+    documentationOnly = "override";
+  };
+  inherit (documentedFixture) documentation;
+  documentationCheck =
+    pkgs.runCommand "host-documentation-check" {
+      nativeBuildInputs = [pkgs.python3];
+    } ''
+      python ${./documentation.py} ${documentation.source} ${documentation.site}/share/doc/documented-home
+      grep -q 'documented-home: fixture, 23' ${(documentedHome {}).documentation.source}/docs/modules/zeta.md
+      grep -q 'Alpha setup marker: default.' ${(documentedHome {}).documentation.source}/docs/modules/alpha.md
+      TERM=xterm ${documentation.openDocs}/bin/open-docs -dump -nolist > terminal.txt
+      grep -q 'documented-home documentation' terminal.txt
+      test -s ${documentation.desktop}/share/applications/host-documentation.desktop
+      touch "$out"
+    '';
   tests = {
+    documentationInstalledInHome = builtins.elem documentation.package documentedFixture.config.home.packages;
+    documentationInstalledInNixos = let host = nixos {}; in builtins.elem host.documentation.package host.config.environment.systemPackages;
+    documentationDefaults = builtins.seq (documentedHome {}).documentation.source.drvPath true;
+    documentationRejectsInvalidText =
+      fails
+      (withModules [
+        (moduleLib.mkModule {
+          name = "invalid-docs";
+          docs = ["not Markdown"];
+        })
+      ]).documentation.source.drvPath;
     ownershipAtRoot =
       (discovered.ownership {
         root = ./discovery/modules;
@@ -442,6 +516,8 @@ in {
     ) (pkgs.runCommand "modules-fixtures" {} ''
       test "$(cat ${exports.packages.example})" = owned
       test -e ${exports.checks.example}
+      test -e ${documentationCheck}
+      test -e ${documentedFixture.activationPackage}
       ${lib.optionalString (system == "x86_64-linux") "test -e ${discoveredExports.checks.discovered}"}
       touch "$out"
     '');

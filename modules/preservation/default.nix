@@ -5,6 +5,11 @@
 mkModule {
   name = "preservation";
   ids = ["preservation"];
+  docs = ''
+    Selected modules declare the system and home state retained under `/persist`.
+    These declarations take effect only when `preservationEnable` is true.
+    System paths and home-relative paths remain separate in the preservation configuration.
+  '';
   module = _: {
     nixos = {
       lib,

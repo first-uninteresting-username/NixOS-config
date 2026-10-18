@@ -11,26 +11,10 @@ mkModule {
     pkgs,
     ...
   }: let
-    evaluation = lib.evalModules {
-      modules = [{options = lib.mapAttrs (_: lib.mkOption) self.lib.modules.commonArgs;}];
+    reference = import ../../lib/modules/argument-reference.nix {
+      inherit lib pkgs;
+      commonArgs = self.lib.modules.commonArgs;
     };
-    optionsDoc = pkgs.nixosOptionsDoc {
-      inherit (evaluation) options;
-      transformOptions = option: option // {visible = option.visible && !(lib.hasPrefix "_module." option.name);};
-    };
-    reference = pkgs.runCommand "module-reference.md" {} ''
-      cat > "$out" <<'HEADER'
-      # Module argument reference
-
-      > Auto-generated from the common argument declarations in `arguments/`.
-      > Run `nix run .#module-docs-update` to regenerate. Do not edit manually.
-
-      Hosts pass these settings through `args`. Selected modules request only the
-      arguments needed by their applicable system and home sections.
-
-      HEADER
-      cat ${optionsDoc.optionsCommonMark} >> "$out"
-    '';
   in {
     inherit reference;
     update = pkgs.writeShellApplication {

@@ -62,7 +62,37 @@ ISO packages are `host-john` and `host-wall-e`; their checks remain `iso-john` a
 Checks use independent fixtures with explicit argument values. Existing VM checks live in
 module-local `_checks/` directories, and KVM checks run only on x86_64-linux.
 The [checks guide](checks.md) describes the current CI policy. Base/head ownership-driven
-selection and automatic per-host HTML documentation remain migration work.
+selection remains migration work.
+
+## Read host documentation
+
+Every host automatically installs its own static HTML documentation. Run `open-docs` to
+read it in Lynx, or use the host documentation entry in the application menu to open it
+in a graphical browser. Both entry points work with local files and do not require a server.
+
+The site includes pages for selected modules supplying `docs` or `imperativeSteps`, a
+combined imperative-steps page sorted by module name, and the common-argument reference.
+Opening a page does not execute its instructions. Selected modules without content do
+not produce empty pages.
+
+Module declarations can supply plain Markdown or functions requesting host arguments:
+
+```nix
+docs = {hostName}: "Configuration for `${hostName}`.";
+imperativeSteps = {role, userName}:
+  if role == "home" then "Prepare the home directory for `${userName}`." else null;
+```
+
+Use `role` guards for instructions that only apply to one host role. Only arguments used
+by the resulting text are evaluated. Never embed secret values in generated documentation.
+The [library API](../lib/modules/README.md#host-documentation) describes the available context.
+
+Build the documentation without building or activating the system:
+
+```bash
+nix build .#nixosConfigurations.armin.documentation.package
+./result/bin/open-docs
+```
 
 ## Regenerate the argument reference
 

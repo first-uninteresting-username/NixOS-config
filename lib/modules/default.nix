@@ -16,8 +16,12 @@
     entries;
   validName = name: builtins.isString name && builtins.match "[a-zA-Z0-9][a-zA-Z0-9_-]*" name != null;
   idsValid = ids: builtins.isList ids && builtins.all builtins.isString ids;
-  contextNames = ["config" "options" "lib" "pkgs" "inputs" "self" "system" "packages" "osConfig" "modulesPath" "specialArgs"];
+  contextNames = ["config" "options" "lib" "pkgs" "inputs" "self" "system" "role" "packages" "osConfig" "modulesPath" "specialArgs"];
   hostRequests = fn: builtins.filter (name: !(builtins.elem name contextNames)) (arguments.requests fn);
+  documentationRequests = declaration:
+    lib.concatMap (field:
+      lib.optionals (builtins.isFunction declaration.${field}) (hostRequests declaration.${field}))
+    ["docs" "imperativeSteps"];
   applicable = role: body: role == "nixos" || body ? home || !(body ? nixos);
   sectionNames = role: body:
     builtins.filter (name: builtins.hasAttr name body)
@@ -195,6 +199,31 @@ in rec {
       pkgs = inputs.nixpkgs.legacyPackages.${system};
       context = baseContext // {inherit pkgs system;};
       chosen = builtins.filter (selected ids) ordered;
+      documentation = import ./documentation.nix {
+        inherit lib pkgs name;
+        commonArgs = validatedCommonArgs;
+        pages =
+          lib.filterAttrs (_: page: page.docs != null || page.imperativeSteps != null)
+          (builtins.listToAttrs (map (declaration: {
+              inherit (declaration) name;
+              value = lib.genAttrs ["docs" "imperativeSteps"] (field: let
+                input = declaration.${field};
+                # A role guard can omit text without forcing system-only arguments on home hosts.
+                text =
+                  if builtins.isFunction input
+                  then (call "${labelFor name declaration} ${field}" values (context // {inherit role;}) {} input).value
+                  else input;
+              in
+                if text == null
+                then null
+                else if !(builtins.isString text)
+                then fail "${labelFor name declaration} ${field}: expected Markdown text or null"
+                else if builtins.match "[[:space:]]*" text != null
+                then null
+                else text);
+            })
+            chosen));
+      };
       bodyFor = declaration: (call (labelFor name declaration) values context {} declaration.module).value;
       requested = targetRole: declaration: let
         body = bodyFor declaration;
@@ -205,10 +234,10 @@ in rec {
           ++ lib.concatMap (section: hostRequests body.${section}) (sectionNames targetRole body));
       known = lib.unique (["userName"]
         ++ builtins.attrNames validatedCommonArgs
-        ++ lib.concatMap (requested "nixos") ordered);
+        ++ lib.concatMap (declaration: requested "nixos" declaration ++ documentationRequests declaration) ordered);
       used =
         lib.unique (lib.optionals (role == "nixos") ["userName"]
-          ++ lib.concatMap (requested role) chosen);
+          ++ lib.concatMap (declaration: requested role declaration ++ documentationRequests declaration) chosen);
       unknown = builtins.filter (arg: !(builtins.elem arg known)) (builtins.attrNames args);
       unused = builtins.filter (arg: !(builtins.elem arg used)) (builtins.attrNames args);
       checked =
@@ -221,12 +250,12 @@ in rec {
         then
           inputs.nixpkgs.lib.nixosSystem {
             inherit system;
-            modules = [(integration values name)] ++ compiled;
+            modules = [(integration values name) {environment.systemPackages = [documentation.package];}] ++ compiled;
           }
         else
           inputs.home-manager.lib.homeManagerConfiguration {
             inherit pkgs;
-            modules = compiled;
+            modules = [{home.packages = [documentation.package];}] ++ compiled;
           };
       failures =
         builtins.filter (entry: !entry.assertion)
@@ -240,7 +269,7 @@ in rec {
         then fail "host '${name}': expected exactly one Home Manager user"
         else if failures != []
         then fail "host '${name}': failed assertions:\n${lib.concatMapStringsSep "\n" (entry: entry.message) failures}"
-        else result
+        else result // {inherit documentation;}
       ));
     outputEntries = kind: system: pkgs:
       lib.concatMap (declaration: let
