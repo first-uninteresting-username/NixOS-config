@@ -103,20 +103,6 @@
             neededForBoot = true;
           };
         };
-        home-manager.users.${config.custom.user.name} = _: {
-          programs = {
-            zsh.initContent = ''
-              if [[ $PWD == $HOME ]]; then
-                  cd ~/persist
-              fi
-            '';
-            nushell.extraConfig = ''
-              if $env.PWD == $env.HOME {
-                cd ~/persist
-              }
-            '';
-          };
-        };
       };
     };
   };
