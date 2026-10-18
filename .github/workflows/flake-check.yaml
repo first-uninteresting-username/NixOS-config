@@ -64,6 +64,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           python3 -m unittest discover -s .github/scripts/tests -v 2>&1 | tee logs/policy.log
+          node --test .github/scripts/tests/*.test.cjs 2>&1 | tee logs/branch-policy.log
 
       - name: Evaluate every supported system
         id: check
