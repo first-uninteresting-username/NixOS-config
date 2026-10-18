@@ -54,6 +54,8 @@ nixosModules.home-manager
 nixosModules.xdg
 ```
 
+The `programs-desktop` module installs Inkscape and Flow Desktop for the configured user.
+
 There're no docs for those modules, because no current users need them.
 
 <!-- Hardcoding, because by the time I will need to change it, I hope to have a new module system (modules v3) -->

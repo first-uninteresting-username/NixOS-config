@@ -15,6 +15,13 @@ _: {
               ".config"
               ".local/share"
               ".local/state"
+              "Downloads"
+              "Documents"
+              "Pictures"
+              "Templates"
+              "Videos"
+              "Projects"
+              "Games"
             ];
           };
         };
@@ -24,10 +31,7 @@ _: {
         osConfig,
         ...
       }: let
-        homeBase =
-          if osConfig.custom.preservation.enable
-          then "${config.home.homeDirectory}/persist"
-          else config.home.homeDirectory;
+        homeBase = config.home.homeDirectory;
       in {
         systemd.user.tmpfiles.rules = [
           "d ${homeBase}/Games 0755 ${osConfig.custom.user.name} ${osConfig.custom.user.name} -"

@@ -186,6 +186,17 @@ nix build -L .#packages.x86_64-linux.wall-e
 nix build -L .#checks.x86_64-linux.iso-wall-e
 ```
 
+## Stale branch cleanup
+
+**Clean stale branches** runs on the 9th of each month at 18:03 UTC and can also run
+manually from the default branch. It deletes branches with no open PR and no commits
+in the preceding calendar month. Closed and merged PRs do not prevent cleanup.
+The default branch, `main`, protected branches, and open PR head or base branches
+are preserved. The workflow rechecks PRs before deletion and uses a Git lease so a
+concurrent push prevents deletion. Missing metadata or API errors stop deletion.
+The cutoff uses commit timestamps, not the time an existing commit was pushed.
+Deleted branch names appear in the workflow summary.
+
 ## Automatic dependency merging
 
 **Merge verified dependency updates** runs after a successful PR **Flake build**. It checks
