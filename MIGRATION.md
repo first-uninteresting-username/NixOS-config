@@ -3,7 +3,12 @@
 ## Status and scope
 
 This document records the agreed design for replacing the current module system and
-checks v2. It is a specification for implementation, not an implemented API.
+checks v2. It specifies the target contract for the complete migration.
+
+Steps 1–2 now have an opt-in library implementation and focused fixtures under
+[`lib/modules-v3`](lib/modules-v3/README.md). Its README documents the chosen API and
+validation commands. Production configuration and CI remain on the existing system;
+the remaining migration steps are not implemented by this library work.
 
 Replace the old system in one migration. Do not introduce a supported period of mixed
 v2 and v3 hosts. Preserve existing host behavior unless a change is explicitly part of
