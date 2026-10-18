@@ -29,6 +29,7 @@ def main():
 
     version = release["tag_name"].removeprefix("v")
     assets = {asset["name"]: asset for asset in release["assets"]}
+    # Resolve both architectures from one release before changing the checked-in pin.
     sources = {}
     for system, architecture in ARCHITECTURES.items():
         name = f"Flow_{version}_linux_{architecture}.deb"

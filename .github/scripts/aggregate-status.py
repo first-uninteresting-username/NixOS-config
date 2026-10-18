@@ -8,6 +8,7 @@ import argparse
 
 
 def failures(jobs, selected_tests, weekly, prove_regressions=False, selected_packages=True):
+    # A skipped tier is valid only when the selection plan explicitly omitted it.
     expected = {
         "basic": "success", "discover": "success",
         "packages": "success" if selected_packages or weekly else "skipped",

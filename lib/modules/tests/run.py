@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[3]
 
 
 def evaluate(attribute, system="x86_64-linux"):
+    """Capture diagnostics as data so negative fixtures can assert precise failures."""
     expression = (
         "(import ./lib/modules/tests { "
         "inputs = (builtins.getFlake (toString ./.)).inputs; "
@@ -40,6 +41,7 @@ for architecture in ("x86_64-linux", "aarch64-linux"):
     require(all(tests.values()), f"A fixture returned false on {architecture}", result)
     print(f"{architecture}: {len(tests)} evaluation fixtures passed", flush=True)
 
+# A nonzero exit alone could hide a syntax or fetch failure; require contextual messages.
 for case, fragments in {
     "missing": ["host 'test-system'", "module 'example'", "argument 'systemOnly'"],
     "unknown": ["host 'test-home'", "unknown arguments", "misspelled"],

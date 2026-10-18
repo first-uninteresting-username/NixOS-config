@@ -9,7 +9,9 @@ use UEFI and x86_64-linux. The flake also supports aarch64-linux package and che
 
 Copy `hosts/_template.nix` to `hosts/<name>.nix`, or use an existing host declaration as
 the starting point for similar hardware. Set `name`, `role`, `system`, `ids`, and `args`.
-The registry derives `hostName` from `name`; do not add it to `args`.
+The registry derives `hostName` from `name`; do not add it to `args`. Discovery passes
+each declaration to the registry’s `mkHost` constructor automatically. Do not import
+repository declarations or call `mkHost` manually in a host file.
 
 A host selects a module when it contains every module ID. Related IDs are explicit:
 selecting a desktop module does not automatically select its theme or Wayland configuration.
@@ -18,7 +20,9 @@ See [modules](modules.md) and the [common argument reference](module-reference.m
 ## Add host-specific configuration
 
 Copy `modules/_template/` to `modules/host-<name>/`. Change the declaration's `name` and
-ID to `host-<name>`, then include that ID in the host declaration. Put hardware settings,
+ID to `host-<name>`, then include that ID in the host declaration. This template is a
+host-specific module fragment, not a bootable host. The host declaration selects it
+alongside the common modules needed by the machine. Put hardware settings,
 state versions, disk setup, and upstream hardware imports in its `nixos` section.
 The host declaration itself has no inline configuration or module-import field.
 

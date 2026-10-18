@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: 2026 first-uninteresting-username
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
+# Reboot with ephemeral root state and verify preserved system and user files survive.
 {
   self,
   pkgs,

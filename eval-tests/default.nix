@@ -5,6 +5,7 @@
   lib,
   nixosConfigurations,
 }: let
+  # Read final merged options independently of registry selection and ownership metadata.
   expectations = import ./hosts.nix;
   evaluate = name: {
     host,

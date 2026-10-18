@@ -82,7 +82,7 @@ def valid_hash(value):
 
 
 def source_hash_only(old, new):
-    """Only permit existing source SHA256 leaves; URLs, versions and structure stay fixed."""
+    """Allow only valid hash-leaf changes while preserving URLs, versions, and shape."""
     try:
         before = json.loads(old, object_pairs_hook=unique_object)
         after = json.loads(new, object_pairs_hook=unique_object)
@@ -222,6 +222,7 @@ def revision_changes(base, head):
 
 
 def process(api, run, pr, default_branch, repository):
+    """Recheck identity, revisions, and required statuses before merging the exact head."""
     number = pr["number"]
     if pr["state"] != "open" or pr["draft"] or pr["base"]["ref"] != default_branch:
         return f"PR #{number}: not an open, ready PR against {default_branch}"

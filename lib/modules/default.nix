@@ -16,12 +16,14 @@
     entries;
   validName = name: builtins.isString name && builtins.match "[a-zA-Z0-9][a-zA-Z0-9_-]*" name != null;
   idsValid = ids: builtins.isList ids && builtins.all builtins.isString ids;
+  # Context comes from the evaluator; only the remaining names are host arguments.
   contextNames = ["config" "options" "lib" "pkgs" "inputs" "self" "system" "role" "packages" "osConfig" "modulesPath" "specialArgs"];
   hostRequests = fn: builtins.filter (name: !(builtins.elem name contextNames)) (arguments.requests fn);
   documentationRequests = declaration:
     lib.concatMap (field:
       lib.optionals (builtins.isFunction declaration.${field}) (hostRequests declaration.${field}))
     ["docs" "imperativeSteps"];
+  # A NixOS-only body must not force arguments or assertions on a standalone home.
   applicable = role: body: role == "nixos" || body ? home || !(body ? nixos);
   sectionNames = role: body:
     builtins.filter (name: builtins.hasAttr name body)
@@ -82,6 +84,7 @@ in rec {
         inherit fn values context fallback label;
         commonArgs = validatedCommonArgs;
       };
+    # Exports use explicit package context, independent of selecting any real host.
     packageSet = system: pkgs: declaration: let
       context = baseContext // {inherit system pkgs;};
       bound = call "module '${declaration.name}' packages" {} context {} declaration.packages;
@@ -91,6 +94,7 @@ in rec {
         else declaration.packages;
     in
       definitions;
+    # Every generated system module composes the same single-user HM integration.
     integration = values: hostName: {config, ...} @ context: let
       user =
         call "host '${hostName}', Home Manager integration" values context config._module.args
@@ -103,6 +107,7 @@ in rec {
         users.${user.value} = {};
       };
     };
+    # Bind the outer declaration first, then evaluate each section in its own context.
     compile = role: values: hostName: declaration: {
       config,
       pkgs,
@@ -129,6 +134,7 @@ in rec {
           packages = ownPackages;
           system = pkgs.stdenv.hostPlatform.system;
         };
+      # Home sections need the embedded user’s config, not the surrounding system config.
       section = name: sectionArgs: let
         bound =
           call label values (sectionContext // sectionArgs)
@@ -225,6 +231,7 @@ in rec {
             chosen));
       };
       bodyFor = declaration: (call (labelFor name declaration) values context {} declaration.module).value;
+      # Discover requests lazily so inactive sections impose no argument requirements.
       requested = targetRole: declaration: let
         body = bodyFor declaration;
       in
@@ -257,6 +264,7 @@ in rec {
             inherit pkgs;
             modules = [{home.packages = [documentation.package];}] ++ compiled;
           };
+      # Check embedded homes too; their assertions are not system-level assertions.
       failures =
         builtins.filter (entry: !entry.assertion)
         (result.config.assertions
@@ -271,6 +279,7 @@ in rec {
         then fail "host '${name}': failed assertions:\n${lib.concatMapStringsSep "\n" (entry: entry.message) failures}"
         else result // {inherit documentation;}
       ));
+    # Normalize check records before validating names, derivations, and watched paths.
     outputEntries = kind: system: pkgs:
       lib.concatMap (declaration: let
         packages = packageSet system pkgs declaration;
@@ -320,6 +329,7 @@ in rec {
         definitions)
       ordered;
     collect = kind: system: pkgs: unique kind (outputEntries kind system pkgs);
+    # CI compares repository-relative ownership at both revisions, including removals.
     ownership = {
       root,
       system,

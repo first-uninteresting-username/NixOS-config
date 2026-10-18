@@ -36,21 +36,6 @@
           example = "gruvbox-dark";
           description = "Name of the base16 scheme in base16-schemes package in nixpkgs";
         };
-
-        icons = {
-          package = lib.mkOption {
-            type = lib.types.nullOr lib.types.package;
-            default = null;
-            example = lib.literalExpression "pkgs.morewaita-icon-theme";
-            description = "Name of the package used for icon theme";
-          };
-          name = lib.mkOption {
-            type = lib.types.nullOr lib.types.str;
-            default = null;
-            example = "MoreWaita";
-            description = "Name of the icon theme, must match icon theme in package";
-          };
-        };
       };
     });
   };

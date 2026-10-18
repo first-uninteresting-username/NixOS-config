@@ -13,6 +13,18 @@ mkModule {
     ...
   }: let
     fixtures = import ../../lib/modules/tests {inherit inputs system;};
+    # The alternative shell must compose without a Nushell or desktop argument.
+    zshHome = self.lib.modules.mkHost {
+      name = "zsh-fixture";
+      role = "home";
+      inherit system;
+      ids = ["home-manager" "xdg" "shell" "zsh"];
+      args = {
+        userName = "fixture";
+        homeStateVersion = "26.11";
+      };
+    };
+    # Exercise production home sections while selected NixOS-only sections stay inactive.
     productionHome = self.lib.modules.mkHost {
       name = "standalone-fixture";
       role = "home";
@@ -21,8 +33,9 @@ mkModule {
         "home-manager"
         "xdg"
         "shell"
+        "nushell"
         "stylix"
-        "DE"
+        "GNOME"
         "wayland"
         "browser"
         "host-armin"
@@ -34,22 +47,9 @@ mkModule {
       args = {
         userName = "fixture";
         homeStateVersion = "26.11";
-        shell = {
-          enable = true;
-          name = "nushell";
-        };
         theme = {
           enable = true;
           base16Scheme = "gruvbox-dark";
-        };
-        desktop = {
-          enable = true;
-          name = "gnome";
-          # Impression depends on x86-only syslinux in the pinned Nixpkgs.
-          programs.isoWriter =
-            if system == "x86_64-linux"
-            then "gnome"
-            else null;
         };
       };
     };
@@ -61,7 +61,6 @@ mkModule {
       extraFiles = [
         "modules/home-manager/default.nix"
         "modules/xdg/default.nix"
-        "modules/shell/default.nix"
         "modules/shell-programs/default.nix"
         "modules/nushell/default.nix"
         "modules/zsh/default.nix"
@@ -78,7 +77,7 @@ mkModule {
         "modules/preservation/default.nix"
       ];
       derivation =
-        builtins.seq productionHome.activationPackage.drvPath
+        builtins.deepSeq [productionHome.activationPackage.drvPath zshHome.activationPackage.drvPath]
         (pkgs.runCommand "production-home-sections" {} "touch $out");
     };
   };

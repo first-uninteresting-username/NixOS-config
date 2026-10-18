@@ -219,7 +219,8 @@ directory so discovery does not treat them as declarations.
 
 A discovered file can be a value or a function explicitly requesting `mkModule`, `lib`,
 `inputs`, or `self`. Module files return one `mkModule` result or a list of results. Host
-files return one host specification or a list. Common-argument files return an attribute
+files return one host specification or a list. Discovery calls the registry’s `mkHost`
+for each specification; host files do not call it or manually import registry declarations. Common-argument files return an attribute
 set of declarations. Duplicate module names, host names, and common-argument names fail.
 Declarations retain `source` and `directory` for later output-ownership metadata.
 

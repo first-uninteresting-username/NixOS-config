@@ -53,6 +53,7 @@ def guest(script, timeout=30):
 
 
 def wait_for_guest(script, timeout):
+    """Retry transient SSH failures, but stop immediately if the emulator exits."""
     deadline = time.monotonic() + timeout
     last_output = ""
     while time.monotonic() < deadline:

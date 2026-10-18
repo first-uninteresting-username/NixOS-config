@@ -31,6 +31,7 @@ mkModule {
     packages,
     ...
   }: {
+    # A successful docs build can still be stale; compare the checked-in reference exactly.
     default = {
       extraFiles = ["docs/module-reference.md"];
       derivation = pkgs.runCommand "check-module-docs" {} ''

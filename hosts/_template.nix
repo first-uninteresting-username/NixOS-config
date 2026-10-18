@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 {
+  # Discovery calls mkHost with this specification; no manual imports are needed.
   name = "example";
   role = "nixos";
   system = "x86_64-linux";

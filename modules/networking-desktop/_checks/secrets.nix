@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: 2026 first-uninteresting-username
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
+# Decrypt disposable credentials and verify NetworkManager loads the generated profiles.
 {
   self,
   inputs,

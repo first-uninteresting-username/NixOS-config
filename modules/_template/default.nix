@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 {mkModule, ...}:
 mkModule {
+  # Select this hardware fragment from hosts/<name>.nix alongside common module IDs.
   name = "host-example";
   ids = ["host-example"];
   module = _: {

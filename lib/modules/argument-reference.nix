@@ -6,6 +6,7 @@
   pkgs,
   commonArgs,
 }: let
+  # Reuse the NixOS option renderer so types, nested options, and defaults stay consistent.
   evaluation = lib.evalModules {
     modules = [{options = lib.mapAttrs (_: lib.mkOption) commonArgs;}];
   };

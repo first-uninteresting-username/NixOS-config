@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: 2026 first-uninteresting-username
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
+# Use a separate advertiser so discovery cannot pass by reading the client’s own config.
 {
   self,
   lib,

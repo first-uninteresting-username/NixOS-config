@@ -42,6 +42,7 @@ class Links(HTMLParser):
                 self.paths.append(value)
 
 
+# Relative assets and links must resolve inside the site when opened through file://.
 for html in site.rglob("*.html"):
     parser = Links()
     parser.feed(html.read_text())

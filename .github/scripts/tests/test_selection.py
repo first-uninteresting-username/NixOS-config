@@ -48,6 +48,7 @@ def snapshot():
 
 
 class SelectionTests(unittest.TestCase):
+    """Compare independent base/head snapshots, including moved and deleted exports."""
     def setUp(self):
         self.head = snapshot()
         self.base = copy.deepcopy(self.head)

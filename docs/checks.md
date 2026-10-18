@@ -8,6 +8,12 @@ repeating upstream tests or asserting only that an option has its assigned value
 Behavioral checks and packages belong to their declaring modules. CI uses generated ownership
 metadata at the merge base and head revisions to select affected outputs on each supported system.
 
+Templates under `modules/_template/` and `hosts/_template.nix`, plus intentionally
+excluded discovery fixtures, stay outside Alejandra, Deadnix, and Statix checks. Stylix
+configures appearance; it does not format source examples. VM fixtures compose exported
+modules directly through `runNixOSTest` so they can inject fault conditions and test-only
+hardware without adding production host declarations.
+
 ## Host evaluation tests
 
 Host evaluation tests live in `eval-tests/`, independently of the module registry and its

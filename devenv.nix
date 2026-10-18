@@ -52,7 +52,14 @@
   };
 
   git-hooks.hooks = {
-    alejandra.enable = true;
+    alejandra = {
+      enable = true;
+      excludes = [
+        "^modules/_template/"
+        "^hosts/_template[.]nix$"
+        "^lib/modules/tests/discovery/modules/_ignored/"
+      ];
+    };
   };
 
   devcontainer = {

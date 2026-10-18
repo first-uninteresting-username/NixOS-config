@@ -111,6 +111,7 @@ def validate_snapshot(snapshot):
 
 def select(head, paths, base=None, mode="pr"):
     owners = validate_snapshot(head)
+    # Validate both snapshots before selecting; malformed metadata must never skip checks.
     previous = validate_snapshot(base) if base is not None else {}
     available = {key for key in owners if not is_iso(key)}
     reasons = {}

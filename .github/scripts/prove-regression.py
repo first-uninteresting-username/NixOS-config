@@ -34,7 +34,7 @@ class BuildResult:
 
 
 def assertion_failed(output, exception, marker):
-    """Require the terminal exception of a Python traceback, allowing Nix log prefixes."""
+    """Accept the expected traceback, not source text or unrelated build failures."""
     clean = re.sub(r"\x1b\[[0-?]*[ -/]*[@-~]", "", output)
     log_line = re.compile(r"^[ \t]*(?P<prefix>[A-Za-z0-9+._?=-]*>)[ ]?(?P<text>.*)$")
     expected = re.compile(rf"{exception}: CHECKS_V2_REGRESSION:{re.escape(marker)}"

@@ -20,6 +20,7 @@ mkModule {
       programs.nix-crab = {
         slssteam.enable = true;
         slssteam-moon.enable = true;
+        # Both pinned and current nix-crab require this for Steam hook injection.
         cloudredirect.enable = true;
         cloudredirect.moon.enable = true;
       };

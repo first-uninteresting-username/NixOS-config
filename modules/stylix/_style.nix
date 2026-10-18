@@ -50,10 +50,10 @@ in {
   };
 
   icons = {
-    enable = lib.mkIf (cfg.icons.package != null) true;
-    package = cfg.icons.package;
-    dark = cfg.icons.name;
-    light = cfg.icons.name;
+    enable = true;
+    package = pkgs.morewaita-icon-theme;
+    dark = "MoreWaita";
+    light = "MoreWaita";
   };
 
   fonts = {

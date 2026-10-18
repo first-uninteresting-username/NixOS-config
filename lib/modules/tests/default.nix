@@ -5,6 +5,7 @@
   inputs,
   system ? "x86_64-linux",
 }: let
+  # Synthetic declarations isolate selection, argument binding, exports, and diagnostics.
   lib = inputs.nixpkgs.lib;
   moduleLib = import ../. {inherit inputs;};
   pkgs = inputs.nixpkgs.legacyPackages.${system};
@@ -21,6 +22,7 @@
       default = 17;
     };
   };
+  # Minimal boot and home state keep fixtures independent of real host configuration.
   base = moduleLib.mkModule {
     name = "base";
     module = {
@@ -86,6 +88,7 @@
       '';
     };
   };
+  # These missing values and assertions must never be forced by a home-only evaluation.
   nixosOnly = moduleLib.mkModule {
     name = "nixos-only";
     module = {unusedOuter}: {
@@ -165,6 +168,7 @@
     name = "section-defaults";
     module = _: {home = {shared ? 29}: {home.file."section-defaults".text = toString shared;};};
   };
+  # Ellipses permit extra arguments syntactically but must not expose hidden context.
   noImplicitArgs = moduleLib.mkModule {
     name = "explicit-args";
     module = {userName, ...} @ args: {
@@ -198,6 +202,7 @@
         })
       ];
     }).perSystem {inherit system pkgs;}).checks;
+  # Mix selected, empty, and role-guarded pages to test omission and lazy documentation.
   documented = moduleLib.mkRegistry {
     inherit commonArgs;
     modules = [
@@ -249,6 +254,7 @@
     documentationOnly = "override";
   };
   inherit (documentedFixture) documentation;
+  # Verify rendered content and local links, then exercise the installed Lynx command.
   documentationCheck =
     pkgs.runCommand "host-documentation-check" {
       nativeBuildInputs = [pkgs.python3];

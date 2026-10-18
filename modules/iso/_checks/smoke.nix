@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: 2026 first-uninteresting-username
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
+# Boot the exported ISO itself; a truncated image proves the smoke test rejects boot failures.
 {
   self,
   pkgs,

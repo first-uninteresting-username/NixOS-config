@@ -4,6 +4,7 @@
 {lib}: rec {
   requests = fn: builtins.attrNames (builtins.functionArgs fn);
 
+  # Merge after the shallow type check to validate nested option types and defaults.
   validate = commonArgs: label: name: value:
     if builtins.hasAttr name commonArgs && !(commonArgs.${name}.type.check value)
     then throw "modules: ${label}: argument '${name}' must be ${commonArgs.${name}.type.description}"
@@ -44,6 +45,7 @@
       parameters);
   in {
     value = fn supplied;
+    # Force supplied values separately so ignored parameters still report invalid types.
     required =
       builtins.foldl' (acc: value: builtins.seq value acc) true
       (builtins.attrValues supplied);

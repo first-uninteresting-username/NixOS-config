@@ -11,12 +11,9 @@ mkModule {
       pkgs,
       userName,
       preservationEnable,
-      shell,
       ...
-    }: let
-      cfg = shell;
-    in {
-      config = lib.mkIf cfg.enable {
+    }: {
+      config = {
         preservation.preserveAt = lib.mkIf preservationEnable {
           "/persist" = {
             users.${userName} = {
@@ -45,17 +42,13 @@ mkModule {
     };
     home = {
       pkgs,
-      shell,
       inputs,
-      lib,
       ...
-    }: let
-      cfg = shell;
-    in {
+    }: {
       imports = [
         inputs.nix-index-database.homeModules.nix-index
       ];
-      config = lib.mkIf cfg.enable {
+      config = {
         programs = {
           nix-index-database.comma = {enable = true;};
           nix-index = {

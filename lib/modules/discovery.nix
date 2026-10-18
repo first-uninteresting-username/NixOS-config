@@ -12,6 +12,7 @@
   hostsDir,
   argumentsDir,
 }: let
+  # Sorted traversal skips companion sources and intentionally invalid fixture trees.
   files = directory:
     lib.concatMap (
       name: let
@@ -24,6 +25,7 @@
         then files path
         else lib.optional (kind == "regular" && lib.hasSuffix ".nix" name) path
     ) (builtins.attrNames (builtins.readDir directory));
+  # Discovery supplies constructors and flake context, never arbitrary host arguments.
   load = source: let
     value = import source;
     context = {inherit lib mkModule inputs self;};
@@ -66,6 +68,7 @@
     then throw "modules: duplicate host name '${host.name}'"
     else acc // {${host.name} = host;}) {}
   hosts;
+  # Host files are specifications; construct them here after binding the full registry.
   buildHosts = role:
     lib.mapAttrs (_: host:
       registry.mkHost (builtins.removeAttrs host ["source" "directory"]))

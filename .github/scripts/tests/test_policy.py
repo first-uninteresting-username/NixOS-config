@@ -413,6 +413,7 @@ class UpdateTrustTests(unittest.TestCase):
 
 
 class MergeRaceTests(unittest.TestCase):
+    """Simulate PR changes between API reads to reject stale authorization or checks."""
     SHA = "a" * 40
     REPOSITORY = UpdateTrustTests.REPOSITORY
 

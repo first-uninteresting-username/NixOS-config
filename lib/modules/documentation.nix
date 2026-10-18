@@ -10,6 +10,7 @@
 }: let
   reference = import ./argument-reference.nix {inherit lib pkgs commonArgs;};
   instructions = lib.filterAttrs (_: page: page.imperativeSteps != null) pages;
+  # The caller omits blank pages; only selected modules with content get navigation.
   moduleFiles =
     lib.mapAttrsToList (moduleName: page: {
       name = "modules/${moduleName}.md";
@@ -67,6 +68,7 @@
         };
     };
   };
+  # Keep Markdown sources separately buildable from the rendered local-file site.
   source = pkgs.linkFarm "${name}-documentation-source" ([
       {
         name = "zensical.toml";

@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: 2026 first-uninteresting-username
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
+# Boot a real session; the negative control omits the gesture seed required by Hexecute.
 {
   self,
   pkgs,
@@ -13,10 +14,6 @@
         userEnable = true;
         userPassword = "testuser";
         theme = {enable = true;};
-        desktop = {
-          enable = true;
-          name = "gnome";
-        };
       };
       name = "gnome-session";
       requiredFeatures.kvm = true;

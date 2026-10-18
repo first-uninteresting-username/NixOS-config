@@ -352,6 +352,13 @@ deployment remains a separate action.
 
 ## Implemented choices
 
+Desktop and login-shell selection use host IDs (`GNOME`, `nushell`, or `zsh`), while
+`shell` selects shared command-line tools. The common desktop and shell arguments and
+icon overrides are removed. GNOME selects its complete utility set; Stylix uses MoreWaita.
+Hack owns its configuration and API-key integration. Empty selection-only declarations
+and the unused gaming-distrobox module are removed. Host files remain discovered
+specifications; discovery invokes `mkHost`, without manual registry imports.
+
 The [constructor API](lib/modules/README.md) documents the implemented field names,
 argument binding, and ownership metadata. Root discovery uses `modules/`, `hosts/`, and
 `arguments/`. Zensical generates local HTML, Lynx provides the terminal entry point, and
