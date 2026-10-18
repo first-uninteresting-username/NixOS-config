@@ -31,11 +31,12 @@ aggregate = load("aggregate-status")
 merge = load("auto-merge")
 regression = load("prove-regression")
 MAPPING = json.loads((SCRIPTS / "test-map.json").read_text())
-NAMES = {"persistence", "networkmanager-secrets", "gnome-session", "upgrade",
-         "printing-discovery", "module-docs"}
+NAMES = {"preservation-persistence", "networking-desktop-secrets", "GNOME-session", "update",
+         "printing-discovery", "module-docs", "module-library-evaluation",
+         "module-library-exports", "module-library-standalone"}
 MATRIX = {"include": [{"name": name, "system": system, "attr": f'checks.{system}."{name}"'}
                       for name in sorted(NAMES | {"iso-john", "iso-wall-e"})
-                      for system in (["x86_64-linux", "aarch64-linux"] if name == "module-docs"
+                      for system in (["x86_64-linux", "aarch64-linux"] if name == "module-docs" or name.startswith("module-library-")
                                      else ["x86_64-linux"])]}
 
 
@@ -45,24 +46,24 @@ class SelectionTests(unittest.TestCase):
         return {row["name"] for row in matrix["include"]}, matrix, reasons
 
     def test_lock_shared_and_unknown_configuration_select_all(self):
-        for path in ["flake.lock", "flake.nix", "hosts/common/desktop-modules.nix",
+        for path in ["flake.lock", "flake.nix", "hosts/armin.nix",
                      ".github/scripts/select-tests.py", "checks/new-test.nix",
                      ".github/nix.conf", "overlays/new.nix",
-                     "modules/configuration/new-feature.nix", "hosts/armin/modules.nix"]:
+                     "modules/configuration/new-feature.nix", "hosts/armin.nix"]:
             with self.subTest(path=path):
                 self.assertEqual(self.selected([path])[0], NAMES)
 
     def test_precise_network_mapping_and_all_systems(self):
-        names, matrix, reasons = self.selected(["modules/configuration/system/networking.nix"])
-        self.assertEqual(names, {"networkmanager-secrets", "printing-discovery", "module-docs"})
+        names, matrix, reasons = self.selected(["modules/networking-desktop/default.nix"])
+        self.assertEqual(names, {"networking-desktop-secrets", "printing-discovery", "module-docs"})
         self.assertEqual({(row["name"], row["system"]) for row in matrix["include"]}, {
-            ("networkmanager-secrets", "x86_64-linux"), ("printing-discovery", "x86_64-linux"),
+            ("networking-desktop-secrets", "x86_64-linux"), ("printing-discovery", "x86_64-linux"),
             ("module-docs", "x86_64-linux"), ("module-docs", "aarch64-linux")})
-        self.assertIn("mapped to networkmanager-secrets", reasons["networkmanager-secrets"][0])
+        self.assertIn("mapped to networking-desktop-secrets", reasons["networking-desktop-secrets"][0])
 
     def test_packages_and_documentation(self):
-        self.assertEqual(self.selected(["packages/shell-scripts/rebuild/default.nix"])[0], {"upgrade"})
-        self.assertEqual(self.selected(["packages/docs/default.nix"])[0], {"module-docs"})
+        self.assertEqual(self.selected(["modules/update/_rebuild.nix"])[0], {"update", "module-docs"})
+        self.assertEqual(self.selected(["modules/module-docs/default.nix"])[0], {"module-docs"})
         self.assertEqual(self.selected(["docs/checks.md"])[0], set())
         self.assertEqual(self.selected(["packages/new/default.nix"])[0], NAMES)
 
@@ -82,10 +83,10 @@ class SelectionTests(unittest.TestCase):
             selection.select({"include": []}, [], MAPPING, "weekly")
 
     def test_mapped_checks_cannot_silently_disappear(self):
-        rows = [row for row in MATRIX["include"] if row["name"] != "upgrade"]
+        rows = [row for row in MATRIX["include"] if row["name"] != "update"]
         for mode in ["pr", "weekly"]:
-            with self.subTest(mode=mode), self.assertRaisesRegex(ValueError, "missing.*upgrade"):
-                selection.select({"include": rows}, ["packages/shell-scripts/rebuild/default.nix"],
+            with self.subTest(mode=mode), self.assertRaisesRegex(ValueError, "missing.*update"):
+                selection.select({"include": rows}, ["modules/update/_rebuild.nix"],
                                  MAPPING, mode)
 
     def test_invalid_or_duplicate_matrix_targets_are_rejected(self):
@@ -107,11 +108,11 @@ class SelectionTests(unittest.TestCase):
                          {(row["name"], row["system"]) for row in selected["include"]})
 
     def test_summary_records_names_systems_and_reasons(self):
-        _, matrix, reasons = self.selected(["modules/configuration/services/update.nix"])
+        _, matrix, reasons = self.selected(["modules/update/default.nix"])
         result = selection.summary(matrix, reasons)
-        self.assertIn("**upgrade**", result)
+        self.assertIn("**update**", result)
         self.assertIn("aarch64-linux", result)
-        self.assertIn("modules/configuration/services/update.nix", result)
+        self.assertIn("modules/update/default.nix", result)
         self.assertIn("No tests selected", selection.summary({"include": []}, {}))
 
 
@@ -129,8 +130,8 @@ class GitDiffTests(unittest.TestCase):
         self.git("init", "--initial-branch=main")
         self.git("config", "user.name", "CI policy test")
         self.git("config", "user.email", "ci@example.invalid")
-        self.write("modules/configuration/services/update.nix", "original upgrade\n")
-        self.write("modules/configuration/desktop/printing.nix", "original printing\n")
+        self.write("modules/update/default.nix", "original upgrade\n")
+        self.write("modules/printing/default.nix", "original printing\n")
         self.write("flake.lock", '{"version": 7}\n')
         self.commit()
         self.base = self.git("rev-parse", "HEAD").strip()
@@ -149,13 +150,13 @@ class GitDiffTests(unittest.TestCase):
         self.git("commit", "-m", "test revision")
 
     def test_added_deleted_and_renamed_paths_are_selected(self):
-        self.git("mv", "modules/configuration/services/update.nix", "upgrade-renamed.nix")
-        (self.root / "modules/configuration/desktop/printing.nix").unlink()
+        self.git("mv", "modules/update/default.nix", "upgrade-renamed.nix")
+        (self.root / "modules/printing/default.nix").unlink()
         self.write("modules/new-configuration.nix", "added\n")
         self.commit()
         paths = selection.changed_paths(self.base, "HEAD", cwd=self.root)
-        self.assertEqual(set(paths), {"modules/configuration/services/update.nix", "upgrade-renamed.nix",
-                                     "modules/configuration/desktop/printing.nix", "modules/new-configuration.nix"})
+        self.assertEqual(set(paths), {"modules/update/default.nix", "upgrade-renamed.nix",
+                                     "modules/printing/default.nix", "modules/new-configuration.nix"})
         chosen, _ = selection.select(MATRIX, paths, MAPPING)
         self.assertEqual({row["name"] for row in chosen["include"]}, NAMES)
 
@@ -366,7 +367,7 @@ class EligibilityTests(unittest.TestCase):
         for status in ["A", "D", "R100", "mode"]:
             self.assertFalse(merge.eligible([self.change(status=status)])[0])
         for path in ["flake.nix", "modules/change.nix", ".github/workflows/flake-build.yaml",
-                     "packages/new/default.nix", "packages/flow-desktop/default.nix"]:
+                     "packages/new/default.nix", "modules/programs-desktop/_flow-desktop/package.nix"]:
             self.assertFalse(merge.eligible([self.change(), self.change(path=path)])[0])
 
     def test_noop_duplicate_json_and_invalid_lock_block(self):

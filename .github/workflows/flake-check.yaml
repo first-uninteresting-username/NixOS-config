@@ -47,15 +47,12 @@ jobs:
           {
             nix run --inputs-from . nixpkgs#alejandra -- --check .
             nix run --inputs-from . nixpkgs#deadnix -- --fail --exclude \
-              modules/configuration/_template.nix \
-              modules/nixos/_template.nix \
-              hosts/template \
-              packages/shell-scripts/_template \
+              modules/_template \
+              hosts/_template.nix \
               checks/_example-checks
             nix run --inputs-from . nixpkgs#statix -- check . \
-              --ignore modules/configuration/_template.nix \
-              --ignore modules/nixos/_template.nix \
-              --ignore hosts/template \
+              --ignore modules/_template \
+              --ignore hosts/_template.nix \
               --ignore checks/_example-checks
           } 2>&1 | tee logs/lints.log
 
@@ -72,6 +69,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           nix flake check --no-build --all-systems 2>&1 | tee logs/evaluation.log
+          python3 lib/modules/tests/run.py 2>&1 | tee logs/module-library.log
           echo 'success=true' >> "$GITHUB_OUTPUT"
 
       - name: Retain validation failure logs

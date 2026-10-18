@@ -1,12 +1,57 @@
-# Module Reference
+# Module argument reference
 
-> Auto-generated from `options.custom.*`. Do not edit manually.
-> Regenerate with `nix build .#module-reference` or `nix run .#update-module-docs`.
+> Auto-generated from the common argument declarations in `arguments/`.
+> Run `nix run .#module-docs-update` to regenerate. Do not edit manually.
 
-All options are under `custom.*` and are provided by `self.nixosModules.*`.
+Hosts pass these settings through `args`. Selected modules request only the
+arguments needed by their applicable system and home sections.
+
+## desktop
+
+Settings for desktop\.
 
 
-## custom\.DE\.enable
+
+*Type:*
+submodule
+
+
+
+*Default:*
+
+```nix
+{
+  enable = false;
+  name = null;
+  programs = {
+    archiveTool = null;
+    calculator = null;
+    calendar = null;
+    characterSelector = null;
+    chess = null;
+    clock = null;
+    diskUsageViewer = null;
+    documentViewer = null;
+    fileManager = null;
+    imageViewer = null;
+    isoWriter = null;
+    matrixClient = null;
+    musicPlayer = null;
+    paintingApp = null;
+    screenshotUtility = null;
+    systemMonitor = null;
+    terminalEmulator = null;
+    textEditor = null;
+    whiteboard = null;
+  };
+}
+```
+
+
+
+## desktop\.enable
+
+
 
 Whether to enable DE configuration\.
 
@@ -31,12 +76,9 @@ false
 true
 ```
 
-*Declared by:*
- - [modules/nixos/desktop-environment/options\.nix, via option flake\.nixosModules\.DE](file://modules/nixos/desktop-environment/options.nix, via option flake.nixosModules.DE)
 
 
-
-## custom\.DE\.name
+## desktop\.name
 
 
 
@@ -63,12 +105,9 @@ null
 "gnome"
 ```
 
-*Declared by:*
- - [modules/nixos/desktop-environment/options\.nix, via option flake\.nixosModules\.DE](file://modules/nixos/desktop-environment/options.nix, via option flake.nixosModules.DE)
 
 
-
-## custom\.DE\.programs\.archiveTool
+## desktop\.programs\.archiveTool
 
 
 
@@ -96,12 +135,9 @@ null
 "gnome"
 ```
 
-*Declared by:*
- - [modules/nixos/desktop-environment/options\.nix, via option flake\.nixosModules\.DE](file://modules/nixos/desktop-environment/options.nix, via option flake.nixosModules.DE)
 
 
-
-## custom\.DE\.programs\.calculator
+## desktop\.programs\.calculator
 
 
 
@@ -129,12 +165,9 @@ null
 "gnome"
 ```
 
-*Declared by:*
- - [modules/nixos/desktop-environment/options\.nix, via option flake\.nixosModules\.DE](file://modules/nixos/desktop-environment/options.nix, via option flake.nixosModules.DE)
 
 
-
-## custom\.DE\.programs\.calendar
+## desktop\.programs\.calendar
 
 
 
@@ -162,12 +195,9 @@ null
 "gnome"
 ```
 
-*Declared by:*
- - [modules/nixos/desktop-environment/options\.nix, via option flake\.nixosModules\.DE](file://modules/nixos/desktop-environment/options.nix, via option flake.nixosModules.DE)
 
 
-
-## custom\.DE\.programs\.characterSelector
+## desktop\.programs\.characterSelector
 
 
 
@@ -195,12 +225,9 @@ null
 "gnome"
 ```
 
-*Declared by:*
- - [modules/nixos/desktop-environment/options\.nix, via option flake\.nixosModules\.DE](file://modules/nixos/desktop-environment/options.nix, via option flake.nixosModules.DE)
 
 
-
-## custom\.DE\.programs\.chess
+## desktop\.programs\.chess
 
 
 
@@ -228,12 +255,9 @@ null
 "gnome"
 ```
 
-*Declared by:*
- - [modules/nixos/desktop-environment/options\.nix, via option flake\.nixosModules\.DE](file://modules/nixos/desktop-environment/options.nix, via option flake.nixosModules.DE)
 
 
-
-## custom\.DE\.programs\.clock
+## desktop\.programs\.clock
 
 
 
@@ -261,12 +285,9 @@ null
 "gnome"
 ```
 
-*Declared by:*
- - [modules/nixos/desktop-environment/options\.nix, via option flake\.nixosModules\.DE](file://modules/nixos/desktop-environment/options.nix, via option flake.nixosModules.DE)
 
 
-
-## custom\.DE\.programs\.diskUsageViewer
+## desktop\.programs\.diskUsageViewer
 
 
 
@@ -294,12 +315,9 @@ null
 "gnome"
 ```
 
-*Declared by:*
- - [modules/nixos/desktop-environment/options\.nix, via option flake\.nixosModules\.DE](file://modules/nixos/desktop-environment/options.nix, via option flake.nixosModules.DE)
 
 
-
-## custom\.DE\.programs\.documentViewer
+## desktop\.programs\.documentViewer
 
 
 
@@ -327,12 +345,9 @@ null
 "gnome"
 ```
 
-*Declared by:*
- - [modules/nixos/desktop-environment/options\.nix, via option flake\.nixosModules\.DE](file://modules/nixos/desktop-environment/options.nix, via option flake.nixosModules.DE)
 
 
-
-## custom\.DE\.programs\.fileManager
+## desktop\.programs\.fileManager
 
 
 
@@ -360,12 +375,9 @@ null
 "gnome"
 ```
 
-*Declared by:*
- - [modules/nixos/desktop-environment/options\.nix, via option flake\.nixosModules\.DE](file://modules/nixos/desktop-environment/options.nix, via option flake.nixosModules.DE)
 
 
-
-## custom\.DE\.programs\.imageViewer
+## desktop\.programs\.imageViewer
 
 
 
@@ -393,12 +405,9 @@ null
 "gnome"
 ```
 
-*Declared by:*
- - [modules/nixos/desktop-environment/options\.nix, via option flake\.nixosModules\.DE](file://modules/nixos/desktop-environment/options.nix, via option flake.nixosModules.DE)
 
 
-
-## custom\.DE\.programs\.isoWriter
+## desktop\.programs\.isoWriter
 
 
 
@@ -426,12 +435,9 @@ null
 "gnome"
 ```
 
-*Declared by:*
- - [modules/nixos/desktop-environment/options\.nix, via option flake\.nixosModules\.DE](file://modules/nixos/desktop-environment/options.nix, via option flake.nixosModules.DE)
 
 
-
-## custom\.DE\.programs\.matrixClient
+## desktop\.programs\.matrixClient
 
 
 
@@ -459,12 +465,9 @@ null
 "gnome"
 ```
 
-*Declared by:*
- - [modules/nixos/desktop-environment/options\.nix, via option flake\.nixosModules\.DE](file://modules/nixos/desktop-environment/options.nix, via option flake.nixosModules.DE)
 
 
-
-## custom\.DE\.programs\.musicPlayer
+## desktop\.programs\.musicPlayer
 
 
 
@@ -492,12 +495,9 @@ null
 "gnome"
 ```
 
-*Declared by:*
- - [modules/nixos/desktop-environment/options\.nix, via option flake\.nixosModules\.DE](file://modules/nixos/desktop-environment/options.nix, via option flake.nixosModules.DE)
 
 
-
-## custom\.DE\.programs\.paintingApp
+## desktop\.programs\.paintingApp
 
 
 
@@ -525,12 +525,9 @@ null
 "gnome"
 ```
 
-*Declared by:*
- - [modules/nixos/desktop-environment/options\.nix, via option flake\.nixosModules\.DE](file://modules/nixos/desktop-environment/options.nix, via option flake.nixosModules.DE)
 
 
-
-## custom\.DE\.programs\.screenshotUtility
+## desktop\.programs\.screenshotUtility
 
 
 
@@ -558,12 +555,9 @@ null
 "gnome"
 ```
 
-*Declared by:*
- - [modules/nixos/desktop-environment/options\.nix, via option flake\.nixosModules\.DE](file://modules/nixos/desktop-environment/options.nix, via option flake.nixosModules.DE)
 
 
-
-## custom\.DE\.programs\.systemMonitor
+## desktop\.programs\.systemMonitor
 
 
 
@@ -591,12 +585,9 @@ null
 "gnome"
 ```
 
-*Declared by:*
- - [modules/nixos/desktop-environment/options\.nix, via option flake\.nixosModules\.DE](file://modules/nixos/desktop-environment/options.nix, via option flake.nixosModules.DE)
 
 
-
-## custom\.DE\.programs\.terminalEmulator
+## desktop\.programs\.terminalEmulator
 
 
 
@@ -624,12 +615,9 @@ null
 "gnome"
 ```
 
-*Declared by:*
- - [modules/nixos/desktop-environment/options\.nix, via option flake\.nixosModules\.DE](file://modules/nixos/desktop-environment/options.nix, via option flake.nixosModules.DE)
 
 
-
-## custom\.DE\.programs\.textEditor
+## desktop\.programs\.textEditor
 
 
 
@@ -657,12 +645,9 @@ null
 "gnome"
 ```
 
-*Declared by:*
- - [modules/nixos/desktop-environment/options\.nix, via option flake\.nixosModules\.DE](file://modules/nixos/desktop-environment/options.nix, via option flake.nixosModules.DE)
 
 
-
-## custom\.DE\.programs\.whiteboard
+## desktop\.programs\.whiteboard
 
 
 
@@ -690,48 +675,34 @@ null
 "gnome"
 ```
 
-*Declared by:*
- - [modules/nixos/desktop-environment/options\.nix, via option flake\.nixosModules\.DE](file://modules/nixos/desktop-environment/options.nix, via option flake.nixosModules.DE)
+
+
+## homeStateVersion
 
 
 
-## custom\.hostname
-
-
-
-hostname for your system
+Home Manager compatibility version\.
 
 
 
 *Type:*
-null or string
+string
 
 
 
 *Default:*
 
 ```nix
-null
+"26.11"
 ```
 
 
 
-*Example:*
-
-```nix
-"some_hostname"
-```
-
-*Declared by:*
- - [modules/nixos/args/hostname\.nix, via option flake\.nixosModules\.hostname](file://modules/nixos/args/hostname.nix, via option flake.nixosModules.hostname)
+## preservationEnable
 
 
 
-## custom\.preservation\.enable
-
-
-
-Whether to enable preservation module\. It may work unpredictably if you don’t have /persist partition…
+Persist state under /persist\.
 
 
 
@@ -748,18 +719,31 @@ false
 
 
 
-*Example:*
+## shell
+
+
+
+Settings for shell\.
+
+
+
+*Type:*
+submodule
+
+
+
+*Default:*
 
 ```nix
-true
+{
+  enable = false;
+  name = null;
+}
 ```
 
-*Declared by:*
- - [modules/nixos/args/preservation\.nix, via option flake\.nixosModules\.preservation](file://modules/nixos/args/preservation.nix, via option flake.nixosModules.preservation)
 
 
-
-## custom\.shell\.enable
+## shell\.enable
 
 
 
@@ -786,12 +770,9 @@ false
 true
 ```
 
-*Declared by:*
- - [modules/nixos/shell/options\.nix, via option flake\.nixosModules\.shell](file://modules/nixos/shell/options.nix, via option flake.nixosModules.shell)
 
 
-
-## custom\.shell\.name
+## shell\.name
 
 
 
@@ -818,12 +799,43 @@ null
 "nushell"
 ```
 
-*Declared by:*
- - [modules/nixos/shell/options\.nix, via option flake\.nixosModules\.shell](file://modules/nixos/shell/options.nix, via option flake.nixosModules.shell)
+
+
+## theme
 
 
 
-## custom\.stylix\.enable
+Settings for theme\.
+
+
+
+*Type:*
+submodule
+
+
+
+*Default:*
+
+```nix
+{
+  base16Scheme = "grayscale-dark";
+  enable = false;
+  icons = {
+    name = null;
+    package = null;
+  };
+  image = {
+    enable = false;
+    height = "1080";
+    path = null;
+    width = "1920";
+  };
+}
+```
+
+
+
+## theme\.enable
 
 
 
@@ -850,12 +862,9 @@ false
 true
 ```
 
-*Declared by:*
- - [modules/nixos/args/stylix\.nix, via option flake\.nixosModules\.stylix](file://modules/nixos/args/stylix.nix, via option flake.nixosModules.stylix)
 
 
-
-## custom\.stylix\.base16Scheme
+## theme\.base16Scheme
 
 
 
@@ -882,12 +891,9 @@ string
 "gruvbox-dark"
 ```
 
-*Declared by:*
- - [modules/nixos/args/stylix\.nix, via option flake\.nixosModules\.stylix](file://modules/nixos/args/stylix.nix, via option flake.nixosModules.stylix)
 
 
-
-## custom\.stylix\.icons\.package
+## theme\.icons\.package
 
 
 
@@ -911,15 +917,12 @@ null
 *Example:*
 
 ```nix
-<derivation morewaita-icon-theme-49>
+pkgs.morewaita-icon-theme
 ```
 
-*Declared by:*
- - [modules/nixos/args/stylix\.nix, via option flake\.nixosModules\.stylix](file://modules/nixos/args/stylix.nix, via option flake.nixosModules.stylix)
 
 
-
-## custom\.stylix\.icons\.name
+## theme\.icons\.name
 
 
 
@@ -946,12 +949,9 @@ null
 "MoreWaita"
 ```
 
-*Declared by:*
- - [modules/nixos/args/stylix\.nix, via option flake\.nixosModules\.stylix](file://modules/nixos/args/stylix.nix, via option flake.nixosModules.stylix)
 
 
-
-## custom\.stylix\.image\.enable
+## theme\.image\.enable
 
 
 
@@ -978,12 +978,9 @@ false
 true
 ```
 
-*Declared by:*
- - [modules/nixos/args/stylix\.nix, via option flake\.nixosModules\.stylix](file://modules/nixos/args/stylix.nix, via option flake.nixosModules.stylix)
 
 
-
-## custom\.stylix\.image\.height
+## theme\.image\.height
 
 
 
@@ -1010,12 +1007,9 @@ string
 "2160"
 ```
 
-*Declared by:*
- - [modules/nixos/args/stylix\.nix, via option flake\.nixosModules\.stylix](file://modules/nixos/args/stylix.nix, via option flake.nixosModules.stylix)
 
 
-
-## custom\.stylix\.image\.path
+## theme\.image\.path
 
 
 
@@ -1042,12 +1036,9 @@ null
 ./my-wallpaper.svg
 ```
 
-*Declared by:*
- - [modules/nixos/args/stylix\.nix, via option flake\.nixosModules\.stylix](file://modules/nixos/args/stylix.nix, via option flake.nixosModules.stylix)
 
 
-
-## custom\.stylix\.image\.width
+## theme\.image\.width
 
 
 
@@ -1074,16 +1065,13 @@ string
 "3840"
 ```
 
-*Declared by:*
- - [modules/nixos/args/stylix\.nix, via option flake\.nixosModules\.stylix](file://modules/nixos/args/stylix.nix, via option flake.nixosModules.stylix)
+
+
+## userEnable
 
 
 
-## custom\.user\.enable
-
-
-
-Whether to enable user\.
+Create the NixOS user\.
 
 
 
@@ -1100,22 +1088,11 @@ false
 
 
 
-*Example:*
-
-```nix
-true
-```
-
-*Declared by:*
- - [modules/nixos/args/user\.nix, via option flake\.nixosModules\.user](file://modules/nixos/args/user.nix, via option flake.nixosModules.user)
+## userHashedPassword
 
 
 
-## custom\.user\.hashedPassword
-
-
-
-hashed string to be set as user password, created with ` mkpasswd -m yescrypt `
+User password hash\.
 
 
 
@@ -1132,22 +1109,11 @@ null
 
 
 
-*Example:*
-
-```nix
-"$y$j9T$e3RBMYwLteags209/SMBP0$f4bZILjV/MjNCquJFQmxL55.q6SdtN.gbATDv7Mds50"
-```
-
-*Declared by:*
- - [modules/nixos/args/user\.nix, via option flake\.nixosModules\.user](file://modules/nixos/args/user.nix, via option flake.nixosModules.user)
+## userHashedPasswordFile
 
 
 
-## custom\.user\.hashedPasswordFile
-
-
-
-Path to a file containing hashed password, created with ` mkpasswd -m yescrypt `
+Path to the user’s password hash file\.
 
 
 
@@ -1164,22 +1130,11 @@ null
 
 
 
-*Example:*
-
-```nix
-"/run/secrets/password-hash"
-```
-
-*Declared by:*
- - [modules/nixos/args/user\.nix, via option flake\.nixosModules\.user](file://modules/nixos/args/user.nix, via option flake.nixosModules.user)
+## userName
 
 
 
-## custom\.user\.name
-
-
-
-Username of the user to be created
+Home Manager user name\.
 
 
 
@@ -1196,22 +1151,11 @@ string
 
 
 
-*Example:*
-
-```nix
-"nixi"
-```
-
-*Declared by:*
- - [modules/nixos/args/user\.nix, via option flake\.nixosModules\.user](file://modules/nixos/args/user.nix, via option flake.nixosModules.user)
+## userPassword
 
 
 
-## custom\.user\.password
-
-
-
-string to be set as user password
+Initial user password (public fixtures only)\.
 
 
 
@@ -1225,16 +1169,5 @@ null or string
 ```nix
 null
 ```
-
-
-
-*Example:*
-
-```nix
-"nixos"
-```
-
-*Declared by:*
- - [modules/nixos/args/user\.nix, via option flake\.nixosModules\.user](file://modules/nixos/args/user.nix, via option flake.nixosModules.user)
 
 

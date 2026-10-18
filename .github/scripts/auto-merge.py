@@ -19,7 +19,7 @@ import urllib.request
 AGGREGATE = "all-systems-passed"
 ACTIONS_APP = 15368
 ACTION_BOT_ID = 41898282
-HASH_FILE = "packages/flow-desktop/release.json"
+HASH_FILE = "modules/programs-desktop/_flow-desktop/release.json"
 
 
 def same_repository(source, repository):

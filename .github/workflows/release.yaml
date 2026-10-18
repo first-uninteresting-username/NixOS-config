@@ -54,7 +54,7 @@ jobs:
           installCommand: "nix profile add nixpkgs#cachix"
 
       - name: Build ${{ matrix.iso }}
-        run: nix build ".#${{ matrix.iso }}"
+        run: nix build ".#host-${{ matrix.iso }}"
 
       - name: Prepare ISO and generate checksum
         id: checksum

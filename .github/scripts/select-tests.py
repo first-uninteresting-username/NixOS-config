@@ -78,7 +78,7 @@ def select(matrix, paths, mapping, mode="pr", iso="both"):
                         reasons.setdefault(name, []).append(f"{path}: mapped to {name}")
             if not classified and matches(path, mapping["configuration"]):
                 # Docs generator changes are explicitly covered by their own retained check.
-                if matches(path, ["packages/docs/**"]):
+                if matches(path, ["modules/module-docs/**"]):
                     continue
                 for name in names:
                     reasons.setdefault(name, []).append(f"{path}: unclassified configuration fallback")

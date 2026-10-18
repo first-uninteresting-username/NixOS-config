@@ -54,8 +54,8 @@ Another way to acquire the ISO is to build it (with cache).
 Run:
 
 ```bash
-# Build CLI only ISO by replacing `john` with `wall-e`
-nix build github:first-uninteresting-username/NixOS-config#john
+# Build the terminal ISO by replacing `host-john` with `host-wall-e`
+nix build github:first-uninteresting-username/NixOS-config#host-john
 # Accept all prompts or you will be building the full ISO
 ```
 
@@ -76,7 +76,7 @@ Then, include the desired modules in your `nixosSystem`:
 ```nix
 modules = [
   inputs.nixos-config.nixosModules.audio
-  # See module docs for configuration options
+  # Supply the declared arguments through specialArgs
 ];
 ```
 
@@ -88,161 +88,20 @@ Docs are built with Zensical and hosted on github pages ([link](https://first-un
 
 ## Workspace overview
 
-```bash
-# import tree ignores everything starting with "_" by default. That's why I use it for templates
-tree
-.
-├── AGENTS.md
-├── checks # Repository integration checks; see docs/checks.md
-│   ├── _example-checks # Excluded teaching fixtures
-│   ├── default.nix # Opt-in intentional regression outputs
-│   ├── graphical
-│   │   └── gnome-session.nix # Wayland login, Home Manager, and configured terminal
-│   ├── iso
-│   │   ├── _smoke.py # Boots actual exported installation images
-│   │   └── default.nix
-│   ├── modules
-│   │   └── configuration
-│   │       ├── applications
-│   │       │   └── _programs.nix # Excluded example
-│   │       ├── desktop
-│   │       │   └── printing.nix # mDNS discovery and CUPS network boundaries
-│   │       └── services
-│   │           └── update.nix # Upgrade command selection and failure propagation
-│   ├── networkmanager-secrets.nix
-│   └── persistence.nix
-├── CLA.md # Controversial CLA, I hope you can understand my motives after reading the comment
-├── CONTRIBUTING.md
-├── devenv.lock # Full devenv suite
-├── devenv.nix
-├── devenv.yaml
-├── docs # Documentation, LOL
-│   ├── checks.md
-│   ├── host-creation-guide.md
-│   ├── host-names.md
-│   ├── index.md -> ../README.md # Zensical uses index.md as index for the site and I didn't want it to be empty
-│   ├── install-guide.md
-│   ├── keybinds.md # keybinds for all DEs are documented in this file
-│   ├── module-reference.md
-│   ├── modules.md
-│   ├── usage.md
-│   └── versions.md
-├── flake.lock
-├── flake.nix
-├── github-actions # https://github.com/nix-community/nix-github-actions
-│   └── default.nix
-├── hosts # My systems using this config, refer to other documentation
-│   ├── armin
-│   │   ├── default.nix
-│   │   ├── disko.nix
-│   │   ├── facter.json
-│   │   ├── hardware.nix
-│   │   └── modules.nix
-│   ├── common # Common nixos module declarations
-│   │   ├── desktop-modules.nix
-│   │   └── iso-modules.nix
-│   ├── john
-│   │   ├── configuration.nix
-│   │   ├── default.nix
-│   │   └── modules.nix
-│   ├── template # I will use this host to function of each file
-│   │   ├── configuration.nix # Arbitrary nixos configuration code exclusive to this host
-│   │   ├── _default.nix # The core of a host, imports all other files and defines the host
-│   │   ├── disko.nix # Disks declaration
-│   │   ├── hardware.nix # Hardware configuration
-│   │   └── modules.nix # NixOS modules with options
-│   ├── victim
-│   │   ├── default.nix
-│   │   ├── disko.nix
-│   │   ├── facter.json
-│   │   ├── hardware.nix
-│   │   └── modules.nix
-│   └── wall-e
-│       ├── configuration.nix
-│       ├── default.nix
-│       └── modules.nix
-├── LICENSE # License
-├── modules
-│   ├── configuration # Those modules require options from "nixos" modules to be set, but besides that, they're self contained
-│   │   ├── applications # Modules for applications
-│   │   │   ├── browser.nix
-│   │   │   ├── gaming.nix
-│   │   │   ├── programs.nix
-│   │   │   ├── slick.nix
-│   │   │   └── sudo.nix
-│   │   ├── desktop # Modules related to desktop functionality
-│   │   │   ├── audio.nix
-│   │   │   ├── input.nix
-│   │   │   ├── printing.nix
-│   │   │   ├── tty.nix
-│   │   │   └── wayland.nix
-│   │   ├── development # Modules related to development
-│   │   │   ├── agents.nix
-│   │   │   ├── git.nix
-│   │   │   └── IDE.nix
-│   │   ├── iso # Modules used exclusively on ISO hosts, related to ISO functionality
-│   │   │   ├── default.nix
-│   │   │   ├── graphical.nix
-│   │   │   └── terminal.nix
-│   │   ├── services # Service modules
-│   │   │   ├── smart.nix
-│   │   │   ├── ssh.nix
-│   │   │   ├── sunshine.nix
-│   │   │   ├── update.nix
-│   │   │   └── virtualization.nix
-│   │   ├── system # System modules
-│   │   │   ├── bootloader.nix
-│   │   │   ├── locale.nix
-│   │   │   ├── networking.nix
-│   │   │   ├── nix.nix # Nix is a part of the system
-│   │   │   ├── power.nix
-│   │   │   └── secrets.nix
-│   │   ├── _template.nix
-│   │   └── user # User modules
-│   │       ├── home-manager.nix
-│   │       └── xdg.nix
-│   └── nixos # Those modules are self contained, but useless without setting their option
-│       ├── args # I used special args before, this is legacy name
-│       │   ├── hostname.nix
-│       │   ├── preservation.nix
-│       │   ├── stylix.nix
-│       │   └── user.nix
-│       ├── desktop-environment # I could've left that out, but I plan to introduce a new DE in the future
-│       │   ├── gnome.nix
-│       │   ├── options.nix
-│       │   └── programs-gnome.nix
-│       ├── shell # Shell modules
-│       │   ├── nushell.nix
-│       │   ├── options.nix
-│       │   ├── programs.nix
-│       │   ├── secret-programs.nix
-│       │   └── zsh.nix # Legacy
-│       └── _template.nix
-├── packages # My packages
-│   ├── docs
-│   │   └── default.nix # This package builds the module reference in docs/module-reference.md
-│   ├── mirrors # Upstream (me, LOL) doesn't provide caching, so I build them in my CI and push to my cache
-│   │   ├── hack
-│   │   │   └── default.nix
-│   │   └── hexecute-gnome
-│   │       └── default.nix
-│   ├── shell-scripts # Shell scripts
-│   │   ├── rebuild # Faster rebuilds
-│   │   │   └── default.nix
-│   │   ├── sops-easy # Sops is kinda broken on nixos (or I'm stupid, one of the 2)
-│   │   │   └── default.nix
-│   │   └── _template
-│   │       └── default.nix
-│   └── vm-hosts # Run this config in a local VM
-│       └── john.nix
-├── README.md # README
-├── renovate.json
-├── REVIEW.md # Review instructions for AI agents
-├── secrets
-│   └── secrets.yaml # In this file are my secrets. It is encrypted with pq safe age keys
-├── SECURITY.md # Github was very annoying about me not having this file, so I added it
-└── zensical.toml # Zensical config
+```text
+arguments/          Shared typed arguments and defaults
+hosts/              Host names, systems, ID selections, and argument values
+modules/            Module-owned system/home configuration, packages, and checks
+lib/modules/        Discovery, constructors, and focused fixtures
+github-actions/     Flake CI matrices and regression outputs
+.github/            Workflows and CI policy
+docs/               User documentation
+secrets/            Encrypted secrets
 ```
+
+Underscore-prefixed files and directories are excluded from discovery. Hardware and disk
+sources live with their host-specific module. See [modules](docs/modules.md) for the v3
+contract and [MIGRATION.md](MIGRATION.md) for remaining work.
 
 ## Known issues
 

@@ -23,8 +23,8 @@
     include = map (entry: entry // {type = attrPrefix;}) rawMatrix.include;
   };
 
-  # These are the ISO package exports in hosts/{john,wall-e}/default.nix.
-  isoPackageNamesBySystem."x86_64-linux" = ["john" "wall-e"];
+  # These are the ISO package exports in modules/host-{john,wall-e}/default.nix.
+  isoPackageNamesBySystem."x86_64-linux" = ["host-john" "host-wall-e"];
   isIsoPackage = system: name:
     builtins.elem name (isoPackageNamesBySystem.${system} or []);
   filterPackages = predicate:

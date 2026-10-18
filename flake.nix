@@ -110,7 +110,17 @@
     };
   };
 
-  outputs = inputs:
+  outputs = inputs: let
+    registry =
+      (import ./lib/modules {
+        inherit inputs;
+        inherit (inputs) self;
+      }).discover {
+        modulesDir = ./modules;
+        hostsDir = ./hosts;
+        argumentsDir = ./arguments;
+      };
+  in
     inputs.flake-parts.lib.mkFlake {inherit inputs;} {
       systems = [
         "x86_64-linux"
@@ -119,14 +129,21 @@
       ];
 
       imports = [
-        (inputs.import-tree ./modules)
-        (inputs.import-tree ./packages)
         (inputs.import-tree ./checks)
         (inputs.import-tree ./github-actions)
-        (inputs.import-tree.match ".*/[^/]+/default\\.nix" ./hosts)
       ];
-      perSystem = {pkgs, ...}: {
-        formatter = pkgs.alejandra;
+      flake = {
+        inherit (registry) nixosModules homeModules nixosConfigurations homeConfigurations;
+        lib.modules = registry;
       };
+      perSystem = {
+        pkgs,
+        system,
+        ...
+      }:
+        (registry.perSystem {inherit pkgs system;})
+        // {
+          formatter = pkgs.alejandra;
+        };
     };
 }

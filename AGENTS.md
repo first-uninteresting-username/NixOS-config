@@ -25,83 +25,78 @@ Guidance for agents working in this NixOS configuration repository.
 
 ## Repository map
 
-This is a flake-based configuration built with `flake-parts` and `import-tree`.
+This flake uses the modules-v3 library in `lib/modules/`. Read `MIGRATION.md` for the
+remaining documentation and checks-v3 work and `lib/modules/README.md` for the constructor API.
 
 | Path | Purpose |
 | --- | --- |
-| `flake.nix`, `flake.lock` | Inputs, supported systems, import wiring, and pinned dependencies |
-| `hosts/armin/`, `hosts/victim/` | Desktop hosts with hardware, disko, and facter configuration |
-| `hosts/wall-e/`, `hosts/john/` | Terminal and graphical ISO hosts |
-| `hosts/common/` | Shared desktop and ISO module selections and defaults |
-| `hosts/template/` | Starter host; `_default.nix` keeps it out of automatic host discovery |
-| `modules/configuration/` | Application, desktop, development, ISO, service, system, and user modules |
-| `modules/nixos/` | Custom options and implementations for user, hostname, persistence, theme, DE, shell |
-| `packages/` | Per-system packages, mirrored inputs, shell tools, VM support, and generated docs |
-| `checks/` | NixOS VM checks, graphical checks, and excluded examples |
-| `github-actions/` | Flake outputs for CI matrices of checks, packages, and hosts |
-| `.github/` | Workflows, repository settings, issue templates, and PR template |
+| `flake.nix`, `flake.lock` | Inputs, supported systems, and registry wiring |
+| `modules/<name>/` | Module declarations, owned packages, checks, and companion sources |
+| `modules/host-<name>/` | Host-specific hardware, disks, and other configuration |
+| `hosts/*.nix` | Automatically discovered host declarations |
+| `arguments/` | Shared typed argument declarations and defaults |
+| `lib/modules/` | Discovery, constructors, argument binding, and focused fixtures |
+| `github-actions/`, `.github/` | Output matrices, workflows, and CI policy |
 | `docs/`, `zensical.toml` | Documentation and site configuration |
 | `secrets/`, `.sops.yaml` | Encrypted secrets and age recipient rules |
-| `devenv.nix`, `devenv.yaml` | Development tools, editor settings, and formatting hook |
+| `devenv.nix`, `devenv.yaml` | Development tools and formatting hook |
 
-Read the affected files and nearby examples before making changes. Prefer extending an existing
-module over creating a parallel implementation. Keep changes scoped to the requested task.
+Read affected files and nearby examples before editing. Keep changes scoped to the task.
 
-## Flake and module patterns
+## Module and host patterns
 
-- `flake.nix` recursively imports `modules/`, `packages/`, `checks/`, and `github-actions/` through
-  `import-tree`. Imported files are flake-parts modules, not necessarily named `default.nix`.
-- Hosts use the separate matcher `.*/[^/]+/default\\.nix`. Follow the existing host layout and use
-  underscore-prefixed files or directories for templates/examples excluded from automatic imports.
-- Outputs support `x86_64-linux` and `aarch64-linux`; current real hosts use `x86_64-linux`.
-  Keep per-system packages portable where practical and gate architecture-specific checks explicitly.
-- Reusable system modules export `flake.nixosModules.<name>`. One file can export multiple modules;
-  inspect its exports rather than assuming a filename equals its module name.
-- Take flake inputs in the outer flake-parts function. Take `config`, `lib`, `pkgs`, and other NixOS
-  arguments in the inner system module. Follow this shape:
+- Root discovery recursively loads regular `.nix` files under `modules/`, `hosts/`, and
+  `arguments/`. Underscore-prefixed files and directories are excluded. Keep companion Nix
+  sources and fixtures in underscore-prefixed files or directories.
+- Each module has its own directory and returns a `mkModule` declaration. It owns its
+  configuration, packages, checks, and documentation. Templates are `modules/_template/`
+  and `hosts/_template.nix`.
+- A host selects a module exactly when it includes every module ID. No IDs are added
+  automatically, and modules do not import other registry declarations or consume their
+  package exports. Select related declarations through appropriate host IDs.
+- Request shared values explicitly in function parameters. Define common arguments in
+  `arguments/` with types, descriptions, and optional defaults. Use ordinary optional
+  function parameters for module-specific defaults. Do not introduce `custom.*` options.
+- Explicit host arguments override function defaults, which override common defaults.
+  `hostName` comes from the host name; never supply it in `args`.
+- Request flake context (`inputs`, `self`, `lib`) explicitly. Put system-only arguments in
+  `nixos` and home-only arguments in `home` so inactive sections impose no requirements.
+- Keep upstream NixOS and Home Manager options in their own section contexts. Use this shape:
 
 ```nix
-{inputs, ...}: {
-  flake.nixosModules.example = {config, lib, ...}: {
-    # System configuration and embedded Home Manager configuration.
+{mkModule, ...}:
+mkModule {
+  name = "example";
+  ids = ["example"];
+  module = _: {
+    nixos = {lib, preservationEnable, ...}: {
+      # System options and guarded /persist state.
+    };
+    home = {pkgs, ...}: {
+      home.packages = [pkgs.hello];
+    };
   };
 }
 ```
 
-- Use `_: { ... }` for the outer function when no flake arguments are needed. Templates live in
-  `modules/configuration/_template.nix` and `modules/nixos/_template.nix`.
-- Define reusable options under `options.custom.*` with types, defaults, descriptions, and examples
-  where applicable. Use `lib.mkEnableOption`, `lib.mkIf`, and `lib.mkDefault` consistently with nearby
-  modules. Read values through `config.custom.*`.
-- Hosts opt into modules through `self.nixosModules.*`; their `modules.nix` files select shared
-  defaults and customize `custom.*`. Keep hardware and disk layout in the host's hardware files.
-- Add dependencies in `flake.nix`, following `inputs.nixpkgs.follows = "nixpkgs"` where supported.
-  Update the affected input with `nix flake update <input>`; never hand-edit `flake.lock` or update
-  unrelated inputs as part of a focused change.
-- Inspect the pinned input's interface when changing integrations. For example, gaming imports
-  both the NixOS and Home Manager modules from `nix-crab`; keep those configurations compatible.
-
-## Hosts, Home Manager, and persistence
-
-- Use `hosts/armin/default.nix` as a desktop wiring example and `hosts/template/` for a new host.
-  Rename the copied `_default.nix` to `default.nix`, set its `Hostname` and architecture, and supply
-  actual hardware, disko, and facter data. See `docs/host-creation-guide.md`.
-- Set `_module.args.hostName = Hostname` inside the host's NixOS module list. Shared host modules set
-  `custom.hostname = hostName`; the hostname module sets `networking.hostName`. Other modules read
-  `config.custom.hostname`. Do not introduce a `hostname` special argument.
-- `hosts/common/desktop-modules.nix` enables the user, GNOME, theme, preservation, and shell defaults.
-  `hosts/common/iso-modules.nix` supplies the ISO user and disables preservation. Keep reusable
-  modules usable in both contexts rather than assuming desktop-only defaults.
-- ISO hosts also export their `config.system.build.isoImage` through `flake.packages`.
-- User settings live inside system modules at
-  `home-manager.users.${config.custom.user.name}`. Inside a Home Manager function, `config` refers
-  to home configuration; use `osConfig` for system options when needed.
-- Follow the existing Home Manager wiring: global packages, user packages, and required
-  `extraSpecialArgs` are configured by the host/module composition.
-- Persist state through `preservation.preserveAt`, guarded by
-  `lib.mkIf config.custom.preservation.enable`. System paths go under `"/persist"`; home-relative
-  paths go under `users.${config.custom.user.name}`. See the configuration template and `llama-cpp`.
-- Preserve existing `system.stateVersion` and `home.stateVersion` unless a migration is requested.
+- Generated NixOS modules embed one Home Manager user and own its integration. Standalone
+  Home Manager evaluates only applicable home sections. Avoid requiring `osConfig` in a
+  shared home section; use a declared argument or an optional system-specific context.
+- Host declarations contain only `name`, `role`, `system`, `ids`, and `args`. Hardware,
+  disks, users, and state versions belong in selected declarations, not inline host imports.
+- Preserve existing `system.stateVersion` and `homeStateVersion` unless asked to migrate them.
+- Guard preservation with `lib.mkIf preservationEnable`. System paths go under `"/persist"`;
+  home-relative paths go under `users.${userName}`.
+- Package and check names receive the declaring module's prefix; `default` exports as the
+  module name. Package exports do not install themselves. Sections access only their own
+  packages through the explicitly requested `packages` argument.
+- Check fixtures supply explicit values rather than borrowing real host settings. Gate
+  KVM-dependent checks to `x86_64-linux`; package/check conditions determine output availability.
+- Both supported systems remain `x86_64-linux` and `aarch64-linux`. Inspect pinned upstream
+  interfaces when changing integrations, including both nix-crab system and home modules.
+- Add dependencies in `flake.nix`, following `inputs.nixpkgs.follows = "nixpkgs"` where
+  supported. Run `nix flake update <input>` for an input change; never hand-edit `flake.lock`
+  or update unrelated inputs.
 
 ## Formatting and documentation
 
@@ -125,15 +120,15 @@ Every new or edited Nix file starts with the repository's license header:
 - Update user documentation when changing options, host setup, or user-visible behavior.
   Follow a local `CONVENTIONS.md` if present; use active voice, simple present tense, headings without
   trailing punctuation, and language-tagged code blocks.
-- `docs/module-reference.md` is generated from `options.custom.*`, not a hand-maintained module
+- `docs/module-reference.md` is generated from `arguments/`, not a hand-maintained module
   index. Never edit it manually. After relevant option changes, run:
 
 ```bash
-nix run .#update-module-docs
+nix run .#module-docs-update
 nix build .#checks.x86_64-linux.module-docs
 ```
 
-The generator and freshness check are defined in `packages/docs/default.nix`.
+The generator and freshness check are defined in `modules/module-docs/default.nix`.
 
 ## Development and validation
 
@@ -147,18 +142,18 @@ It provides Alejandra, nixd, yamllint, and `flake-check`, which runs `nix flake 
 
 | Change | Validation |
 | --- | --- |
-| Nix source | `alejandra <changed-files>` and `nix flake check --no-build` |
+| Nix source | `alejandra <changed-files>` and `nix flake check --no-build --all-systems` |
 | Host configuration | Also build the affected host with `nixos-rebuild build --flake .#<host>` when practical |
 | Check behavior | Build the relevant `.#checks.<system>.<name>` derivation |
-| Custom option documentation | Regenerate the reference and build the `module-docs` check |
+| Common argument documentation | Regenerate the reference and build the `module-docs` check |
 | Markdown only | Review content, file paths, and `git diff --check`; no Nix build is required |
 
 - `--no-build` checks evaluation; it does not execute VM tests. Report the distinction accurately.
 - Follow `docs/checks.md`: add meaningful checks for likely failure modes evaluation/builds cannot
   catch, and regressions discovered in practice. Do not duplicate upstream tests or create tests
   that merely mirror configuration assignments.
-- VM checks use `perSystem.checks` and `pkgs.testers.runNixOSTest`. Start from a nearby check or
-  `checks/_example-checks/`; import the modules and dependencies actually required by the test.
+- VM checks use module-owned `checks` and `pkgs.testers.runNixOSTest`. Start from a nearby
+  `_checks/` fixture; import the modules and dependencies actually required by the test.
 - Full `nix flake check` can be expensive and require virtualization. CI builds matrices of checks,
   packages, and host systems via `github-actions/default.nix`.
 - Evaluation may fetch inputs and artifacts, including gaming dependencies. If network access,

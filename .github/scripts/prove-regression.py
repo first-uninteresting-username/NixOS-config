@@ -12,11 +12,11 @@ import subprocess
 
 
 CASES = {
-    "persistence-without-user-state": ("persistence", "AssertionError", "persistence-user-state"),
-    "networkmanager-secrets-without-reload": ("networkmanager-secrets", "AssertionError",
+    "persistence-without-user-state": ("preservation-persistence", "AssertionError", "persistence-user-state"),
+    "networkmanager-secrets-without-reload": ("networking-desktop-secrets", "AssertionError",
                                             "networkmanager-profile-load"),
-    "gnome-session": ("gnome-session", "AssertionError", "gnome-home-manager-gestures"),
-    "upgrade": ("upgrade", "AssertionError", "upgrade-failure-propagation"),
+    "gnome-session": ("GNOME-session", "AssertionError", "gnome-home-manager-gestures"),
+    "upgrade": ("update", "AssertionError", "upgrade-failure-propagation"),
     "printing-discovery": ("printing-discovery", "AssertionError", "printing-mdns-discovery"),
     "iso-john": ("iso-john", "RuntimeError", "iso-john-boot"),
     "iso-wall-e": ("iso-wall-e", "RuntimeError", "iso-wall-e-boot"),

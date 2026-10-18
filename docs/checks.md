@@ -17,7 +17,7 @@ repeating upstream tests or asserting only that an option has its assigned value
 
 **Flake build** also supports a manual full run on its selected workflow ref. The exported
 `githubActions` matrices come from `github-actions/default.nix`. ISO package identity is
-explicit: only `packages.x86_64-linux.john` and `packages.x86_64-linux.wall-e` move to the
+explicit: only `packages.x86_64-linux.host-john` and `packages.x86_64-linux.host-wall-e` move to the
 ISO tier. Other package names and systems remain in the ordinary package matrix. Host
 discovery preserves armin, victim, john, and wall-e even though they share a system.
 
@@ -125,7 +125,7 @@ Evaluate the flake and build a selected behavioral test:
 
 ```bash
 nix flake check --no-build --all-systems
-nix build -L .#checks.x86_64-linux.upgrade
+nix build -L .#checks.x86_64-linux.update
 ```
 
 Evaluation does not execute VM tests. Desktop and ISO checks require KVM; the CI runner
@@ -182,7 +182,7 @@ gh workflow run iso-build.yaml --ref main -f iso=both -f ref=main
 Or build and boot-test an image locally:
 
 ```bash
-nix build -L .#packages.x86_64-linux.wall-e
+nix build -L .#packages.x86_64-linux.host-wall-e
 nix build -L .#checks.x86_64-linux.iso-wall-e
 ```
 
@@ -217,7 +217,7 @@ before the merge request. A PAT belonging to another service account does not im
 grant automatic-merge eligibility.
 
 Eligible diffs contain only modifications to `flake.lock` and/or existing SHA256 source
-hash leaves in `packages/flow-desktop/release.json`. Every existing source key, URL,
+hash leaves in `modules/programs-desktop/_flow-desktop/release.json`. Every existing source key, URL,
 version, and other field must remain identical. Added/deleted/renamed files, file mode
 changes, unsupported package formats, and mixed configuration/workflow/implementation
 changes require manual merging. Add another package format only with a strict schema and

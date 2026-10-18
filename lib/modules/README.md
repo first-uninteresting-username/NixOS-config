@@ -1,9 +1,9 @@
 # Modules library
 
-This library implements steps 1–2 of `MIGRATION.md`. It is opt-in: the root flake and
-production modules, hosts, packages, checks, and CI selection still use their existing
-wiring. The library also generates per-system ownership metadata for checks v3.
-Generated host documentation and CI affected-target selection remain later work.
+This library implements the modules-v3 constructors and output-ownership metadata in
+`MIGRATION.md`. The root flake discovers all production modules, hosts, and common arguments
+through it. Generated host documentation and checks-v3 affected-target selection remain
+later work; the current CI selector uses an updated manual map in the meantime.
 
 ## Entry points
 
@@ -169,7 +169,7 @@ retain their lexical defaults, so put optional overrides in special arguments.
 
 ## Discovery
 
-Directory roots are caller-supplied; no production discovery directories are created yet.
+Directory roots are caller-supplied. The root flake uses `modules/`, `hosts/`, and `arguments/`.
 Each root is traversed recursively in sorted filename order. Only regular `.nix` files
 are imported. Underscore-prefixed files and entire underscore-prefixed directories are
 excluded. Put companion Nix package sources and fixtures under an underscore-prefixed
@@ -198,5 +198,6 @@ nix build --impure --no-link --expr \
 
 The runner evaluates both supported systems and verifies failure messages and unused-argument
 warnings. The build executes a package-consuming check with its own explicit host fixture.
-These tests do not migrate production configuration or enter the existing checks-v2 ownership
-map. Run them explicitly until the later migration wires the library suite into the root flake.
+The root flake exports these evaluation and package/check fixtures under `module-library-*`
+and adds a production-module standalone Home Manager fixture on both supported systems.
+The runner additionally checks failure messages and warnings; basic CI runs it explicitly.

@@ -1,33 +1,73 @@
 {
   "shared": [
-    "flake.nix", "flake.lock", "github-actions/**", ".github/scripts/**",
-    ".github/workflows/**", ".github/nix.conf", "checks/**", "lib/**", "devenv.nix", "devenv.yaml",
-    "hosts/common/**", "modules/nixos/args/user.nix",
-    "modules/configuration/user/home-manager.nix"
+    "flake.nix",
+    "flake.lock",
+    "github-actions/**",
+    ".github/scripts/**",
+    ".github/workflows/**",
+    ".github/nix.conf",
+    "lib/**",
+    "arguments/**",
+    "devenv.nix",
+    "devenv.yaml",
+    "hosts/**",
+    "modules/user/**",
+    "modules/home-manager/**",
+    "checks/**"
   ],
   "tests": {
-    "persistence": [
-      "modules/nixos/args/preservation.nix", "modules/configuration/services/ssh.nix",
-      "modules/configuration/system/bootloader.nix"
+    "preservation-persistence": [
+      "modules/preservation/**",
+      "modules/ssh/**",
+      "modules/bootloader/**"
     ],
-    "networkmanager-secrets": [
-      "modules/configuration/system/networking.nix",
-      "modules/configuration/system/secrets.nix", "secrets/**", ".sops.yaml"
+    "networking-desktop-secrets": [
+      "modules/networking-desktop/**",
+      "modules/secrets/**",
+      "secrets/**",
+      ".sops.yaml"
     ],
-    "gnome-session": [
-      "modules/nixos/desktop-environment/**", "modules/configuration/desktop/wayland.nix",
-      "modules/nixos/args/stylix.nix", "modules/nixos/shell/**",
-      "modules/configuration/user/xdg.nix", "packages/flow-desktop/**",
-      "packages/mirrors/hexecute-gnome/**"
+    "GNOME-session": [
+      "modules/GNOME/**",
+      "modules/DE-programs-gnome/**",
+      "modules/wayland/**",
+      "modules/stylix/**",
+      "modules/shell/**",
+      "modules/nushell/**",
+      "modules/zsh/**",
+      "modules/shell-programs/**",
+      "modules/xdg/**",
+      "modules/programs-desktop/**"
     ],
-    "upgrade": [
-      "modules/configuration/services/update.nix", "packages/shell-scripts/rebuild/**"
+    "update": [
+      "modules/update/**"
     ],
     "printing-discovery": [
-      "modules/configuration/desktop/printing.nix",
-      "modules/configuration/system/networking.nix"
+      "modules/printing/**",
+      "modules/networking-desktop/**"
     ],
-    "module-docs": ["modules/**", "packages/docs/**", "docs/module-reference.md"]
+    "module-docs": [
+      "modules/**",
+      "arguments/**",
+      "docs/module-reference.md"
+    ],
+    "module-library-evaluation": [
+      "modules/module-library/**"
+    ],
+    "module-library-exports": [
+      "modules/module-library/**"
+    ],
+    "module-library-standalone": [
+      "modules/module-library/**"
+    ]
   },
-  "configuration": ["modules/**", "hosts/**", "packages/**", "secrets/**", ".sops.yaml", "*.nix"]
+  "configuration": [
+    "modules/**",
+    "hosts/**",
+    "packages/**",
+    "secrets/**",
+    ".sops.yaml",
+    "*.nix",
+    "arguments/**"
+  ]
 }
