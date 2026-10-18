@@ -4,6 +4,18 @@
 {mkModule}: [
   (mkModule {
     name = "discovered";
+    packages = {pkgs}: {default = pkgs.writeText "discovered-package" "fixture";};
+    checks = {
+      pkgs,
+      system,
+      lib,
+    }:
+      lib.optionalAttrs (system == "x86_64-linux") {
+        default = {
+          derivation = pkgs.runCommand "discovered-check" {} "touch $out";
+          extraFiles = ["shared/helper.nix"];
+        };
+      };
     module = {userName}: {
       home = _: {
         home.username = userName;
@@ -12,5 +24,8 @@
       };
     };
   })
-  (mkModule {name = "sibling";})
+  (mkModule {
+    name = "sibling";
+    checks = {pkgs}: {helper = pkgs.runCommand "sibling-check" {} "touch $out";};
+  })
 ]

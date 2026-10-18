@@ -242,8 +242,8 @@ in rec {
         then fail "host '${name}': failed assertions:\n${lib.concatMapStringsSep "\n" (entry: entry.message) failures}"
         else result
       ));
-    collect = kind: system: pkgs: let
-      entries = lib.concatMap (declaration: let
+    outputEntries = kind: system: pkgs:
+      lib.concatMap (declaration: let
         packages = packageSet system pkgs declaration;
         boundChecks = call "module '${declaration.name}' checks" {} (baseContext
           // {
@@ -258,20 +258,80 @@ in rec {
           then builtins.seq boundChecks.required boundChecks.value
           else declaration.checks;
       in
-        lib.mapAttrsToList (name: value: {
-          name = exportName declaration.name name;
+        lib.mapAttrsToList (name: definition: let
+          wrapped = kind == "check" && builtins.isAttrs definition && !(lib.isDerivation definition);
           value =
-            if lib.isDerivation value
+            if wrapped
+            then definition.derivation or null
+            else definition;
+          extraFiles =
+            if wrapped
+            then definition.extraFiles or []
+            else [];
+          validFiles =
+            builtins.isList extraFiles
+            && builtins.all (path:
+              builtins.isString path
+              && path != ""
+              && !(lib.hasPrefix "/" path)
+              && builtins.all (part: !(builtins.elem part ["" "." ".."])) (lib.splitString "/" path))
+            extraFiles;
+        in {
+          name = exportName declaration.name name;
+          inherit declaration extraFiles;
+          value =
+            if wrapped && builtins.removeAttrs definition ["derivation" "extraFiles"] != {}
+            then fail "check '${exportName declaration.name name}' has unknown fields"
+            else if !validFiles
+            then fail "check '${exportName declaration.name name}' extraFiles must be repository-relative file names"
+            else if lib.isDerivation value
             then value
             else fail "${kind} '${exportName declaration.name name}' is not a derivation";
         })
         definitions)
       ordered;
-    in
-      unique kind entries;
+    collect = kind: system: pkgs: unique kind (outputEntries kind system pkgs);
+    ownership = {
+      root,
+      system,
+      pkgs,
+    }: let
+      prefix = lib.removeSuffix "/" (toString root) + "/";
+      relative = label: path: let
+        text = toString path;
+      in
+        if text == lib.removeSuffix "/" prefix
+        then "."
+        else if lib.hasPrefix prefix text
+        then lib.removePrefix prefix text
+        else fail "${label}: source must be inside the repository root";
+      targets = kind: let
+        entries = outputEntries kind system pkgs;
+        exports = unique kind entries;
+        validExports = builtins.all (value: builtins.seq value true) (builtins.attrValues exports);
+      in
+        builtins.seq validExports (builtins.listToAttrs (map (entry: {
+            inherit (entry) name;
+            value =
+              if !(entry.declaration ? source && entry.declaration ? directory)
+              then fail "module '${entry.declaration.name}': ownership requires discovered source and directory"
+              else {
+                module = entry.declaration.name;
+                source = relative entry.declaration.name entry.declaration.source;
+                directory = relative entry.declaration.name entry.declaration.directory;
+                inherit (entry) extraFiles;
+              };
+          })
+          entries));
+    in {
+      schemaVersion = 1;
+      inherit system;
+      packages = targets "package";
+      checks = targets "check";
+    };
   in
     builtins.seq declarations {
-      inherit declarations;
+      inherit declarations ownership;
       commonArgs = validatedCommonArgs;
       mkHost = makeHost;
       nixosModules = namedModules "nixos";

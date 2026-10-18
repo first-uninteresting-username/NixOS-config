@@ -2,7 +2,8 @@
 
 This library implements steps 1–2 of `MIGRATION.md`. It is opt-in: the root flake and
 production modules, hosts, packages, checks, and CI selection still use their existing
-wiring. Generated host documentation and checks-v3 CI selection remain later work.
+wiring. The library also generates per-system ownership metadata for checks v3.
+Generated host documentation and CI affected-target selection remain later work.
 
 ## Entry points
 
@@ -91,6 +92,37 @@ Exporting a function instead of a package derivation fails.
 
 `docs` and `imperativeSteps` remain separate, unevaluated fields on `registry.declarations`.
 This stage preserves them for the later documentation implementation.
+
+## Output ownership
+
+`registry.ownership { root; system; pkgs; }` produces JSON-serializable metadata with
+`schemaVersion = 1`, `system`, and `packages` and `checks` maps keyed by final export
+names. Pass the repository root as `root`. Each target records its declaring `module`,
+repository-relative `source` and `directory`, and `extraFiles` (empty for packages).
+Discovery supplies the source locations automatically. Metadata fails for exported targets
+without source locations or outside the supplied root, and rejects export collisions and
+invalid derivations just as the normal exports do.
+
+Checks can use a derivation directly or a record carrying additional watched files:
+
+```nix
+checks = { pkgs, ... }: {
+  default = {
+    derivation = pkgs.runCommand "example-check" {} "touch $out";
+    extraFiles = [ "shared/helper.nix" ];
+  };
+};
+```
+
+`extraFiles` contains literal repository-relative file names, not glob patterns. Absolute
+paths, empty components, `.` and `..` components, and unknown record fields fail.
+The record is unwrapped for flake check exports. Per-system conditions apply equally to
+exports and metadata, so omitted architecture-specific checks have no ownership entry.
+Multiple declarations in one directory retain that directory as their shared trigger.
+
+This metadata is the input to the future checks-v3 selector; it does not replace current
+CI policy yet. That selector must compare base and head metadata to account for removed
+or moved declarations, process both rename paths, and retain global and ISO policies.
 
 ## Arguments and Home Manager integration
 

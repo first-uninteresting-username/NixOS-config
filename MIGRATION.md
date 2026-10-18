@@ -7,8 +7,10 @@ checks v2. It specifies the target contract for the complete migration.
 
 Steps 1–2 now have an opt-in library implementation and focused fixtures under
 [`lib/modules`](lib/modules/README.md). Its README documents the chosen API and
-validation commands. Production configuration and CI remain on the existing system;
-the remaining migration steps are not implemented by this library work.
+validation commands. The library also implements the output-ownership metadata portion
+of step 5, including per-system availability and extra watched files for checks.
+Production configuration and CI remain on the existing system. Conversion, host
+documentation, affected-target selection, and the final cutover remain unfinished.
 
 Replace the old system in one migration. Do not introduce a supported period of mixed
 v2 and v3 hosts. Preserve existing host behavior unless a change is explicitly part of
