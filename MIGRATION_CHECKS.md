@@ -20,10 +20,14 @@
 
 ## Outstanding verification
 
-- [ ] Complete final validation of the migration branch before cutover, including full
+- [x] Complete final validation of the migration branch before cutover, including full
   flake evaluation on both supported systems and relevant package, documentation, host,
   behavioral, and ISO smoke-test builds. Distinguish existing results recorded in
   `MIGRATION.md` from checks still needing execution; evaluation does not run VM tests.
+  The completion-pass results are recorded separately in `MIGRATION.md`: all local x86_64
+  package, check, host, documentation, and actual ISO boot-test builds pass. Both supported
+  systems pass evaluation; ARM builds remain outside local validation. GitHub CI is not
+  awaited, as requested.
 - [x] Verify generated local HTML interactively in a graphical browser, including
   navigation and bundled assets through `file://` URLs.
   The maintainer confirms that navigation and bundled assets work in a graphical browser.

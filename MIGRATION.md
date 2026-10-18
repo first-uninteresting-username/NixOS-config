@@ -42,6 +42,42 @@ ISO smoke tests are unchanged and are not rerun for this guidance/template clean
 flake evaluation alone does not execute them. ARM outputs are evaluated, not built locally.
 The updated PR still requires GitHub CI and maintainer review before cutover.
 
+## Checklist completion validation
+
+The 2026-10-18 completion pass repeats validation after the cleanup results above. Shared
+assertions now resolve conditional lists through the public module evaluator, including
+lazy `lib.mkIf` branches and nested `lib.mkMerge`, before adding host/module diagnostics.
+The production standalone check builds both GNOME/Nushell and Zsh activation packages
+and checks their executable entry points. Common types intentionally validate supplied
+values and common defaults; ordinary function defaults retain Nix's lexical semantics.
+The constructor API and a regression fixture document this boundary.
+
+Full flake evaluation passes with `--no-build --all-systems`. The focused runner passes
+66 fixtures per architecture and seven diagnostic cases, and all 72 production-host
+expectations pass. The 61 Python CI-policy tests and 11 Node branch-policy tests pass.
+Changed-file Alejandra, repository Deadnix and Statix, and whitespace checks pass.
+
+On x86_64-linux, all nine non-ISO package exports, all nine non-ISO checks, all four host
+system configurations, and all four host documentation packages build. This includes the
+GNOME, networking secrets, persistence, printing discovery, and update behavioral checks,
+documentation freshness, library exports, and both standalone activation packages.
+Builds reuse valid cached outputs where available; evaluation alone does not execute VMs.
+Both ISO image exports build, and the actual exported john and wall-e images boot and
+pass their smoke assertions. John exercises the GDM D-Bus interface; wall-e exercises its
+Nushell interface. These local builds and smoke tests validate implementation commit
+`e5db3b1`; the following documentation-only commit records their results. ISO images embed
+the tested repository snapshot. ARM outputs are evaluated, not built locally.
+
+Repository documentation passes `zensical build --clean --strict` without issues. Its own
+homepage replaces the README symlink, whose repository-relative links broke site navigation.
+Local host documentation follows the browser's light/dark preference, provides a theme
+toggle, and bundles the NixOS favicon. Rendered-HTML checks validate the palettes, favicon,
+local navigation/assets, and Lynx entry point. The maintainer confirms graphical navigation
+and bundled assets through `file://`; the browser tool itself blocks that protocol.
+
+Maintainer review and GitHub CI remain required before cutover. No configuration is
+activated or deployed.
+
 ## Building blocks
 
 - `mkModule` keeps system configuration, home configuration, packages, checks, assertions,
