@@ -3,7 +3,7 @@
 The modules-v3 registry discovers declarations under `modules/`, host selections under
 `hosts/`, and common arguments under `arguments/`. Each module owns its configuration,
 packages, checks, documentation, and companion sources. See the
-[library API](../lib/modules/README.md) and [migration status](../MIGRATION.md).
+[library API][module-api] and [migration status][migration].
 
 ## Select modules
 
@@ -61,8 +61,10 @@ ISO packages are `host-john` and `host-wall-e`; their checks remain `iso-john` a
 
 Checks use independent fixtures with explicit argument values. Existing VM checks live in
 module-local `_checks/` directories, and KVM checks run only on x86_64-linux.
-The [checks guide](checks.md) describes the current CI policy. Base/head ownership-driven
-selection remains migration work.
+CI selects affected checks and packages from generated ownership metadata at the merge
+base and head revisions. Module directories and explicitly watched files trigger their
+owned targets; shared infrastructure changes select the full non-ISO suite. The
+[checks guide](checks.md) describes selection, validation, and the separate ISO tier.
 
 ## Read host documentation
 
@@ -85,7 +87,7 @@ imperativeSteps = {role, userName}:
 
 Use `role` guards for instructions that only apply to one host role. Only arguments used
 by the resulting text are evaluated. Never embed secret values in generated documentation.
-The [library API](../lib/modules/README.md#host-documentation) describes the available context.
+The [library API][host-documentation] describes the available context.
 
 Build the documentation without building or activating the system:
 
@@ -102,3 +104,7 @@ nix build .#checks.x86_64-linux.module-docs
 ```
 
 The reference is generated; do not edit it manually.
+
+[module-api]: https://github.com/first-uninteresting-username/NixOS-config/blob/main/lib/modules/README.md
+[migration]: https://github.com/first-uninteresting-username/NixOS-config/blob/main/MIGRATION.md
+[host-documentation]: https://github.com/first-uninteresting-username/NixOS-config/blob/main/lib/modules/README.md#host-documentation

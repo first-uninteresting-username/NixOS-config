@@ -25,11 +25,12 @@ A comprehensive OS-as-a-code solution based on NixOS (Work in progress).
 
 ## Features
 
-- [Testing](checks) (that barely catches issue)
+- [Behavioral checks and CI policy](docs/checks.md)
 - [Preservation](https://github.com/nix-community/preservation)
 - [Documentation on github pages](https://first-uninteresting-username.github.io/NixOS-config/)
 - Caching (thanks to [cachix](https://www.cachix.org/))
-- [Dendriatic pattern](https://github.com/mightyiam/dendritic) with [flake parts](https://flake.parts/) and [import tree](https://github.com/denful/import-tree)
+- Module-owned configuration, packages, checks, and local documentation through the
+  [modules-v3 registry](docs/modules.md), with [flake-parts](https://flake.parts/) outputs
 - All the usual nixos goodies
 - Everything you could expect from a polished linux desktop setup, but declarative :)
 
@@ -40,7 +41,6 @@ A comprehensive OS-as-a-code solution based on NixOS (Work in progress).
 | armin    | Framework 13               | Ryzen 7640U | Radeon 760M       | 16GB | Desktop (GNOME)  |
 | john     | N/A                        | N/A         | N/A               | N/A  | Installation ISO |
 | wall-e   | N/A                        | N/A         | N/A               | N/A  | Installation ISO |
-| template | N/A                        | N/A         | N/A               | N/A  | Other            |
 | victim   | Gigabyte Eagle B650 AX     | Ryzen 7500F | Radeon RX 7800 XT | 32GB | Desktop (GNOME)  |
 
 ## Quickstart
@@ -84,7 +84,10 @@ For detailed instructions on internal and external usage, see the [Usage Guide](
 
 ## Documentation
 
-Docs are built with Zensical and hosted on github pages ([link](https://first-uninteresting-username.github.io/NixOS-config/))
+Zensical builds the [repository documentation](https://first-uninteresting-username.github.io/NixOS-config/).
+Every host also installs documentation for its selected modules, combined imperative steps,
+and the common-argument reference. Run `open-docs` for Lynx or open the host documentation
+entry in the application menu. See [host documentation](docs/modules.md#read-host-documentation).
 
 ## Workspace overview
 

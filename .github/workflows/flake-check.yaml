@@ -48,12 +48,10 @@ jobs:
             nix run --inputs-from . nixpkgs#alejandra -- --check .
             nix run --inputs-from . nixpkgs#deadnix -- --fail --exclude \
               modules/_template \
-              hosts/_template.nix \
-              checks/_example-checks
+              hosts/_template.nix
             nix run --inputs-from . nixpkgs#statix -- check . \
               --ignore modules/_template \
-              --ignore hosts/_template.nix \
-              --ignore checks/_example-checks
+              --ignore hosts/_template.nix
           } 2>&1 | tee logs/lints.log
 
       - name: Validate CI selection and merge policy

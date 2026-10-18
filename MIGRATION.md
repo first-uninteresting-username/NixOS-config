@@ -16,11 +16,31 @@ extra watched files trigger their owned targets; shared changes select the full 
 suite. Renames, deletions, moved declarations, and explicitly empty selections are covered
 by policy fixtures. Bases predating the CI ownership snapshot select the full non-ISO suite.
 Every host installs local HTML documentation, a desktop launcher, and `open-docs` for Lynx.
-The remaining guidance cleanup and final obsolete-wiring audit are unfinished. This branch
-is the migration workspace; validation and review precede the final cutover.
+Steps 6–7 are implemented: repository guidance describes v3, obsolete flake-parts check
+templates and their lint exclusions are removed, and the final wiring audit finds no
+remaining v2 registry or manual ownership-map callers. `checks/default.nix` remains for
+the active opt-in regression-output type; import-tree still loads that declaration and
+`github-actions/`. Historical fixture markers do not select outputs or provide v2 wiring.
+This branch is the migration workspace; final validation and maintainer review precede
+cutover. Deployment remains separate.
 Replace the old system in one migration. Do not introduce a supported period of mixed
 v2 and v3 hosts. Preserve existing host behavior unless a change is explicitly part of
 this specification. Do not activate or deploy configurations as part of the migration.
+
+## Cleanup validation
+
+The steps 6–7 cleanup passes full flake evaluation on both supported systems, 59 library
+fixtures per architecture and five diagnostics, 61 CI-policy tests, and 11 branch-policy
+tests. Tracked Nix formatting, Deadnix, Statix, workflow Actionlint, and diff whitespace
+checks pass. The repository documentation builds with Zensical without link warnings.
+
+On x86_64-linux, the documentation freshness check, library evaluation/export/standalone
+checks, documentation updater, all four host documentation packages, and all four host
+system configurations build successfully. Library export fixtures include the standalone
+Home Manager activation package and local HTML/Lynx documentation checks. Existing VM and
+ISO smoke tests are unchanged and are not rerun for this guidance/template cleanup;
+flake evaluation alone does not execute them. ARM outputs are evaluated, not built locally.
+The updated PR still requires GitHub CI and maintainer review before cutover.
 
 ## Building blocks
 
@@ -330,9 +350,11 @@ Evaluation does not execute VM checks. Report build, network, store-permission, 
 virtualization limitations accurately. Review resulting host behavior before deployment;
 deployment remains a separate action.
 
-## Implementation details still to choose
+## Implemented choices
 
-The behavior above is agreed. Exact constructor field names and layout, discovery-directory
-paths, the argument-binding implementation, the browser package, and documentation styling
-remain implementation choices. They must preserve this contract; changing selection,
-argument precedence, output ownership, or host behavior requires revisiting the design.
+The [constructor API](lib/modules/README.md) documents the implemented field names,
+argument binding, and ownership metadata. Root discovery uses `modules/`, `hosts/`, and
+`arguments/`. Zensical generates local HTML, Lynx provides the terminal entry point, and
+`xdg-open` launches the graphical browser. These choices preserve the contract above;
+changing selection, argument precedence, output ownership, or host behavior requires
+revisiting the design.

@@ -35,8 +35,11 @@ without cache write credentials still build using public substitutes.
 
 Basic validation checks formatting and lints without rewriting the PR. Statix's
 `repeated_keys` style warning is disabled in `statix.toml` to allow the established
-independent flake exports; other lint checks remain enabled. Templates and excluded example
-checks are omitted from dead-code/lint validation where intentional placeholders require it.
+independent flake exports; other lint checks remain enabled. Host and module templates are
+omitted from dead-code/lint validation where intentional placeholders require it. Start new
+behavioral checks from a nearby module-owned `_checks/` fixture and declare them in that module
+instead of adding flake-parts check declarations under `checks/`. The remaining
+`checks/default.nix` only declares the opt-in `regressionChecks` output type.
 
 ## Ownership selection
 
@@ -59,7 +62,7 @@ checks adds no behavioral tests merely because it changes; its exported packages
 Checks can declare additional literal watched files with `extraFiles`; these select the check,
 including when a watched dependency is removed at head. Declare cross-module fixture inputs
 there rather than in a central dependency map.
-See [Output ownership](../lib/modules/README.md#output-ownership) for the declaration format.
+See [Output ownership][output-ownership] for the declaration format.
 
 Lock files, shared libraries, common arguments, host declarations, flake wiring, development
 environment files, CI infrastructure, and shared user/Home Manager composition select all
@@ -245,3 +248,5 @@ The final GitHub merge request specifies the validated head SHA and uses the rep
 supported merge-commit method. GitHub still enforces branch protections, strict up-to-date
 requirements, and reviews. API refusals leave the PR open and are explained in the workflow
 summary. This does not require enabling GitHub's separate auto-merge repository setting.
+
+[output-ownership]: https://github.com/first-uninteresting-username/NixOS-config/blob/main/lib/modules/README.md#output-ownership

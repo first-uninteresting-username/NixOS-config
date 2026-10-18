@@ -26,7 +26,7 @@ Guidance for agents working in this NixOS configuration repository.
 ## Repository map
 
 This flake uses the modules-v3 library in `lib/modules/`. Read `MIGRATION.md` for the
-remaining documentation and checks-v3 work and `lib/modules/README.md` for the constructor API.
+migration status and validation requirements and `lib/modules/README.md` for the constructor API.
 
 | Path | Purpose |
 | --- | --- |
