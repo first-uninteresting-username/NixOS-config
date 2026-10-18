@@ -254,5 +254,6 @@ nix build --impure --no-link --expr \
 The runner evaluates both supported systems and verifies failure messages and unused-argument
 warnings. The build executes a package-consuming check with its own explicit host fixture.
 The root flake exports these evaluation and package/check fixtures under `module-library-*`
-and adds a production-module standalone Home Manager fixture on both supported systems.
+and evaluates production-module standalone Home Manager activation derivations on both supported
+systems without building their application dependencies.
 The runner additionally checks failure messages and warnings; basic CI runs it explicitly.

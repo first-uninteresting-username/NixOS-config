@@ -401,3 +401,10 @@ argument binding, and ownership metadata. Root discovery uses `modules/`, `hosts
 `xdg-open` launches the graphical browser. These choices preserve the contract above;
 changing selection, argument precedence, output ownership, or host behavior requires
 revisiting the design.
+
+## Standalone evaluation coverage
+
+The standalone Home Manager build check is removed from the CI suite. The library evaluation
+check still evaluates both production GNOME/Nushell and Zsh activation derivations on both
+supported systems, without building their application dependencies. Earlier build results above
+record validation performed before this change.

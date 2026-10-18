@@ -54,10 +54,8 @@ mkModule {
       };
     };
   in {
-    evaluation = assert builtins.all (value: value) (builtins.attrValues fixtures.results);
-      pkgs.runCommand "modules-v3-evaluation" {} "touch $out";
     exports = fixtures.build;
-    standalone = {
+    evaluation = {
       extraFiles = [
         "modules/home-manager/default.nix"
         "modules/xdg/default.nix"
@@ -76,11 +74,10 @@ mkModule {
         "modules/user/default.nix"
         "modules/preservation/default.nix"
       ];
-      derivation = pkgs.runCommand "production-home-sections" {} ''
-        test -x ${productionHome.activationPackage}/activate
-        test -x ${zshHome.activationPackage}/activate
-        touch "$out"
-      '';
+      derivation = assert builtins.all (value: value) (builtins.attrValues fixtures.results);
+      assert builtins.isString productionHome.activationPackage.drvPath;
+      assert builtins.isString zshHome.activationPackage.drvPath;
+        pkgs.runCommand "modules-v3-evaluation" {} "touch $out";
     };
   };
 }

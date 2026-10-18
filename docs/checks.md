@@ -107,8 +107,10 @@ Documentation-only changes normally omit both build tiers; the generated common-
 reference selects its freshness check. The workflow summary lists targets, systems, reasons,
 and removed outputs. Base/head snapshots and selected/full-run matrices remain workflow artifacts.
 
-VM tests run on x86_64-linux. Documentation freshness and library/standalone evaluation
-fixtures run on both supported systems. Packages follow their per-system export availability.
+VM tests run on x86_64-linux. Documentation freshness and library evaluation fixtures run
+on both supported systems. The library evaluation check also evaluates production GNOME/Nushell
+and Zsh standalone Home Manager activation derivations without building their application
+dependencies. Packages follow their per-system export availability.
 The `iso-` checks and explicit ISO packages remain in the separate ISO tier, including after
 lock-file changes. Scheduled/manual full runs still build every ordinary package and check,
 all four hosts, both ISO images, and both smoke checks. An ordinary PR can explicitly omit
