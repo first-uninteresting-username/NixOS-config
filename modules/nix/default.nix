@@ -5,6 +5,21 @@
 mkModule {
   name = "nix";
   ids = ["nix"];
+  docs = ''
+    The Nix module and GitHub Actions use `https://cache.xinux.uz` for prebuilt CachyOS
+    kernels. Both trust the Xinux signing key:
+
+    ```text
+    cache.xinux.uz:BXCrtqejFjWzWEB9YuGB7X2MV4ttBur1N8BkwQRdH+0=
+    ```
+
+    This replaces the Lantian Attic cache and its signing key after the operator reports a
+    [server compromise](https://github.com/xddxdd/nix-cachyos-kernel/issues/110).
+    The kernel input, pinned overlay, and host kernel variants remain unchanged.
+    [Xinux runs a separate builder](https://github.com/xddxdd/nix-cachyos-kernel/issues/89).
+    Cache availability depends on the exact pinned kernel output; a missing output can still
+    require local compilation.
+  '';
   module = _: {
     nixos = {
       lib,
@@ -48,7 +63,7 @@ mkModule {
             "https://devenv.cachix.org"
             # The goat of caches
             "https://cache.numtide.com?priority=41"
-            "https://attic.xuyh0120.win/lantian"
+            "https://cache.xinux.uz"
           ];
 
           trusted-public-keys = [
@@ -57,7 +72,7 @@ mkModule {
             "matrix.cachix.org-1:uZWavEIj0/oIRHPjh+OG586y4nXBlyI0xkYfZBfDx7w="
             "devenv.cachix.org-1:w1cLUi8dv3hnoSPGAuibQv+f9TZLr6cv/Hm9XgU50cw="
             "niks3.numtide.com-1:DTx8wZduET09hRmMtKdQDxNNthLQETkc/yaX7M4qK0g="
-            "lantian:EeAUQ+W+6r7EtwnmYjeVwx5kOGEBpjlBfPlzGlTNvHc="
+            "cache.xinux.uz:BXCrtqejFjWzWEB9YuGB7X2MV4ttBur1N8BkwQRdH+0="
           ];
 
           max-jobs = "auto";
