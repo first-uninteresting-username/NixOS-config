@@ -1,12 +1,34 @@
 # Checks
 
-Checks target failures that evaluation and package builds cannot detect. Use a check when
-an integration is likely to break, or when a regression escaped earlier validation. Test
+Behavioral checks target failures that evaluation and package builds cannot detect. Use a
+check when an integration is likely to break, or when a regression escaped earlier validation. Test
 observable behavior through the repository's real modules and disposable fixtures. Avoid
 repeating upstream tests or asserting only that an option has its assigned value.
 
-Checks and packages belong to their declaring modules. CI uses generated ownership metadata
-at the merge base and head revisions to select affected outputs on each supported system.
+Behavioral checks and packages belong to their declaring modules. CI uses generated ownership
+metadata at the merge base and head revisions to select affected outputs on each supported system.
+
+## Host evaluation tests
+
+Host evaluation tests live in `eval-tests/`, independently of the module registry and its
+ownership selection. They read final `nixosConfigurations` options and assert the intended
+composition of real hosts. For example, GNOME and GDM must be enabled on victim, armin,
+and john, and disabled on wall-e. These tests catch missing host selections and accidental
+configuration overrides without building or booting a system.
+
+Run every host evaluation test with:
+
+```bash
+nix eval --json .#evalTests
+```
+
+Successful tests return named `true` results. A mismatch fails evaluation and identifies
+the test, host, option path, expected value, and actual value. Missing hosts or options also
+fail evaluation. Add expectations in `eval-tests/hosts.nix` using `host`, an `option` path
+list, and `expected`; expectations stay separate from module declarations and host IDs.
+Basic CI validation runs the complete set on every run, including module-only changes.
+`nix flake check --no-build` alone does not run this separate output. These assertions
+complement behavioral VM tests; they do not establish that a desktop session works.
 
 ## CI tiers
 
@@ -38,8 +60,8 @@ Basic validation checks formatting and lints without rewriting the PR. Statix's
 independent flake exports; other lint checks remain enabled. Host and module templates are
 omitted from dead-code/lint validation where intentional placeholders require it. Start new
 behavioral checks from a nearby module-owned `_checks/` fixture and declare them in that module
-instead of adding flake-parts check declarations under `checks/`. The remaining
-`checks/default.nix` only declares the opt-in `regressionChecks` output type.
+instead of adding flake-parts check declarations under `checks/`. Independent host evaluation
+tests live under `eval-tests/`. The remaining `checks/default.nix` only declares the opt-in `regressionChecks` output type.
 
 ## Ownership selection
 

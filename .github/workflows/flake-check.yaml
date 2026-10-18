@@ -67,6 +67,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           nix flake check --no-build --all-systems 2>&1 | tee logs/evaluation.log
+          nix eval --json .#evalTests 2>&1 | tee logs/host-eval-tests.log
           python3 lib/modules/tests/run.py 2>&1 | tee logs/module-library.log
           echo 'success=true' >> "$GITHUB_OUTPUT"
 

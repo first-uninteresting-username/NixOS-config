@@ -135,6 +135,10 @@
       flake = {
         inherit (registry) nixosModules homeModules nixosConfigurations homeConfigurations;
         lib.modules = registry;
+        evalTests = import ./eval-tests {
+          inherit (inputs.nixpkgs) lib;
+          inherit (inputs.self) nixosConfigurations;
+        };
       };
       perSystem = {
         pkgs,
