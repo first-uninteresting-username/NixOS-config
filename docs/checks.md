@@ -12,9 +12,17 @@ metadata at the merge base and head revisions to select affected outputs on each
 
 Host evaluation tests live in `eval-tests/`, independently of the module registry and its
 ownership selection. They read final `nixosConfigurations` options and assert the intended
-composition of real hosts. For example, GNOME and GDM must be enabled on victim, armin,
-and john, and disabled on wall-e. These tests catch missing host selections and accidental
-configuration overrides without building or booting a system.
+composition of real hosts across their complete dependency trees, including imported NixOS
+modules and embedded Home Manager users. Expectations cover desktop services, networking,
+D-Bus, audio, printing, discovery, containers, persistence, updates, users, and home programs.
+For example, victim requires GNOME, NetworkManager, PipeWire, preservation, Podman, and its
+user's Nushell and Distrobox configuration. John inherits Avahi from its graphical installer
+configuration even though it does not select the repository's printing module. Wall-e must
+remain a terminal installer without GNOME, PipeWire, or workstation persistence.
+
+Tests inspect final merged option values rather than module IDs or individual declarations.
+They catch missing selections, transitive configuration changes, and accidental overrides
+without building or booting a system.
 
 Run every host evaluation test with:
 
