@@ -150,10 +150,23 @@ in rec {
         ];
       };
       assertions = call label values sectionContext config._module.args declaration.assertions;
+      # Resolve conditional lists with the public module API before adding diagnostics.
+      resolvedAssertions =
+        (lib.evalModules {
+          modules = [
+            {
+              options.assertions = lib.mkOption {
+                type = lib.types.listOf lib.types.unspecified;
+                default = [];
+              };
+              config.assertions = assertions.value;
+            }
+          ];
+        }).config.assertions;
       shared = {
         assertions =
           builtins.seq outer.required (builtins.seq assertions.required
-            (map (entry: entry // {message = "${label}: ${entry.message}";}) assertions.value));
+            (map (entry: entry // {message = "${label}: ${entry.message}";}) resolvedAssertions));
       };
       user = (call label values context config._module.args ({userName}: userName)).value;
     in

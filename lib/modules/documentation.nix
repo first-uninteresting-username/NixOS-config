@@ -57,6 +57,25 @@
       # Search workers require HTTP; these sites open directly from local files.
       plugins.search.enabled = false;
       theme.font = false;
+      theme.favicon = "assets/nixos-logo.png";
+      theme.palette = [
+        {
+          media = "(prefers-color-scheme: light)";
+          scheme = "default";
+          toggle = {
+            icon = "lucide/sun";
+            name = "Switch to dark mode";
+          };
+        }
+        {
+          media = "(prefers-color-scheme: dark)";
+          scheme = "slate";
+          toggle = {
+            icon = "lucide/moon";
+            name = "Switch to light mode";
+          };
+        }
+      ];
       nav =
         [
           {Home = "index.md";}
@@ -70,6 +89,10 @@
   };
   # Keep Markdown sources separately buildable from the rendered local-file site.
   source = pkgs.linkFarm "${name}-documentation-source" ([
+      {
+        name = "docs/assets/nixos-logo.png";
+        path = "${pkgs.nixos-icons}/share/icons/hicolor/32x32/apps/nix-snowflake.png";
+      }
       {
         name = "zensical.toml";
         path = config;

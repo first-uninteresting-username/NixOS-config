@@ -142,6 +142,43 @@
         }
       ];
     };
+  conditionalAssertions = value:
+    moduleLib.mkModule {
+      name = "conditional-assertion";
+      assertions = _: value;
+    };
+  assertionHost = role: value:
+    moduleLib.mkHost {
+      modules = [base (conditionalAssertions value)];
+      inherit commonArgs system role;
+      name = "conditional-${role}";
+    };
+  disabledAssertions = lib.mkIf false (throw "disabled assertions evaluated");
+  enabledAssertions = lib.mkIf true [
+    {
+      assertion = false;
+      message = "enabled conditional assertion";
+    }
+  ];
+  mergedAssertions = lib.mkMerge [
+    disabledAssertions
+    (lib.mkIf true [
+      {
+        assertion = true;
+        message = "enabled merge assertion";
+      }
+    ])
+    (lib.mkIf true enabledAssertions)
+  ];
+  # Optional parameters retain lexical defaults, even for common argument names.
+  lexicalDefault = moduleLib.mkModule {
+    name = "lexical-default";
+    module = {shared ? "lexical-${toString commonArgs.shared.default}"}: {
+      home = {userName ? "${shared}-user"}: {
+        home.file."lexical-default".text = "${shared}:${userName}";
+      };
+    };
+  };
   collision = field:
     moduleLib.mkRegistry {
       modules = [
@@ -350,6 +387,17 @@
     derivedHostNameCannotBeOverridden = fails (home {args.hostName = "other";}).config.home.username;
     sharedAssertionPasses = (withModules [(sharedAssertion true)]).config.home.username == "fixture";
     sharedAssertionFails = fails (withModules [(sharedAssertion false)]).config.home.username;
+    disabledHomeAssertionsStayLazy =
+      (assertionHost "home" disabledAssertions).config.home.username == "fixture";
+    disabledNixosAssertionsStayLazy =
+      (assertionHost "nixos" disabledAssertions).config.networking.hostName == "conditional-nixos";
+    enabledHomeAssertionFails = fails (assertionHost "home" enabledAssertions).config.home.username;
+    enabledNixosAssertionFails = fails (assertionHost "nixos" enabledAssertions).config.networking.hostName;
+    mergedHomeAssertionFails = fails (assertionHost "home" mergedAssertions).config.home.username;
+    mergedNixosAssertionFails = fails (assertionHost "nixos" mergedAssertions).config.networking.hostName;
+    lexicalCommonDefaultsRemainUntyped =
+      (withModules [lexicalDefault]).config.home.file.lexical-default.text
+      == "lexical-17:lexical-17-user";
     duplicateModulesFail = fails (moduleLib.mkRegistry {modules = [base base];}).declarations;
     packageNames = builtins.attrNames exports.packages == ["example" "example-helper"];
     checkNames = builtins.attrNames exports.checks == ["example"];
@@ -509,6 +557,8 @@ in {
     unknown = (home {args.misspelled = true;}).config.home.username;
     type = (home {args.userName = 7;}).config.home.username;
     assertion = (withModules [(sharedAssertion false)]).config.home.username;
+    conditionalHomeAssertion = (assertionHost "home" mergedAssertions).config.home.username;
+    conditionalNixosAssertion = (assertionHost "nixos" mergedAssertions).config.networking.hostName;
   };
   results =
     if failures == []

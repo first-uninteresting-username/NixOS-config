@@ -76,9 +76,11 @@ mkModule {
         "modules/user/default.nix"
         "modules/preservation/default.nix"
       ];
-      derivation =
-        builtins.deepSeq [productionHome.activationPackage.drvPath zshHome.activationPackage.drvPath]
-        (pkgs.runCommand "production-home-sections" {} "touch $out");
+      derivation = pkgs.runCommand "production-home-sections" {} ''
+        test -x ${productionHome.activationPackage}/activate
+        test -x ${zshHome.activationPackage}/activate
+        touch "$out"
+      '';
     };
   };
 }

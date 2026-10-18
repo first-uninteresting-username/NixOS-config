@@ -73,8 +73,10 @@ are pulled in through dependencies.
 
 `module` defaults to a function returning `{}`. Its `nixos` and `home` fields are optional
 module functions with their respective upstream evaluation contexts. Shared `assertions`
-is a separate function returning ordinary assertion/message records; context-specific
-assertions belong inside the corresponding section. A NixOS-only declaration contributes
+is a separate function returning a list of ordinary assertion/message records, optionally
+wrapped in `lib.mkIf` or combined with `lib.mkMerge`. Disabled conditions do not evaluate
+their assertion lists. Context-specific assertions belong inside the corresponding section.
+A NixOS-only declaration contributes
 nothing to a standalone Home Manager host, including no argument or assertion requirements.
 An assertion-only declaration applies to both roles.
 
@@ -107,7 +109,9 @@ nix build .#nixosConfigurations.armin.documentation.package
 
 Zensical builds static HTML with relative file links and bundled assets; no web server is
 required. Worker-based search is disabled for local-file access; use the page navigation
-and the browser's find command. Each module with content gets a page, and the site includes
+and the browser's find command. The site follows the browser's light/dark preference and
+provides a theme toggle. The bundled NixOS snowflake supplies the favicon. Each module
+with content gets a page, and the site includes
 a combined imperative-steps page sorted by module name and the common-argument reference.
 Missing, null, empty, and whitespace-only content is omitted. Selection uses host IDs,
 including selected NixOS-only modules on standalone Home Manager hosts.
@@ -185,6 +189,14 @@ Explicit host values override ordinary function defaults, which override common 
 Nix evaluates function defaults in their original lexical scope. These defaults are not
 introspectable; type validation applies to supplied values and common defaults, while Nix
 itself evaluates omitted function parameters.
+
+This is an intentional API boundary: a common argument's type does not validate an omitted
+function parameter's default. For example, `examplePort ? "wrong-type"` remains a string
+even if the common declaration uses `lib.types.port`. Keep lexical defaults type-correct;
+request a required parameter to use the validated common default instead. Explicit host
+overrides still undergo common-type validation, including for optional parameters. Retaining
+Nix's lexical defaults also supports expressions referring to enclosing bindings and other
+parameters without introducing a separate default-value API.
 
 Only named function parameters are passed. An ellipsis does not expose all host arguments
 or all library context. Request `inputs`, `self`, or `lib` explicitly when needed. Keep

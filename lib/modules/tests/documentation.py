@@ -33,8 +33,15 @@ class Links(HTMLParser):
     def __init__(self):
         super().__init__()
         self.paths = []
+        self.palettes = {}
+        self.favicons = []
 
     def handle_starttag(self, tag, attrs):
+        attributes = dict(attrs)
+        if tag == "input" and attributes.get("name") == "__palette":
+            self.palettes[attributes["data-md-color-scheme"]] = attributes
+        if tag == "link" and attributes.get("rel") == "icon":
+            self.favicons.append(attributes["href"])
         for name, value in attrs:
             if (tag == "a" and name == "href") or name == "src" or (
                 tag == "link" and name == "href"
@@ -46,6 +53,18 @@ class Links(HTMLParser):
 for html in site.rglob("*.html"):
     parser = Links()
     parser.feed(html.read_text())
+    assert len(parser.favicons) == 1, html
+    assert (html.parent / parser.favicons[0]).resolve() == (
+        site / "assets/nixos-logo.png"
+    ).resolve(), html
+    assert set(parser.palettes) == {"default", "slate"}, html
+    for scheme, preference, action in (
+        ("default", "light", "dark"),
+        ("slate", "dark", "light"),
+    ):
+        palette = parser.palettes[scheme]
+        assert palette["data-md-color-media"] == f"(prefers-color-scheme: {preference})", html
+        assert palette["aria-label"] == f"Switch to {action} mode", html
     for target in parser.paths:
         url = urlsplit(target)
         if url.scheme or url.netloc or not url.path:
@@ -54,6 +73,10 @@ for html in site.rglob("*.html"):
         resolved = (html.parent / unquote(url.path)).resolve()
         assert resolved.is_relative_to(site.resolve()), (html, target)
         assert resolved.is_file(), (html, target)
+
+assert (site / "assets/nixos-logo.png").read_bytes() == (
+    source / "docs/assets/nixos-logo.png"
+).read_bytes()
 
 for page, marker in {
     "index.html": "documented-home documentation",

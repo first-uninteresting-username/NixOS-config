@@ -47,6 +47,14 @@ for case, fragments in {
     "unknown": ["host 'test-home'", "unknown arguments", "misspelled"],
     "type": ["host 'test-home'", "argument 'userName'", "string"],
     "assertion": ["host 'extra-home'", "shared fixture assertion"],
+    "conditionalHomeAssertion": [
+        "host 'conditional-home'", "module 'conditional-assertion'",
+        "enabled conditional assertion",
+    ],
+    "conditionalNixosAssertion": [
+        "host 'conditional-nixos'", "module 'conditional-assertion'",
+        "enabled conditional assertion",
+    ],
 }.items():
     result = evaluate(f"diagnostics.{case}")
     require(result.returncode != 0, f"Expected {case} to fail", result)
@@ -63,4 +71,4 @@ require(
     "Missing unused-argument warning",
     result,
 )
-print("5 diagnostic fixtures passed", flush=True)
+print("7 diagnostic fixtures passed", flush=True)
