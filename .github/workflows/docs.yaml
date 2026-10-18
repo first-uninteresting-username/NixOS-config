@@ -7,14 +7,14 @@ name: Docs
 on:
   push:
     paths:
-      - "modules/nixos/**"
-      - "packages/docs/**"
+      - "arguments/**"
+      - "modules/module-docs/**"
       - "docs/module-reference.md"
       - ".github/workflows/docs.yaml"
   pull_request:
     paths:
-      - "modules/nixos/**"
-      - "packages/docs/**"
+      - "arguments/**"
+      - "modules/module-docs/**"
       - "docs/module-reference.md"
       - ".github/workflows/docs.yaml"
   workflow_dispatch:
@@ -55,7 +55,7 @@ jobs:
 
       - name: Generate module reference
         run: |
-          nix build .#module-reference -o result
+          nix build .#module-docs-reference -o result
           cp result docs/module-reference.md
 
       - name: Check for changes
@@ -69,7 +69,7 @@ jobs:
       - name: Fail if docs are out of date on PR
         if: steps.changes.outputs.has_changes == 'true' && github.event_name == 'pull_request'
         run: |
-          echo "::error::docs/module-reference.md is out of date. Run 'nix run .#update-module-docs' locally and commit."
+          echo "::error::docs/module-reference.md is out of date. Run 'nix run .#module-docs-update' locally and commit."
           exit 1
 
       - name: Create Pull Request for docs update
@@ -81,9 +81,9 @@ jobs:
           commit-message: "docs: update module reference"
           title: "docs: update module reference"
           body: |
-            Automated update of `docs/module-reference.md` from `options.custom.*`.
+            Automated update of `docs/module-reference.md` from common argument declarations in `arguments/`.
 
-            Generated via `nix build .#module-reference` (pkgs.nixosOptionsDoc).
+            Generated via `nix build .#module-docs-reference` (pkgs.nixosOptionsDoc).
             Auto-merge enabled.
           branch: chore/docs-module-reference-${{ github.ref_name }}
           base: ${{ github.ref_name }}

@@ -12,11 +12,11 @@ import subprocess
 
 
 CASES = {
-    "persistence-without-user-state": ("persistence", "AssertionError", "persistence-user-state"),
-    "networkmanager-secrets-without-reload": ("networkmanager-secrets", "AssertionError",
+    "persistence-without-user-state": ("preservation-persistence", "AssertionError", "persistence-user-state"),
+    "networkmanager-secrets-without-reload": ("networking-desktop-secrets", "AssertionError",
                                             "networkmanager-profile-load"),
-    "gnome-session": ("gnome-session", "AssertionError", "gnome-home-manager-gestures"),
-    "upgrade": ("upgrade", "AssertionError", "upgrade-failure-propagation"),
+    "gnome-session": ("GNOME-session", "AssertionError", "gnome-home-manager-gestures"),
+    "upgrade": ("update", "AssertionError", "upgrade-failure-propagation"),
     "printing-discovery": ("printing-discovery", "AssertionError", "printing-mdns-discovery"),
     "iso-john": ("iso-john", "RuntimeError", "iso-john-boot"),
     "iso-wall-e": ("iso-wall-e", "RuntimeError", "iso-wall-e-boot"),
@@ -34,7 +34,7 @@ class BuildResult:
 
 
 def assertion_failed(output, exception, marker):
-    """Require the terminal exception of a Python traceback, allowing Nix log prefixes."""
+    """Accept the expected traceback, not source text or unrelated build failures."""
     clean = re.sub(r"\x1b\[[0-?]*[ -/]*[@-~]", "", output)
     log_line = re.compile(r"^[ \t]*(?P<prefix>[A-Za-z0-9+._?=-]*>)[ ]?(?P<text>.*)$")
     expected = re.compile(rf"{exception}: CHECKS_V2_REGRESSION:{re.escape(marker)}"

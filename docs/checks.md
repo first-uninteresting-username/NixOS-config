@@ -1,23 +1,62 @@
-# Checks v2
+# Checks
 
-Checks target failures that evaluation and package builds cannot detect. Use a check when
-an integration is likely to break, or when a regression escaped earlier validation. Test
+Behavioral checks target failures that evaluation and package builds cannot detect. Use a
+check when an integration is likely to break, or when a regression escaped earlier validation. Test
 observable behavior through the repository's real modules and disposable fixtures. Avoid
 repeating upstream tests or asserting only that an option has its assigned value.
+
+Behavioral checks and packages belong to their declaring modules. CI uses generated ownership
+metadata at the merge base and head revisions to select affected outputs on each supported system.
+
+Templates under `modules/_template/` and `hosts/_template.nix`, plus intentionally
+excluded discovery fixtures, stay outside Alejandra, Deadnix, and Statix checks. Stylix
+configures appearance; it does not format source examples. VM fixtures compose exported
+modules directly through `runNixOSTest` so they can inject fault conditions and test-only
+hardware without adding production host declarations.
+
+## Host evaluation tests
+
+Host evaluation tests live in `eval-tests/`, independently of the module registry and its
+ownership selection. They read final `nixosConfigurations` options and assert the intended
+composition of real hosts across their complete dependency trees, including imported NixOS
+modules and embedded Home Manager users. Expectations cover desktop services, networking,
+D-Bus, audio, printing, discovery, containers, persistence, updates, users, and home programs.
+For example, victim requires GNOME, NetworkManager, PipeWire, preservation, Podman, and its
+user's Nushell and Distrobox configuration. John inherits Avahi from its graphical installer
+configuration even though it does not select the repository's printing module. Wall-e must
+remain a terminal installer without GNOME, PipeWire, or workstation persistence.
+
+Tests inspect final merged option values rather than module IDs or individual declarations.
+They catch missing selections, transitive configuration changes, and accidental overrides
+without building or booting a system.
+
+Run every host evaluation test with:
+
+```bash
+nix eval --json .#evalTests
+```
+
+Successful tests return named `true` results. A mismatch fails evaluation and identifies
+the test, host, option path, expected value, and actual value. Missing hosts or options also
+fail evaluation. Add expectations in `eval-tests/hosts.nix` using `host`, an `option` path
+list, and `expected`; expectations stay separate from module declarations and host IDs.
+Basic CI validation runs the complete set on every run, including module-only changes.
+`nix flake check --no-build` alone does not run this separate output. These assertions
+complement behavioral VM tests; they do not establish that a desktop session works.
 
 ## CI tiers
 
 | Tier | Trigger | Work |
 | --- | --- | --- |
 | Basic validation | Every PR, pushes to main, and full runs | Reuse **Flake check** for Alejandra, Deadnix, Statix, CI policy tests, and `nix flake check --no-build --all-systems`. |
-| Non-ISO packages | Every PR and full runs | Build every exported non-ISO package on every supported system, regardless of changed files. |
+| Non-ISO packages | Affected module directories in a PR; all on full runs | Build selected exported packages on their supported systems. Shared infrastructure changes select all non-ISO packages. |
 | Behavioral tests | Affected files in a PR; complete suite on full runs | Build selected VM tests and the retained documentation freshness check. Any `flake.lock` change selects the complete non-ISO suite. |
 | ISO images and smoke tests | **ISO build** on demand | Build john, wall-e, or both at a selected ref and boot the actual exported images. |
 | Weekly master check | Thursday at 08:00 UTC on main | Basic validation, all non-ISO packages, the complete test suite, all four hosts, both ISO images, and both ISO smoke tests. |
 
 **Flake build** also supports a manual full run on its selected workflow ref. The exported
 `githubActions` matrices come from `github-actions/default.nix`. ISO package identity is
-explicit: only `packages.x86_64-linux.john` and `packages.x86_64-linux.wall-e` move to the
+explicit: only `packages.x86_64-linux.host-john` and `packages.x86_64-linux.host-wall-e` move to the
 ISO tier. Other package names and systems remain in the ordinary package matrix. Host
 discovery preserves armin, victim, john, and wall-e even though they share a system.
 
@@ -25,54 +64,63 @@ For a manual full run, enable `prove-regressions` to build every positive contro
 by its intentional regression. The additional proof tier must succeed when selected and
 must be skipped otherwise; the required aggregate validates that choice too.
 
-Builds use `nix-fast-build --skip-cached`. Every package remains selected; a cached output
-can finish without rebuilding, while an uncached output must build. Cache publication is
+Builds use `nix-fast-build --skip-cached`. Every selected package stays in its matrix;
+a cached output can finish without rebuilding, while an uncached output must build. Cache publication is
 optional and only enabled when the run has an authorized Cachix token. Fork PRs and runs
 without cache write credentials still build using public substitutes.
 
 Basic validation checks formatting and lints without rewriting the PR. Statix's
 `repeated_keys` style warning is disabled in `statix.toml` to allow the established
-independent flake exports; other lint checks remain enabled. Templates and excluded example
-checks are omitted from dead-code/lint validation where intentional placeholders require it.
+independent flake exports; other lint checks remain enabled. Host and module templates are
+omitted from dead-code/lint validation where intentional placeholders require it. Start new
+behavioral checks from a nearby module-owned `_checks/` fixture and declare them in that module
+instead of adding flake-parts check declarations under `checks/`. Independent host evaluation
+tests live under `eval-tests/`. The remaining `checks/default.nix` only declares the opt-in `regressionChecks` output type.
 
-## Selection mapping
+## Ownership selection
 
-The machine-readable dependency mapping lives in `.github/scripts/test-map.json`.
-`.github/scripts/select-tests.py` compares the PR head against its merge base with the PR
-base. NUL-delimited paths and rename detection disabled preserve added, deleted, and both
-old and new renamed paths. Package build selection is independent of this mapping.
+`githubActions.selection` contains the per-system module ownership metadata and exported
+package/check matrices. `.github/scripts/select-tests.py` validates their agreement in both
+directions, including target names, systems, attributes, duplicate entries, and ISO tiers.
+Missing, malformed, or inconsistent metadata fails discovery.
 
-| Test | Principal affected dependencies |
-| --- | --- |
-| `persistence` | Preservation, SSH identity, and boot configuration |
-| `networkmanager-secrets` | Desktop networking, sops integration, encrypted secrets, and recipient rules |
-| `gnome-session` | GNOME/DE, Wayland tools, theme, shells, XDG, Flow Desktop, and Hexecute package wiring |
-| `upgrade` | Upgrade service and rebuild helper |
-| `printing-discovery` | Printing and desktop networking/firewall integration |
-| `module-docs` | Custom module sources, the documentation generator, and the generated module reference |
+For PRs, discovery evaluates the merge base's snapshot from Git and the head snapshot from
+the checked-out PR head. Builds use that same immutable head revision. The selector compares
+the complete PR diff against the merge base; NUL-delimited paths and disabled rename detection
+retain deleted files and both paths of renames. Selection uses ownership from both revisions,
+follows moved modules to their current exports, and reports removed targets without trying
+to build nonexistent outputs. A base predating the snapshot selects the complete non-ISO
+suite so the initial migration remains covered. Evaluation errors never trigger that fallback.
 
-Lock files, shared flake/host wiring, test infrastructure, CI workflows, selection logic,
-and shared user/Home Manager composition select all non-ISO tests. Unclassified module,
-host, package, or secret changes fall back to the entire suite; unknown Nix source paths
-also select all. Documentation-only changes normally omit tests, except the generated
-module reference. Generator changes select its freshness check. The workflow summary lists
-selected tests, systems, and selection reasons, or explains an intentional omission.
+A change anywhere inside a module directory selects every check and package declared in
+that directory. Multiple declarations in one directory share its trigger. A module without
+checks adds no behavioral tests merely because it changes; its exported packages still build.
+Checks can declare additional literal watched files with `extraFiles`; these select the check,
+including when a watched dependency is removed at head. Declare cross-module fixture inputs
+there rather than in a central dependency map.
+See [Output ownership][output-ownership] for the declaration format.
 
-VM tests run on x86_64-linux; all supported systems run exported package builds and the
-`module-docs` check when selected. The ISO smoke checks use the `iso-` prefix and are
-reserved for the ISO tier, including after lock changes. Adding a behavioral check requires
-updating its dependency mapping and coverage tests.
+Lock files, shared libraries, common arguments, host declarations, flake wiring, development
+environment files, CI infrastructure, and shared user/Home Manager composition select all
+non-ISO checks and packages. Unknown Nix sources outside `modules/` also select the full suite.
+Documentation-only changes normally omit both build tiers; the generated common-argument
+reference selects its freshness check. The workflow summary lists targets, systems, reasons,
+and removed outputs. Base/head snapshots and selected/full-run matrices remain workflow artifacts.
 
-The exported non-ISO check names and mapping must agree in both directions. Discovery
-rejects missing mapped checks, unmapped exports, duplicate system/name targets, and attributes
-that would build a different check. Policy fixtures model the actual architecture coverage:
-VM and ISO checks on x86_64-linux, and documentation freshness on both supported systems.
+VM tests run on x86_64-linux. Documentation freshness and library evaluation fixtures run
+on both supported systems. The library evaluation check also evaluates production GNOME/Nushell
+and Zsh standalone Home Manager activation derivations without building their application
+dependencies. Packages follow their per-system export availability.
+The `iso-` checks and explicit ISO packages remain in the separate ISO tier, including after
+lock-file changes. Scheduled/manual full runs still build every ordinary package and check,
+all four hosts, both ISO images, and both smoke checks. An ordinary PR can explicitly omit
+an empty package or check selection.
 
 ## Required status and logs
 
 Keep **all-systems-passed** as the stable required branch-protection status. It requires
-basic validation, discovery, and package builds to succeed. Selected tests must succeed;
-only an explicitly empty test selection may produce a skipped test job. Host and ISO jobs
+basic validation and discovery to succeed. Selected package and test tiers must succeed;
+only an explicitly empty selection may produce a skipped package or test job. Host and ISO jobs
 must be skipped on ordinary PRs and succeed on full runs. Missing, failed, cancelled,
 pending, or unexpectedly skipped required tiers fail the aggregate.
 
@@ -87,13 +135,13 @@ a distinct integration failure:
 
 | Previous check | Replacement and observable failure mode |
 | --- | --- |
-| `networking` | `networkmanager-secrets` uses the actual secret-backed desktop networking module and disposable encrypted sops data; checks keyfile contents, root ownership, 0600 permissions, and profiles loaded by NetworkManager. It catches missing secret-service ordering and a failed profile reload. |
-| `gnome-minimal`, `john`, `wayland` | `gnome-session` starts an actual GNOME Wayland user session, opens the configured terminal, and checks Home Manager activation. Starting a display-manager unit or running `wl-copy --version` alone cannot establish a usable session. |
-| `update` | `upgrade` runs the actual service with a local recording `nixos-rebuild` substitute. It checks the boot command, selected hostname/flake, environment, and propagation of a nonzero exit status. It never upgrades from remote main. |
+| `networking` | `networking-desktop-secrets` uses the actual secret-backed desktop networking module and disposable encrypted sops data; checks keyfile contents, root ownership, 0600 permissions, and profiles loaded by NetworkManager. It catches missing secret-service ordering and a failed profile reload. |
+| `gnome-minimal`, `john`, `wayland` | `GNOME-session` starts an actual GNOME Wayland user session, opens the configured terminal, and checks Home Manager activation. Starting a display-manager unit or running `wl-copy --version` alone cannot establish a usable session. |
+| `update` | `update` runs the actual service with a local recording `nixos-rebuild` substitute. It checks the boot command, selected hostname/flake, environment, and propagation of a nonzero exit status. It never upgrades from remote main. |
 | `printing` | `printing-discovery` resolves a real independent DNS-SD printer announcement from a client, resolves its mDNS hostname, and verifies that CUPS accepts loopback clients while rejecting access through the desktop network address and from a peer. |
-| No previous equivalent | `persistence` reboots a VM with tmpfs root and a disposable persistence disk. User/system state, machine ID, and SSH identities survive; unpreserved state disappears. |
+| No previous equivalent | `preservation-persistence` reboots a VM with tmpfs root and a disposable persistence disk. User/system state, machine ID, and SSH identities survive; unpreserved state disappears. |
 | No actual-image equivalent | `iso-john` and `iso-wall-e` boot the exported installation ISO with QEMU, exercise the public installer SSH/shell interface, and check Home Manager. John additionally checks the real GDM D-Bus interface; wall-e exercises its configured Nushell interface. |
-| `module-docs` | Retained: compares generated custom-option documentation against the committed reference. Evaluation cannot detect stale committed documentation. |
+| `module-docs` | Compares generated common-argument documentation against the committed reference. Evaluation cannot detect stale committed documentation. |
 
 The clipboard candidate is deferred until a repository-specific integration failure
 justifies it. The background clipboard probe primarily exercised upstream tooling and
@@ -101,8 +149,7 @@ fixture focus management, so it is removed. The fabricated local CUPS output que
 the clock-format assignment assertion are also removed; discovery, access boundaries,
 actual session usability, and Home Manager activation provide the retained integration value.
 
-Underscore-prefixed examples and the disabled application example remain teaching fixtures
-and do not enter discovery. Tests use public disposable passwords, generated test-only age
+Underscore-prefixed examples do not enter discovery. Tests use public disposable passwords, generated test-only age
 keys, isolated disks, and local service substitutes. They never use production credentials.
 The networking integration orders its keyfile writer after NetworkManager and the
 actual sops installation service, reloads connection profiles through `nmcli`, and propagates
@@ -125,7 +172,7 @@ Evaluate the flake and build a selected behavioral test:
 
 ```bash
 nix flake check --no-build --all-systems
-nix build -L .#checks.x86_64-linux.upgrade
+nix build -L .#checks.x86_64-linux.update
 ```
 
 Evaluation does not execute VM tests. Desktop and ISO checks require KVM; the CI runner
@@ -182,7 +229,7 @@ gh workflow run iso-build.yaml --ref main -f iso=both -f ref=main
 Or build and boot-test an image locally:
 
 ```bash
-nix build -L .#packages.x86_64-linux.wall-e
+nix build -L .#packages.x86_64-linux.host-wall-e
 nix build -L .#checks.x86_64-linux.iso-wall-e
 ```
 
@@ -217,14 +264,14 @@ before the merge request. A PAT belonging to another service account does not im
 grant automatic-merge eligibility.
 
 Eligible diffs contain only modifications to `flake.lock` and/or existing SHA256 source
-hash leaves in `packages/flow-desktop/release.json`. Every existing source key, URL,
+hash leaves in `modules/programs-desktop/_flow-desktop/release.json`. Every existing source key, URL,
 version, and other field must remain identical. Added/deleted/renamed files, file mode
 changes, unsupported package formats, and mixed configuration/workflow/implementation
 changes require manual merging. Add another package format only with a strict schema and
 policy tests; generic text matching of Nix hash assignments is insufficient.
 
 Lock changes must pass the complete non-ISO test suite. Hash changes require basic
-validation, all non-ISO packages, and the tests selected by their affected file. The merge
+validation and the packages and checks selected by their affected module directory. The merge
 policy requires a successful aggregate from the completed triggering check suite at the
 current PR head SHA, plus every applicable classic/ruleset required status. Missing,
 pending, cancelled, failed, or skipped required checks block merging. A superseded run or
@@ -239,3 +286,5 @@ The final GitHub merge request specifies the validated head SHA and uses the rep
 supported merge-commit method. GitHub still enforces branch protections, strict up-to-date
 requirements, and reviews. API refusals leave the PR open and are explained in the workflow
 summary. This does not require enabling GitHub's separate auto-merge repository setting.
+
+[output-ownership]: https://github.com/first-uninteresting-username/NixOS-config/blob/main/lib/modules/README.md#output-ownership

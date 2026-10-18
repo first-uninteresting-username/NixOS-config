@@ -57,7 +57,7 @@ jobs:
           nix eval --json '.#githubActions.isos' > ci-matrices/isos.json
           nix eval --json '.#githubActions.isoTests' > ci-matrices/smoke.json
           jq --arg iso "$ISO" \
-            '{include: [.include[] | select($iso == "both" or .name == $iso)]}' \
+            '{include: [.include[] | select($iso == "both" or .name == ("host-" + $iso))]}' \
             ci-matrices/isos.json > ci-matrices/selected-images.json
           python3 .github/scripts/select-tests.py --mode iso --iso "$ISO" \
             --matrix-json ci-matrices/smoke.json --summary "$GITHUB_STEP_SUMMARY" \

@@ -35,12 +35,15 @@ jobs:
       packagesMatrix: ${{ steps.matrices.outputs.packagesMatrix }}
       testsMatrix: ${{ steps.matrices.outputs.testsMatrix }}
       testsSelected: ${{ steps.matrices.outputs.testsSelected }}
+      packagesSelected: ${{ steps.matrices.outputs.packagesSelected }}
+      ref: ${{ steps.matrices.outputs.ref }}
       hostsMatrix: ${{ steps.matrices.outputs.hostsMatrix }}
       isosMatrix: ${{ steps.matrices.outputs.isosMatrix }}
       fullRun: ${{ steps.matrices.outputs.fullRun }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
           persist-credentials: false
 
@@ -57,7 +60,7 @@ jobs:
         with:
           extra-conf: ${{ env.NIX_CONF }}
 
-      - name: Generate matrices and select behavioral tests
+      - name: Generate ownership metadata and select affected targets
         id: matrices
         shell: bash
         env:
@@ -67,16 +70,19 @@ jobs:
         run: |
           set -Eeuo pipefail
           mkdir -p ci-matrices
-          nix eval --json '.#githubActions.packages' > ci-matrices/packages.json
-          nix eval --json '.#githubActions.tests' > ci-matrices/tests.json
-          jq -e '.include | length > 0' ci-matrices/packages.json > /dev/null
-          jq -e '.include | length > 0' ci-matrices/tests.json > /dev/null
-          echo "packagesMatrix=$(cat ci-matrices/packages.json)" >> "$GITHUB_OUTPUT"
+          nix eval --json '.#githubActions.selection' > ci-matrices/head.json
+          echo "ref=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
-          mode=pr
+          mode="pr"
           full_run=false
+          if [[ "$EVENT_NAME" == pull_request ]]; then
+            merge_base=$(git merge-base "$BASE_SHA" "$HEAD_SHA")
+            # Only pre-v3 revisions may omit metadata; evaluation failures stop discovery.
+            nix eval --json "git+file://$PWD?rev=$merge_base#githubActions" \
+              --apply 'actions: actions.selection or null' > ci-matrices/base.json
+          fi
           if [[ "$EVENT_NAME" != pull_request ]]; then
-            mode=weekly
+            mode="weekly"
             full_run=true
             nix eval --json '.#githubActions.hosts' > ci-matrices/hosts.json
             nix eval --json '.#githubActions.isos' > ci-matrices/isos.json
@@ -91,11 +97,11 @@ jobs:
           echo "fullRun=$full_run" >> "$GITHUB_OUTPUT"
           python3 .github/scripts/select-tests.py \
             --base "$BASE_SHA" --head "$HEAD_SHA" \
-            --matrix-json ci-matrices/tests.json --mode "$mode" \
+            --head-json ci-matrices/head.json --base-json ci-matrices/base.json --mode "$mode" \
+            --selection-json ci-matrices/selected.json \
             --github-output "$GITHUB_OUTPUT" --summary "$GITHUB_STEP_SUMMARY"
           {
             echo
-            echo 'All exported non-ISO packages run on every supported system.'
             if [[ "$full_run" == true ]]; then
               echo 'This full run also builds all four hosts, both ISO images, and both ISO smoke tests.'
             else
@@ -112,11 +118,13 @@ jobs:
           retention-days: 14
 
   packages:
-    name: Non-ISO packages
+    name: Selected non-ISO packages
     needs: discover
+    if: needs.discover.outputs.packagesSelected == 'true'
     uses: ./.github/workflows/build-targets.yaml
     with:
       matrix: ${{ needs.discover.outputs.packagesMatrix }}
+      ref: ${{ needs.discover.outputs.ref }}
       cache-write: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
     secrets:
       CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
@@ -128,6 +136,7 @@ jobs:
     uses: ./.github/workflows/build-targets.yaml
     with:
       matrix: ${{ needs.discover.outputs.testsMatrix }}
+      ref: ${{ needs.discover.outputs.ref }}
       cache-write: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
     secrets:
       CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
@@ -139,6 +148,7 @@ jobs:
     uses: ./.github/workflows/build-targets.yaml
     with:
       matrix: ${{ needs.discover.outputs.hostsMatrix }}
+      ref: ${{ needs.discover.outputs.ref }}
       cache-write: true
     secrets:
       CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
@@ -150,6 +160,7 @@ jobs:
     uses: ./.github/workflows/build-targets.yaml
     with:
       matrix: ${{ needs.discover.outputs.isosMatrix }}
+      ref: ${{ needs.discover.outputs.ref }}
       cache-write: true
     secrets:
       CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
@@ -180,6 +191,7 @@ jobs:
           ISOS: ${{ needs.isos.result }}
           REGRESSIONS: ${{ needs.regressions.result }}
           PROVE_REGRESSIONS: ${{ github.event_name == 'workflow_dispatch' && inputs.prove-regressions || false }}
+          SELECTED_PACKAGES: ${{ needs.discover.outputs.packagesSelected }}
           SELECTED_TESTS: ${{ needs.discover.outputs.testsSelected }}
           FULL_RUN: ${{ github.event_name != 'pull_request' }}
         run: |
@@ -187,6 +199,7 @@ jobs:
             --job "basic=$BASIC" --job "discover=$DISCOVER" \
             --job "packages=$PACKAGES" --job "tests=$TESTS" \
             --job "hosts=$HOSTS" --job "isos=$ISOS" --job "regressions=$REGRESSIONS" \
+            --selected-packages "${SELECTED_PACKAGES:-true}" \
             --selected-tests "${SELECTED_TESTS:-true}" --weekly "$FULL_RUN" \
             --prove-regressions "$PROVE_REGRESSIONS"
 

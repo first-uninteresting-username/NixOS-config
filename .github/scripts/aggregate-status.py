@@ -7,9 +7,11 @@
 import argparse
 
 
-def failures(jobs, selected_tests, weekly, prove_regressions=False):
+def failures(jobs, selected_tests, weekly, prove_regressions=False, selected_packages=True):
+    # A skipped tier is valid only when the selection plan explicitly omitted it.
     expected = {
-        "basic": "success", "discover": "success", "packages": "success",
+        "basic": "success", "discover": "success",
+        "packages": "success" if selected_packages or weekly else "skipped",
         "tests": "success" if selected_tests or weekly else "skipped",
         "hosts": "success" if weekly else "skipped",
         "isos": "success" if weekly else "skipped",
@@ -22,6 +24,7 @@ def failures(jobs, selected_tests, weekly, prove_regressions=False):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--job", action="append", default=[])
+    parser.add_argument("--selected-packages", choices=["true", "false"], required=True)
     parser.add_argument("--selected-tests", choices=["true", "false"], required=True)
     parser.add_argument("--weekly", choices=["true", "false"], default="false")
     parser.add_argument("--prove-regressions", choices=["true", "false"], default="false")
@@ -33,7 +36,7 @@ def main():
             parser.error(f"duplicate job: {name}")
         jobs[name] = result
     problems = failures(jobs, args.selected_tests == "true", args.weekly == "true",
-                        args.prove_regressions == "true")
+                        args.prove_regressions == "true", args.selected_packages == "true")
     if problems:
         for problem in problems:
             print(f"::error::{problem}")

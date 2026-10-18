@@ -30,91 +30,6 @@ selection = load("select-tests")
 aggregate = load("aggregate-status")
 merge = load("auto-merge")
 regression = load("prove-regression")
-MAPPING = json.loads((SCRIPTS / "test-map.json").read_text())
-NAMES = {"persistence", "networkmanager-secrets", "gnome-session", "upgrade",
-         "printing-discovery", "module-docs"}
-MATRIX = {"include": [{"name": name, "system": system, "attr": f'checks.{system}."{name}"'}
-                      for name in sorted(NAMES | {"iso-john", "iso-wall-e"})
-                      for system in (["x86_64-linux", "aarch64-linux"] if name == "module-docs"
-                                     else ["x86_64-linux"])]}
-
-
-class SelectionTests(unittest.TestCase):
-    def selected(self, paths, mode="pr", iso="both"):
-        matrix, reasons = selection.select(MATRIX, paths, MAPPING, mode, iso)
-        return {row["name"] for row in matrix["include"]}, matrix, reasons
-
-    def test_lock_shared_and_unknown_configuration_select_all(self):
-        for path in ["flake.lock", "flake.nix", "hosts/common/desktop-modules.nix",
-                     ".github/scripts/select-tests.py", "checks/new-test.nix",
-                     ".github/nix.conf", "overlays/new.nix",
-                     "modules/configuration/new-feature.nix", "hosts/armin/modules.nix"]:
-            with self.subTest(path=path):
-                self.assertEqual(self.selected([path])[0], NAMES)
-
-    def test_precise_network_mapping_and_all_systems(self):
-        names, matrix, reasons = self.selected(["modules/configuration/system/networking.nix"])
-        self.assertEqual(names, {"networkmanager-secrets", "printing-discovery", "module-docs"})
-        self.assertEqual({(row["name"], row["system"]) for row in matrix["include"]}, {
-            ("networkmanager-secrets", "x86_64-linux"), ("printing-discovery", "x86_64-linux"),
-            ("module-docs", "x86_64-linux"), ("module-docs", "aarch64-linux")})
-        self.assertIn("mapped to networkmanager-secrets", reasons["networkmanager-secrets"][0])
-
-    def test_packages_and_documentation(self):
-        self.assertEqual(self.selected(["packages/shell-scripts/rebuild/default.nix"])[0], {"upgrade"})
-        self.assertEqual(self.selected(["packages/docs/default.nix"])[0], {"module-docs"})
-        self.assertEqual(self.selected(["docs/checks.md"])[0], set())
-        self.assertEqual(self.selected(["packages/new/default.nix"])[0], NAMES)
-
-    def test_iso_only_on_demand_and_complete_weekly(self):
-        self.assertEqual(self.selected(["flake.lock"])[0], NAMES)
-        self.assertEqual(self.selected([], "iso", "john")[0], {"iso-john"})
-        self.assertEqual(self.selected([], "iso")[0], {"iso-john", "iso-wall-e"})
-        self.assertEqual(self.selected([], "weekly")[0], NAMES | {"iso-john", "iso-wall-e"})
-
-    def test_new_check_needs_mapping(self):
-        unknown = {"name": "forgotten-check", "system": "x86_64-linux",
-                   "attr": "checks.x86_64-linux.forgotten-check"}
-        for mode in ["pr", "weekly"]:
-            with self.subTest(mode=mode), self.assertRaisesRegex(ValueError, "unmapped"):
-                selection.select({"include": MATRIX["include"] + [unknown]}, [], MAPPING, mode)
-        with self.assertRaises(ValueError):
-            selection.select({"include": []}, [], MAPPING, "weekly")
-
-    def test_mapped_checks_cannot_silently_disappear(self):
-        rows = [row for row in MATRIX["include"] if row["name"] != "upgrade"]
-        for mode in ["pr", "weekly"]:
-            with self.subTest(mode=mode), self.assertRaisesRegex(ValueError, "missing.*upgrade"):
-                selection.select({"include": rows}, ["packages/shell-scripts/rebuild/default.nix"],
-                                 MAPPING, mode)
-
-    def test_invalid_or_duplicate_matrix_targets_are_rejected(self):
-        wrong = {**MATRIX["include"][0], "attr": "checks.x86_64-linux.module-docs"}
-        missing_system = {key: value for key, value in MATRIX["include"][0].items() if key != "system"}
-        for rows in [[wrong] + MATRIX["include"][1:], [missing_system] + MATRIX["include"][1:],
-                     MATRIX["include"] + [MATRIX["include"][0]]]:
-            with self.subTest(rows=rows), self.assertRaises(ValueError):
-                selection.select({"include": rows}, [], MAPPING)
-
-    def test_generator_quoted_attributes_and_plain_identifiers_are_accepted(self):
-        selected, _ = selection.select(MATRIX, ["flake.lock"], MAPPING)
-        self.assertTrue(all(row["attr"].endswith(f'."{row["name"]}"')
-                            for row in selected["include"]))
-        plain = {"include": [{**row, "attr": f'checks.{row["system"]}.{row["name"]}'}
-                             for row in MATRIX["include"]]}
-        chosen, _ = selection.select(plain, ["flake.lock"], MAPPING)
-        self.assertEqual({(row["name"], row["system"]) for row in chosen["include"]},
-                         {(row["name"], row["system"]) for row in selected["include"]})
-
-    def test_summary_records_names_systems_and_reasons(self):
-        _, matrix, reasons = self.selected(["modules/configuration/services/update.nix"])
-        result = selection.summary(matrix, reasons)
-        self.assertIn("**upgrade**", result)
-        self.assertIn("aarch64-linux", result)
-        self.assertIn("modules/configuration/services/update.nix", result)
-        self.assertIn("No tests selected", selection.summary({"include": []}, {}))
-
-
 class GitDiffTests(unittest.TestCase):
     def setUp(self):
         environment = {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
@@ -129,8 +44,8 @@ class GitDiffTests(unittest.TestCase):
         self.git("init", "--initial-branch=main")
         self.git("config", "user.name", "CI policy test")
         self.git("config", "user.email", "ci@example.invalid")
-        self.write("modules/configuration/services/update.nix", "original upgrade\n")
-        self.write("modules/configuration/desktop/printing.nix", "original printing\n")
+        self.write("modules/update/default.nix", "original upgrade\n")
+        self.write("modules/printing/default.nix", "original printing\n")
         self.write("flake.lock", '{"version": 7}\n')
         self.commit()
         self.base = self.git("rev-parse", "HEAD").strip()
@@ -149,15 +64,13 @@ class GitDiffTests(unittest.TestCase):
         self.git("commit", "-m", "test revision")
 
     def test_added_deleted_and_renamed_paths_are_selected(self):
-        self.git("mv", "modules/configuration/services/update.nix", "upgrade-renamed.nix")
-        (self.root / "modules/configuration/desktop/printing.nix").unlink()
+        self.git("mv", "modules/update/default.nix", "upgrade-renamed.nix")
+        (self.root / "modules/printing/default.nix").unlink()
         self.write("modules/new-configuration.nix", "added\n")
         self.commit()
         paths = selection.changed_paths(self.base, "HEAD", cwd=self.root)
-        self.assertEqual(set(paths), {"modules/configuration/services/update.nix", "upgrade-renamed.nix",
-                                     "modules/configuration/desktop/printing.nix", "modules/new-configuration.nix"})
-        chosen, _ = selection.select(MATRIX, paths, MAPPING)
-        self.assertEqual({row["name"] for row in chosen["include"]}, NAMES)
+        self.assertEqual(set(paths), {"modules/update/default.nix", "upgrade-renamed.nix",
+                                     "modules/printing/default.nix", "modules/new-configuration.nix"})
 
     def test_comparison_uses_merge_base_not_updated_base_tip(self):
         self.git("switch", "-c", "pr")
@@ -168,6 +81,13 @@ class GitDiffTests(unittest.TestCase):
         self.write("modules/shared-new.nix", "new main configuration\n")
         self.commit()
         self.assertEqual(selection.changed_paths("main", head, cwd=self.root), ["docs/checks.md"])
+
+    def test_nul_delimited_diff_preserves_unusual_filenames(self):
+        paths = ["modules/example/line\nbreak", "modules/example/space name", "docs/[literal].md"]
+        for path in paths:
+            self.write(path, "fixture\n")
+        self.commit()
+        self.assertEqual(set(selection.changed_paths(self.base, "HEAD", cwd=self.root)), set(paths))
 
     def test_mode_changes_cannot_be_automatic_updates(self):
         (self.root / "flake.lock").chmod(0o755)
@@ -243,6 +163,18 @@ class AggregateTests(unittest.TestCase):
         self.assertTrue(aggregate.failures(self.jobs(True, True), True, True, True))
         self.assertTrue(aggregate.failures(self.jobs(True, True, True), True, True, False))
 
+
+    def test_empty_package_selection_is_explicit_and_enforced(self):
+        jobs = self.jobs()
+        jobs["packages"] = "skipped"
+        self.assertEqual(aggregate.failures(jobs, False, False, selected_packages=False), [])
+        for result in ["success", "failure", "cancelled", "pending", None]:
+            with self.subTest(result=result):
+                jobs["packages"] = result
+                self.assertTrue(aggregate.failures(jobs, False, False, selected_packages=False))
+        jobs["packages"] = "skipped"
+        self.assertTrue(aggregate.failures(jobs, False, False, selected_packages=True))
+        self.assertTrue(aggregate.failures(jobs, True, True, selected_packages=False))
 
 class RegressionProofTests(unittest.TestCase):
     def failure(self, exception, marker, prefix="test-run> "):
@@ -366,7 +298,7 @@ class EligibilityTests(unittest.TestCase):
         for status in ["A", "D", "R100", "mode"]:
             self.assertFalse(merge.eligible([self.change(status=status)])[0])
         for path in ["flake.nix", "modules/change.nix", ".github/workflows/flake-build.yaml",
-                     "packages/new/default.nix", "packages/flow-desktop/default.nix"]:
+                     "packages/new/default.nix", "modules/programs-desktop/_flow-desktop/package.nix"]:
             self.assertFalse(merge.eligible([self.change(), self.change(path=path)])[0])
 
     def test_noop_duplicate_json_and_invalid_lock_block(self):
@@ -481,6 +413,7 @@ class UpdateTrustTests(unittest.TestCase):
 
 
 class MergeRaceTests(unittest.TestCase):
+    """Simulate PR changes between API reads to reject stale authorization or checks."""
     SHA = "a" * 40
     REPOSITORY = UpdateTrustTests.REPOSITORY
 

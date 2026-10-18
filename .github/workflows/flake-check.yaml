@@ -45,18 +45,19 @@ jobs:
           set -Eeuo pipefail
           mkdir -p logs
           {
-            nix run --inputs-from . nixpkgs#alejandra -- --check .
+            # Templates are incomplete examples; discovery fixtures are deliberately excluded.
+            nix run --inputs-from . nixpkgs#alejandra -- --check . \
+              --exclude modules/_template \
+              --exclude hosts/_template.nix \
+              --exclude lib/modules/tests/discovery/modules/_ignored
             nix run --inputs-from . nixpkgs#deadnix -- --fail --exclude \
-              modules/configuration/_template.nix \
-              modules/nixos/_template.nix \
-              hosts/template \
-              packages/shell-scripts/_template \
-              checks/_example-checks
+              modules/_template \
+              hosts/_template.nix \
+              lib/modules/tests/discovery/modules/_ignored
             nix run --inputs-from . nixpkgs#statix -- check . \
-              --ignore modules/configuration/_template.nix \
-              --ignore modules/nixos/_template.nix \
-              --ignore hosts/template \
-              --ignore checks/_example-checks
+              --ignore modules/_template \
+              --ignore hosts/_template.nix \
+              --ignore lib/modules/tests/discovery/modules/_ignored
           } 2>&1 | tee logs/lints.log
 
       - name: Validate CI selection and merge policy
@@ -72,6 +73,8 @@ jobs:
         run: |
           set -Eeuo pipefail
           nix flake check --no-build --all-systems 2>&1 | tee logs/evaluation.log
+          nix eval --json .#evalTests 2>&1 | tee logs/host-eval-tests.log
+          python3 lib/modules/tests/run.py 2>&1 | tee logs/module-library.log
           echo 'success=true' >> "$GITHUB_OUTPUT"
 
       - name: Retain validation failure logs
