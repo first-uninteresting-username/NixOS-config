@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[3]
 
 def evaluate(attribute, system="x86_64-linux"):
     expression = (
-        "(import ./lib/modules-v3/tests { "
+        "(import ./lib/modules/tests { "
         "inputs = (builtins.getFlake (toString ./.)).inputs; "
         f"system = {json.dumps(system)}; "
         f"}}).{attribute}"

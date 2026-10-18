@@ -48,7 +48,7 @@
   hosts = map (
     host:
       if !(builtins.elem host.role ["nixos" "home"])
-      then throw "modules-v3: host '${host.name}': role must be 'nixos' or 'home'"
+      then throw "modules: host '${host.name}': role must be 'nixos' or 'home'"
       else host
   ) (lib.concatMap loadMany (files hostsDir));
   commonArgs = builtins.foldl' (
@@ -57,13 +57,13 @@
       duplicates = builtins.attrNames (builtins.intersectAttrs acc declarations);
     in
       if duplicates != []
-      then throw "modules-v3: duplicate common arguments: ${lib.concatStringsSep ", " duplicates}"
+      then throw "modules: duplicate common arguments: ${lib.concatStringsSep ", " duplicates}"
       else acc // declarations
   ) {} (files argumentsDir);
   registry = mkRegistry {inherit modules commonArgs;};
   hostSet = builtins.foldl' (acc: host:
     if builtins.hasAttr host.name acc
-    then throw "modules-v3: duplicate host name '${host.name}'"
+    then throw "modules: duplicate host name '${host.name}'"
     else acc // {${host.name} = host;}) {}
   hosts;
   buildHosts = role:

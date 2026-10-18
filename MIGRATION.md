@@ -6,7 +6,7 @@ This document records the agreed design for replacing the current module system 
 checks v2. It specifies the target contract for the complete migration.
 
 Steps 1–2 now have an opt-in library implementation and focused fixtures under
-[`lib/modules-v3`](lib/modules-v3/README.md). Its README documents the chosen API and
+[`lib/modules`](lib/modules/README.md). Its README documents the chosen API and
 validation commands. Production configuration and CI remain on the existing system;
 the remaining migration steps are not implemented by this library work.
 

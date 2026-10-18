@@ -6,7 +6,7 @@
 
   validate = commonArgs: label: name: value:
     if builtins.hasAttr name commonArgs && !(commonArgs.${name}.type.check value)
-    then throw "modules-v3: ${label}: argument '${name}' must be ${commonArgs.${name}.type.description}"
+    then throw "modules: ${label}: argument '${name}' must be ${commonArgs.${name}.type.description}"
     else if builtins.hasAttr name commonArgs
     then
       (lib.mergeDefinitions [name] commonArgs.${name}.type [
@@ -36,7 +36,7 @@
       then validate commonArgs label name fallback.${name}
       else if (commonArgs.${name} or {}) ? default
       then validate commonArgs label name commonArgs.${name}.default
-      else throw "modules-v3: ${label}: missing required argument '${name}'";
+      else throw "modules: ${label}: missing required argument '${name}'";
     supplied = lib.mapAttrs resolve (lib.filterAttrs (
         name: optional:
           !optional || builtins.hasAttr name values || builtins.hasAttr name context

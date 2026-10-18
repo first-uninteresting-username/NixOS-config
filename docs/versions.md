@@ -2,7 +2,7 @@
 
 This repo isn't modular, but it is composed with parts. I sometimes refactor those parts, so for fun, I started to version them.
 
-- Modules - v2
+- Modules - v3
 - Docs - v2
 - CI - v2
 - Checks - v1

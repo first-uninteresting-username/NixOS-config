@@ -6,7 +6,7 @@
   system ? "x86_64-linux",
 }: let
   lib = inputs.nixpkgs.lib;
-  v3 = import ../. {inherit inputs;};
+  moduleLib = import ../. {inherit inputs;};
   pkgs = inputs.nixpkgs.legacyPackages.${system};
   fails = value: !(builtins.tryEval (builtins.deepSeq value true)).success;
   commonArgs = {
@@ -21,7 +21,7 @@
       default = 17;
     };
   };
-  base = v3.mkModule {
+  base = moduleLib.mkModule {
     name = "base";
     module = {
       userName,
@@ -44,7 +44,7 @@
       };
     };
   };
-  example = v3.mkModule {
+  example = moduleLib.mkModule {
     name = "example";
     ids = ["desktop" "gaming"];
     module = {shared ? 23}: {
@@ -53,7 +53,7 @@
         packages,
         systemOnly,
       }: {
-        environment.etc."v3-test".text = "${config.networking.hostName}:${toString shared}:${systemOnly}";
+        environment.etc."module-test".text = "${config.networking.hostName}:${toString shared}:${systemOnly}";
         environment.systemPackages = [packages.default];
       };
       home = {
@@ -61,13 +61,13 @@
         packages,
         homeOnly ? "home-default",
       }: {
-        home.file."v3-test".text = "${config.home.username}:${toString shared}:${homeOnly}";
+        home.file."module-test".text = "${config.home.username}:${toString shared}:${homeOnly}";
         home.packages = [packages.default];
       };
     };
     packages = {pkgs, ...}: {
-      default = pkgs.writeText "v3-owned-package" "owned";
-      helper = pkgs.writeText "v3-helper" "helper";
+      default = pkgs.writeText "module-owned-package" "owned";
+      helper = pkgs.writeText "module-helper" "helper";
     };
     checks = {
       pkgs,
@@ -75,7 +75,7 @@
       mkHost,
       ...
     }: {
-      default = pkgs.runCommand "v3-example-check" {} ''
+      default = pkgs.runCommand "module-example-check" {} ''
         test "$(cat ${packages.default})" = owned
         test '${(mkHost {
           name = "check-fixture";
@@ -86,7 +86,7 @@
       '';
     };
   };
-  nixosOnly = v3.mkModule {
+  nixosOnly = moduleLib.mkModule {
     name = "nixos-only";
     module = {unusedOuter}: {
       nixos = {missingSystemArgument}: {
@@ -95,7 +95,7 @@
     };
     assertions = _: throw "inactive assertions evaluated";
   };
-  registry = v3.mkRegistry {
+  registry = moduleLib.mkRegistry {
     inherit commonArgs;
     modules = [base example];
   };
@@ -116,7 +116,7 @@
   chosenIds = ["gaming" "desktop"];
   exports = registry.perSystem {inherit pkgs system;};
   withModules = modules:
-    (v3.mkRegistry {
+    (moduleLib.mkRegistry {
       inherit commonArgs;
       modules = [base] ++ modules;
     }).mkHost {
@@ -124,12 +124,12 @@
       role = "home";
       inherit system;
     };
-  commonDefault = v3.mkModule {
+  commonDefault = moduleLib.mkModule {
     name = "common-default";
     module = {shared}: {home = _: {home.file."common".text = toString shared;};};
   };
   sharedAssertion = condition:
-    v3.mkModule {
+    moduleLib.mkModule {
       name = "assertion";
       module = _: {home = _: {};};
       assertions = {config}: [
@@ -140,32 +140,32 @@
       ];
     };
   collision = field:
-    v3.mkRegistry {
+    moduleLib.mkRegistry {
       modules = [
-        (v3.mkModule {
+        (moduleLib.mkModule {
           name = "one";
           ${field}.two = pkgs.hello;
         })
-        (v3.mkModule {
+        (moduleLib.mkModule {
           name = "one-two";
           ${field}.default = pkgs.hello;
         })
       ];
     };
-  discovered = v3.discover {
+  discovered = moduleLib.discover {
     modulesDir = ./discovery/modules;
     hostsDir = ./discovery/hosts;
     argumentsDir = ./discovery/arguments;
   };
-  onlyHome = v3.mkModule {
+  onlyHome = moduleLib.mkModule {
     name = "only-home";
     module = _: {home = {config}: {home.file."only-home".text = config.home.username;};};
   };
-  sectionDefaults = v3.mkModule {
+  sectionDefaults = moduleLib.mkModule {
     name = "section-defaults";
     module = _: {home = {shared ? 29}: {home.file."section-defaults".text = toString shared;};};
   };
-  noImplicitArgs = v3.mkModule {
+  noImplicitArgs = moduleLib.mkModule {
     name = "explicit-args";
     module = {userName, ...} @ args: {
       home = {lib, ...} @ sectionArgs: {
@@ -185,8 +185,8 @@
   };
   tests = {
     emptyIdsMatch = (home {}).config.home.username == "fixture";
-    subsetDoesNotMatch = !((home {ids = ["gaming"];}).config.home.file ? v3-test);
-    orderIndependentAndModuleDefault = (home {ids = chosenIds;}).config.home.file.v3-test.text == "fixture:23:home-default";
+    subsetDoesNotMatch = !((home {ids = ["gaming"];}).config.home.file ? module-test);
+    orderIndependentAndModuleDefault = (home {ids = chosenIds;}).config.home.file.module-test.text == "fixture:23:home-default";
     explicitOverridesDefaults =
       (home {
         ids = chosenIds;
@@ -194,15 +194,15 @@
           shared = 31;
           homeOnly = "override";
         };
-      }).config.home.file.v3-test.text
+      }).config.home.file.module-test.text
       == "fixture:31:override";
     commonDefaultUsed = (withModules [commonDefault]).config.home.file.common.text == "17";
     inactiveSectionsStayLazy = (withModules [nixosOnly]).config.home.username == "fixture";
-    missingActiveArgumentFails = fails (nixos {ids = chosenIds;}).config.environment.etc.v3-test.text;
+    missingActiveArgumentFails = fails (nixos {ids = chosenIds;}).config.environment.etc.module-test.text;
     missingEnclosingArgumentFails =
       fails
       (withModules [
-        (v3.mkModule {
+        (moduleLib.mkModule {
           name = "required";
           module = {missing}: {home = _: {home.file.required.text = missing;};};
         })
@@ -212,12 +212,12 @@
     derivedHostNameCannotBeOverridden = fails (home {args.hostName = "other";}).config.home.username;
     sharedAssertionPasses = (withModules [(sharedAssertion true)]).config.home.username == "fixture";
     sharedAssertionFails = fails (withModules [(sharedAssertion false)]).config.home.username;
-    duplicateModulesFail = fails (v3.mkRegistry {modules = [base base];}).declarations;
+    duplicateModulesFail = fails (moduleLib.mkRegistry {modules = [base base];}).declarations;
     packageNames = builtins.attrNames exports.packages == ["example" "example-helper"];
     checkNames = builtins.attrNames exports.checks == ["example"];
     packageCollisionFails = fails ((collision "packages").perSystem {inherit pkgs system;}).packages;
     checkCollisionFails = fails ((collision "checks").perSystem {inherit pkgs system;}).checks;
-    independentPackages = exports.packages.example.name == "v3-owned-package";
+    independentPackages = exports.packages.example.name == "module-owned-package";
     discoveryExclusions = builtins.attrNames discovered.declarations == ["discovered" "sibling"];
     discoverySource = discovered.declarations.discovered.source == ./discovery/modules/example.nix;
     discoveredHome = discovered.homeConfigurations.discovered.config.home.username == "discovered";
@@ -225,13 +225,13 @@
       (nixos {
         ids = chosenIds;
         args.systemOnly = "system-value";
-      }).config.home-manager.users.fixture.home.file.v3-test.text
+      }).config.home-manager.users.fixture.home.file.module-test.text
       == "fixture:23:home-default";
     distinctSectionContexts =
       (nixos {
         ids = chosenIds;
         args.systemOnly = "system-value";
-      }).config.environment.etc.v3-test.text
+      }).config.environment.etc.module-test.text
       == "test-system:23:system-value";
     directHomeConsumer =
       (inputs.home-manager.lib.homeManagerConfiguration {
@@ -241,12 +241,12 @@
           shared = 49;
         };
         modules = [registry.homeModules.base registry.homeModules.example];
-      }).config.home.file.v3-test.text
+      }).config.home.file.module-test.text
       == "direct:49:home-default";
     noImplicitContext = (withModules [noImplicitArgs]).config.home.file.explicit.text == "FIXTURE";
     sectionDefaultOverridesCommon = (withModules [sectionDefaults]).config.home.file.section-defaults.text == "29";
     trueHomeOnlyNixosWrapper =
-      (v3.mkHost {
+      (moduleLib.mkHost {
         modules = [base onlyHome];
         inherit commonArgs system;
         name = "home-only-wrapper";
@@ -262,12 +262,12 @@
           systemOnly = "external-system";
         };
         modules = [registry.nixosModules.base registry.nixosModules.example];
-      }).config.home-manager.users.external.home.file.v3-test.text
+      }).config.home-manager.users.external.home.file.module-test.text
       == "external:41:home-default";
     assertionOnlyModuleApplies =
       fails
       (withModules [
-        (v3.mkModule {
+        (moduleLib.mkModule {
           name = "assertion-only";
           assertions = _: [
             {
@@ -279,7 +279,7 @@
       ]).config.home.username;
     systemAssertionStaysInactive =
       (withModules [
-        (v3.mkModule {
+        (moduleLib.mkModule {
           name = "system-assertion";
           module = _: {
             nixos = _: {
@@ -298,17 +298,17 @@
     missingUnusedRequiredFails =
       fails
       (withModules [
-        (v3.mkModule {
+        (moduleLib.mkModule {
           name = "unused-required";
           module = _: {home = {requiredButUnused}: {home.file."argument-name".text = builtins.head (builtins.attrNames {inherit requiredButUnused;});};};
         })
       ]).config.home.username;
     nestedCommonTypeFails =
       fails
-      (v3.mkHost {
+      (moduleLib.mkHost {
         modules = [
           base
-          (v3.mkModule {
+          (moduleLib.mkModule {
             name = "nested-type";
             module = {list}: {home = _: {home.file."list".text = builtins.toJSON list;};};
           })
@@ -328,9 +328,9 @@
       }).config.home.file.list.text;
     hostDependentPackageFails =
       fails
-      ((v3.mkRegistry {
+      ((moduleLib.mkRegistry {
         modules = [
-          (v3.mkModule {
+          (moduleLib.mkModule {
             name = "bad-package";
             packages.default = _: pkgs.hello;
           })
@@ -338,7 +338,7 @@
       }).perSystem {inherit pkgs system;}).packages.bad-package;
     invalidRoleFails = fails (home {role = "invalid";}).config.home.username;
     unselectedRequirementsStayLazy =
-      (v3.mkHost {
+      (moduleLib.mkHost {
         modules = [base (nixosOnly // {ids = ["unselected"];})];
         inherit commonArgs system;
         name = "unselected-host";
@@ -350,10 +350,10 @@
       && (withModules [commonDefault onlyHome]).config.home.file ? only-home;
     extraHomeManagerUserFails =
       fails
-      (v3.mkHost {
+      (moduleLib.mkHost {
         modules = [
           base
-          (v3.mkModule {
+          (moduleLib.mkModule {
             name = "extra-user";
             module = _: {nixos = _: {home-manager.users.second.home.stateVersion = "26.05";};};
           })
@@ -366,7 +366,7 @@
   failures = builtins.attrNames (lib.filterAttrs (_: passed: !passed) tests);
 in {
   diagnostics = {
-    missing = (nixos {ids = chosenIds;}).config.environment.etc.v3-test.text;
+    missing = (nixos {ids = chosenIds;}).config.environment.etc.module-test.text;
     unused = (home {args.systemOnly = "unused";}).config.home.username;
     unknown = (home {args.misspelled = true;}).config.home.username;
     type = (home {args.userName = 7;}).config.home.username;
@@ -375,13 +375,13 @@ in {
   results =
     if failures == []
     then tests
-    else throw "Failed modules-v3 fixtures: ${lib.concatStringsSep ", " failures}";
+    else throw "Failed modules fixtures: ${lib.concatStringsSep ", " failures}";
   build =
     builtins.deepSeq (
       if failures == []
       then true
-      else throw "Failed modules-v3 fixtures"
-    ) (pkgs.runCommand "modules-v3-fixtures" {} ''
+      else throw "Failed modules fixtures"
+    ) (pkgs.runCommand "modules-fixtures" {} ''
       test "$(cat ${exports.packages.example})" = owned
       test -e ${exports.checks.example}
       touch "$out"

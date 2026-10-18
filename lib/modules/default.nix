@@ -7,7 +7,7 @@
   lib ? inputs.nixpkgs.lib,
 }: let
   arguments = import ./arguments.nix {inherit lib;};
-  fail = message: throw "modules-v3: ${message}";
+  fail = message: throw "modules: ${message}";
   unique = kind: entries:
     builtins.foldl' (acc: entry:
       if builtins.hasAttr entry.name acc
@@ -214,7 +214,7 @@ in rec {
       checked =
         if unknown != []
         then fail "host '${name}': unknown arguments: ${lib.concatStringsSep ", " unknown}"
-        else lib.warnIf (unused != []) "modules-v3: host '${name}': unused arguments: ${lib.concatStringsSep ", " unused}" true;
+        else lib.warnIf (unused != []) "modules: host '${name}': unused arguments: ${lib.concatStringsSep ", " unused}" true;
       compiled = map (compile role values name) chosen;
       result =
         if role == "nixos"

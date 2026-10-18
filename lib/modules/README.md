@@ -1,4 +1,4 @@
-# Modules v3 library
+# Modules library
 
 This library implements steps 1–2 of `MIGRATION.md`. It is opt-in: the root flake and
 production modules, hosts, packages, checks, and CI selection still use their existing
@@ -9,7 +9,7 @@ wiring. Generated host documentation and checks-v3 CI selection remain later wor
 Import the library with the flake inputs:
 
 ```nix
-v3 = import ./lib/modules-v3 { inherit inputs self; };
+moduleLib = import ./lib/modules { inherit inputs self; };
 ```
 
 - `mkModule` declares a named module.
@@ -29,7 +29,7 @@ It never activates the configuration.
 ## Module declaration
 
 ```nix
-v3.mkModule {
+moduleLib.mkModule {
   name = "example";
   ids = [ "desktop" ];
 
@@ -154,17 +154,17 @@ Declarations retain `source` and `directory` for later output-ownership metadata
 Run the focused evaluation and diagnostic fixtures against the repository's pinned inputs:
 
 ```bash
-python3 lib/modules-v3/tests/run.py
+python3 lib/modules/tests/run.py
 ```
 
 Build the isolated package/check fixtures on x86_64-linux:
 
 ```bash
 nix build --impure --no-link --expr \
-  '(import ./lib/modules-v3/tests { inputs = (builtins.getFlake (toString ./.)).inputs; }).build'
+  '(import ./lib/modules/tests { inputs = (builtins.getFlake (toString ./.)).inputs; }).build'
 ```
 
 The runner evaluates both supported systems and verifies failure messages and unused-argument
 warnings. The build executes a package-consuming check with its own explicit host fixture.
 These tests do not migrate production configuration or enter the existing checks-v2 ownership
-map. Run them explicitly until the later migration wires the v3 suite into the root flake.
+map. Run them explicitly until the later migration wires the library suite into the root flake.
