@@ -5,15 +5,15 @@ an integration is likely to break, or when a regression escaped earlier validati
 observable behavior through the repository's real modules and disposable fixtures. Avoid
 repeating upstream tests or asserting only that an option has its assigned value.
 
-The modules-v3 conversion keeps the existing manual CI selector until checks-v3
-ownership-based selection is implemented. The names below describe the converted outputs.
+Checks and packages belong to their declaring modules. CI uses generated ownership metadata
+at the merge base and head revisions to select affected outputs on each supported system.
 
 ## CI tiers
 
 | Tier | Trigger | Work |
 | --- | --- | --- |
 | Basic validation | Every PR, pushes to main, and full runs | Reuse **Flake check** for Alejandra, Deadnix, Statix, CI policy tests, and `nix flake check --no-build --all-systems`. |
-| Non-ISO packages | Every PR and full runs | Build every exported non-ISO package on every supported system, regardless of changed files. |
+| Non-ISO packages | Affected module directories in a PR; all on full runs | Build selected exported packages on their supported systems. Shared infrastructure changes select all non-ISO packages. |
 | Behavioral tests | Affected files in a PR; complete suite on full runs | Build selected VM tests and the retained documentation freshness check. Any `flake.lock` change selects the complete non-ISO suite. |
 | ISO images and smoke tests | **ISO build** on demand | Build john, wall-e, or both at a selected ref and boot the actual exported images. |
 | Weekly master check | Thursday at 08:00 UTC on main | Basic validation, all non-ISO packages, the complete test suite, all four hosts, both ISO images, and both ISO smoke tests. |
@@ -28,8 +28,8 @@ For a manual full run, enable `prove-regressions` to build every positive contro
 by its intentional regression. The additional proof tier must succeed when selected and
 must be skipped otherwise; the required aggregate validates that choice too.
 
-Builds use `nix-fast-build --skip-cached`. Every package remains selected; a cached output
-can finish without rebuilding, while an uncached output must build. Cache publication is
+Builds use `nix-fast-build --skip-cached`. Every selected package stays in its matrix;
+a cached output can finish without rebuilding, while an uncached output must build. Cache publication is
 optional and only enabled when the run has an authorized Cachix token. Fork PRs and runs
 without cache write credentials still build using public substitutes.
 
@@ -38,45 +38,48 @@ Basic validation checks formatting and lints without rewriting the PR. Statix's
 independent flake exports; other lint checks remain enabled. Templates and excluded example
 checks are omitted from dead-code/lint validation where intentional placeholders require it.
 
-## Selection mapping
+## Ownership selection
 
-The machine-readable dependency mapping lives in `.github/scripts/test-map.json`.
-`.github/scripts/select-tests.py` compares the PR head against its merge base with the PR
-base. NUL-delimited paths and rename detection disabled preserve added, deleted, and both
-old and new renamed paths. Package build selection is independent of this mapping.
+`githubActions.selection` contains the per-system module ownership metadata and exported
+package/check matrices. `.github/scripts/select-tests.py` validates their agreement in both
+directions, including target names, systems, attributes, duplicate entries, and ISO tiers.
+Missing, malformed, or inconsistent metadata fails discovery.
 
-| Test | Principal affected dependencies |
-| --- | --- |
-| `preservation-persistence` | Preservation, SSH identity, and boot configuration |
-| `networking-desktop-secrets` | Desktop networking, sops integration, encrypted secrets, and recipient rules |
-| `GNOME-session` | GNOME/DE, Wayland tools, theme, shells, XDG, Flow Desktop, and Hexecute package wiring |
-| `update` | Upgrade service and rebuild helper |
-| `printing-discovery` | Printing and desktop networking/firewall integration |
-| `module-docs` | Common arguments, module sources, the generator, and the generated reference |
-| `module-library-evaluation`, `module-library-exports`, `module-library-standalone` | Constructor fixtures and production standalone Home Manager integration |
+For PRs, discovery evaluates the merge base's snapshot from Git and the head snapshot from
+the checked-out PR head. Builds use that same immutable head revision. The selector compares
+the complete PR diff against the merge base; NUL-delimited paths and disabled rename detection
+retain deleted files and both paths of renames. Selection uses ownership from both revisions,
+follows moved modules to their current exports, and reports removed targets without trying
+to build nonexistent outputs. A base predating the snapshot selects the complete non-ISO
+suite so the initial migration remains covered. Evaluation errors never trigger that fallback.
 
-Lock files, shared flake/host wiring, test infrastructure, CI workflows, selection logic,
-and shared user/Home Manager composition select all non-ISO tests. Unclassified module,
-host, package, or secret changes fall back to the entire suite; unknown Nix source paths
-also select all. Documentation-only changes normally omit tests, except the generated
-module reference. Generator changes select its freshness check. The workflow summary lists
-selected tests, systems, and selection reasons, or explains an intentional omission.
+A change anywhere inside a module directory selects every check and package declared in
+that directory. Multiple declarations in one directory share its trigger. A module without
+checks adds no behavioral tests merely because it changes; its exported packages still build.
+Checks can declare additional literal watched files with `extraFiles`; these select the check,
+including when a watched dependency is removed at head. Declare cross-module fixture inputs
+there rather than in a central dependency map.
+See [Output ownership](../lib/modules/README.md#output-ownership) for the declaration format.
 
-VM tests run on x86_64-linux; all supported systems run exported package builds and the
-`module-docs` check when selected. The ISO smoke checks use the `iso-` prefix and are
-reserved for the ISO tier, including after lock changes. Adding a behavioral check requires
-updating its dependency mapping and coverage tests.
+Lock files, shared libraries, common arguments, host declarations, flake wiring, development
+environment files, CI infrastructure, and shared user/Home Manager composition select all
+non-ISO checks and packages. Unknown Nix sources outside `modules/` also select the full suite.
+Documentation-only changes normally omit both build tiers; the generated common-argument
+reference selects its freshness check. The workflow summary lists targets, systems, reasons,
+and removed outputs. Base/head snapshots and selected/full-run matrices remain workflow artifacts.
 
-The exported non-ISO check names and mapping must agree in both directions. Discovery
-rejects missing mapped checks, unmapped exports, duplicate system/name targets, and attributes
-that would build a different check. Policy fixtures model the actual architecture coverage:
-VM and ISO checks on x86_64-linux, and documentation freshness plus library/standalone evaluation fixtures on both supported systems.
+VM tests run on x86_64-linux. Documentation freshness and library/standalone evaluation
+fixtures run on both supported systems. Packages follow their per-system export availability.
+The `iso-` checks and explicit ISO packages remain in the separate ISO tier, including after
+lock-file changes. Scheduled/manual full runs still build every ordinary package and check,
+all four hosts, both ISO images, and both smoke checks. An ordinary PR can explicitly omit
+an empty package or check selection.
 
 ## Required status and logs
 
 Keep **all-systems-passed** as the stable required branch-protection status. It requires
-basic validation, discovery, and package builds to succeed. Selected tests must succeed;
-only an explicitly empty test selection may produce a skipped test job. Host and ISO jobs
+basic validation and discovery to succeed. Selected package and test tiers must succeed;
+only an explicitly empty selection may produce a skipped package or test job. Host and ISO jobs
 must be skipped on ordinary PRs and succeed on full runs. Missing, failed, cancelled,
 pending, or unexpectedly skipped required tiers fail the aggregate.
 
@@ -227,7 +230,7 @@ changes require manual merging. Add another package format only with a strict sc
 policy tests; generic text matching of Nix hash assignments is insufficient.
 
 Lock changes must pass the complete non-ISO test suite. Hash changes require basic
-validation, all non-ISO packages, and the tests selected by their affected file. The merge
+validation and the packages and checks selected by their affected module directory. The merge
 policy requires a successful aggregate from the completed triggering check suite at the
 current PR head SHA, plus every applicable classic/ruleset required status. Missing,
 pending, cancelled, failed, or skipped required checks block merging. A superseded run or

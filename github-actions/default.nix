@@ -5,6 +5,7 @@
   config,
   inputs,
   lib,
+  withSystem,
   ...
 }: let
   runners = {
@@ -59,8 +60,15 @@ in {
       packages = mkMatrix "packages" (filterPackages (system: name: !isIsoPackage system name));
       isos = mkMatrix "packages" (filterPackages isIsoPackage);
       hosts = mkMatrix "hosts" hostsBySystem;
+      ownership = lib.genAttrs config.systems (system:
+        withSystem system ({pkgs, ...}:
+          config.flake.lib.modules.ownership {
+            root = inputs.self;
+            inherit system pkgs;
+          }));
     in {
       inherit tests packages hosts isos isoTests;
+      selection = {inherit ownership tests packages isos isoTests;};
       # Preserve the old check matrix name for local consumers.
       checks = tests;
       fullMatrix.include =

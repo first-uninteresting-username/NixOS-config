@@ -2,8 +2,8 @@
 
 This library implements the modules-v3 constructors and output-ownership metadata in
 `MIGRATION.md`. The root flake discovers all production modules, hosts, and common arguments
-through it and generates local documentation for every host. Checks-v3 affected-target
-selection remains later work; CI uses an updated manual map in the meantime.
+through it and generates local documentation for every host. Checks-v3 CI selects affected
+checks and packages from module ownership at the merge base and head revisions.
 
 ## Entry points
 
@@ -157,9 +157,14 @@ The record is unwrapped for flake check exports. Per-system conditions apply equ
 exports and metadata, so omitted architecture-specific checks have no ownership entry.
 Multiple declarations in one directory retain that directory as their shared trigger.
 
-This metadata is the input to the future checks-v3 selector; it does not replace current
-CI policy yet. That selector must compare base and head metadata to account for removed
-or moved declarations, process both rename paths, and retain global and ISO policies.
+`githubActions.selection` exports this metadata for every supported system together with
+ordinary and ISO package/check matrices. CI validates that metadata and exported targets
+agree in both directions at each revision. The selector compares merge-base and head
+snapshots, watches whole module directories and literal extra files, and follows moved
+modules to their current exports. Removed targets appear in diagnostics without requesting
+nonexistent builds. Shared changes select the full non-ISO suite; the ISO tier stays separate.
+A base without the snapshot selects the full non-ISO suite for the initial migration.
+Snapshot evaluation errors and malformed or incomplete metadata fail discovery.
 
 ## Arguments and Home Manager integration
 

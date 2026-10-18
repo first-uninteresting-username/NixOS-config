@@ -403,7 +403,15 @@ mkModule {
     lib.optionalAttrs (system == "x86_64-linux") {
       session = {
         derivation = (import ./_checks/session.nix {inherit self inputs lib pkgs;}).check;
-        extraFiles = ["modules/DE-programs-gnome/default.nix" "modules/wayland/default.nix" "modules/stylix/default.nix" "modules/xdg/default.nix" "modules/shell-programs/default.nix"];
+        extraFiles = [
+          "modules/DE-programs-gnome/default.nix"
+          "modules/wayland/default.nix"
+          "modules/stylix/default.nix"
+          "modules/stylix/_style.nix"
+          "modules/preservation/default.nix"
+          "modules/xdg/default.nix"
+          "modules/shell-programs/default.nix"
+        ];
       };
     };
 }

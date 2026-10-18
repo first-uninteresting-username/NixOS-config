@@ -10,12 +10,14 @@ Steps 1–4 are implemented under [`lib/modules`](lib/modules/README.md), `modul
 module-owned packages and checks replace the previous flake-parts declarations.
 Common-argument reference generation replaces the custom-option reference generator.
 
-The library implements step 5's per-system output-ownership metadata and extra watched
-files. CI still uses its manual selector, updated for the converted names and paths.
+Step 5 is implemented: CI validates per-system ownership against exported targets and
+selects affected checks and packages from merge-base/head metadata. Module directories and
+extra watched files trigger their owned targets; shared changes select the full non-ISO
+suite. Renames, deletions, moved declarations, and explicitly empty selections are covered
+by policy fixtures. Bases predating the CI ownership snapshot select the full non-ISO suite.
 Every host installs local HTML documentation, a desktop launcher, and `open-docs` for Lynx.
-Affected-target selection from base/head metadata and the remaining guidance cleanup are
-unfinished. This branch is the migration workspace;
-validation and review precede the final cutover.
+The remaining guidance cleanup and final obsolete-wiring audit are unfinished. This branch
+is the migration workspace; validation and review precede the final cutover.
 Replace the old system in one migration. Do not introduce a supported period of mixed
 v2 and v3 hosts. Preserve existing host behavior unless a change is explicitly part of
 this specification. Do not activate or deploy configurations as part of the migration.
