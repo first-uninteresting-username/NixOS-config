@@ -47,11 +47,31 @@ mkModule {
     home = {
       packages,
       pkgs,
+      self,
+      config,
       ...
     }: {
       home.packages = [
-        pkgs.inkscape
-        packages.flow-desktop
+        (self.lib.mkJail {
+          inherit pkgs;
+          package = pkgs.inkscape;
+          gui = true;
+          homeDirs = [".config/inkscape" ".cache/inkscape"];
+          readWrite = with config.xdg.userDirs; [documents download pictures];
+          dbusOwn = ["org.inkscape.Inkscape" "org.inkscape.Inkscape.*"];
+        })
+        (self.lib.mkJail {
+          inherit pkgs;
+          package = packages.flow-desktop;
+          gui = true;
+          network = true;
+          homeDirs = [
+            ".config/io.github.aedev.flow.desktop.beta"
+            ".local/share/io.github.aedev.flow.desktop.beta"
+            ".cache/io.github.aedev.flow.desktop.beta"
+          ];
+          readWrite = [config.xdg.userDirs.download];
+        })
       ];
     };
   };

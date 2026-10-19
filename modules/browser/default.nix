@@ -26,6 +26,8 @@ mkModule {
     home = {
       pkgs,
       inputs,
+      self,
+      config,
       ...
     }: {
       stylix.targets.firefox = {
@@ -59,6 +61,15 @@ mkModule {
       programs = {
         firefox = {
           enable = true;
+          package = self.lib.mkJail {
+            inherit pkgs;
+            package = pkgs.firefox;
+            gui = true;
+            network = true;
+            homeDirs = [".mozilla" ".cache/mozilla"];
+            readWrite = [config.xdg.userDirs.download];
+            dbusOwn = ["org.mozilla.firefox.*"];
+          };
 
           languagePacks = [
             "en-US"
