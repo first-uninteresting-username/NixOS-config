@@ -19,10 +19,8 @@ home configuration, packages, checks, and documentation.
 - [Behavioral checks and CI policy](checks.md)
 - [Configuration versions](versions.md)
 
-The [migration design](https://github.com/first-uninteresting-username/NixOS-config/blob/main/MIGRATION.md)
-and [remaining migration work](https://github.com/first-uninteresting-username/NixOS-config/blob/main/MIGRATION_CHECKS.md)
-record the cutover requirements. Building or opening documentation does not activate a
-configuration or execute manual setup instructions.
+Building or opening documentation does not activate a configuration or execute manual
+setup instructions.
 
 See the [source repository](https://github.com/first-uninteresting-username/NixOS-config)
 for the README, license, releases, and issue tracker.

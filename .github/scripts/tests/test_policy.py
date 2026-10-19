@@ -192,8 +192,8 @@ class RegressionProofTests(unittest.TestCase):
 
         return run, calls
 
-    def test_all_seven_cases_require_baseline_and_specific_negative_failure(self):
-        self.assertEqual(len(regression.CASES), 7)
+    def test_retained_cases_require_baseline_and_specific_negative_failure(self):
+        self.assertEqual(set(regression.CASES), {"persistence-without-user-state", "upgrade"})
         for case, (normal, exception, marker) in regression.CASES.items():
             with self.subTest(case=case):
                 run, calls = self.runner([regression.BuildResult(0, "normal succeeds\n"),

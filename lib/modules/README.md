@@ -1,8 +1,8 @@
 # Modules library
 
-This library implements the modules-v3 constructors and output-ownership metadata in
-`MIGRATION.md`. The root flake discovers all production modules, hosts, and common arguments
-through it and generates local documentation for every host. Checks-v3 CI selects affected
+This library implements the modules-v3 constructors and output-ownership metadata.
+The root flake discovers all production modules, hosts, and common arguments
+through it and generates local documentation for every host. Checks-v4 CI selects affected
 checks and packages from module ownership at the merge base and head revisions.
 
 ## Entry points

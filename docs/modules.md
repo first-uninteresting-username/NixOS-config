@@ -3,7 +3,7 @@
 The modules-v3 registry discovers declarations under `modules/`, host selections under
 `hosts/`, and common arguments under `arguments/`. Each module owns its configuration,
 packages, checks, documentation, and companion sources. See the
-[library API][module-api] and [migration status][migration].
+[library API][module-api].
 
 ## Select modules
 
@@ -105,11 +105,9 @@ nix build .#nixosConfigurations.armin.documentation.package
 
 ```bash
 nix run .#module-docs-update
-nix build .#checks.x86_64-linux.module-docs
 ```
 
 The reference is generated; do not edit it manually.
 
 [module-api]: https://github.com/first-uninteresting-username/NixOS-config/blob/main/lib/modules/README.md
-[migration]: https://github.com/first-uninteresting-username/NixOS-config/blob/main/MIGRATION.md
 [host-documentation]: https://github.com/first-uninteresting-username/NixOS-config/blob/main/lib/modules/README.md#host-documentation

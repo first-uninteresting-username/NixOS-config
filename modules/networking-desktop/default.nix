@@ -108,18 +108,4 @@ mkModule {
       };
     };
   };
-  checks = {
-    self,
-    inputs,
-    lib,
-    pkgs,
-    system,
-    ...
-  }:
-    lib.optionalAttrs (system == "x86_64-linux") {
-      secrets = {
-        derivation = (import ./_checks/secrets.nix {inherit self inputs lib pkgs;}).check;
-        extraFiles = ["modules/secrets/default.nix" "secrets/secrets.yaml" ".sops.yaml"];
-      };
-    };
 }

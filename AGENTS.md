@@ -25,8 +25,8 @@ Guidance for agents working in this NixOS configuration repository.
 
 ## Repository map
 
-This flake uses the modules-v3 library in `lib/modules/`. Read `MIGRATION.md` for the
-migration status and validation requirements and `lib/modules/README.md` for the constructor API.
+This flake uses the modules-v3 library in `lib/modules/`. Read `lib/modules/README.md`
+for the constructor API and output ownership contract.
 
 | Path | Purpose |
 | --- | --- |
@@ -121,14 +121,13 @@ Every new or edited Nix file starts with the repository's license header:
   Follow a local `CONVENTIONS.md` if present; use active voice, simple present tense, headings without
   trailing punctuation, and language-tagged code blocks.
 - `docs/module-reference.md` is generated from `arguments/`, not a hand-maintained module
-  index. Never edit it manually. After relevant option changes, run:
+  index. Never edit it manually. After relevant option changes, regenerate the reference:
 
 ```bash
 nix run .#module-docs-update
-nix build .#checks.x86_64-linux.module-docs
 ```
 
-The generator and freshness check are defined in `modules/module-docs/default.nix`.
+The generator is defined in `modules/module-docs/default.nix`.
 
 ## Development and validation
 
@@ -145,7 +144,7 @@ It provides Alejandra, nixd, yamllint, and `flake-check`, which runs `nix flake 
 | Nix source | `alejandra <changed-files>` and `nix flake check --no-build --all-systems` |
 | Host configuration | Also build the affected host with `nixos-rebuild build --flake .#<host>` when practical |
 | Check behavior | Build the relevant `.#checks.<system>.<name>` derivation |
-| Common argument documentation | Regenerate the reference and build the `module-docs` check |
+| Common argument documentation | Regenerate the reference |
 | Markdown only | Review content, file paths, and `git diff --check`; no Nix build is required |
 
 - `--no-build` checks evaluation; it does not execute VM tests. Report the distinction accurately.

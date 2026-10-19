@@ -110,9 +110,8 @@ the `rebuild` helper for validation; that helper boots remote `main`.
 
 - [ ] User-facing changes update relevant guidance in active voice with language-tagged
   code blocks and headings without trailing punctuation. Verify changed local links.
-- [ ] `docs/module-reference.md` is generated from common arguments; regenerate it and build
-  `module-docs` after relevant changes. Do not edit it manually or change `docs/usage.md`
-  without an explicit request.
+- [ ] `docs/module-reference.md` is generated from common arguments; regenerate it after relevant
+  changes. Do not edit it manually or change `docs/usage.md` without an explicit request.
 - [ ] Every host installs local documentation. Selected content, alphabetical imperative
   steps, `open-docs` in Lynx, and the desktop entry remain usable without a web server.
   Documentation never includes secret values or executes imperative steps.

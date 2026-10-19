@@ -100,7 +100,7 @@ secrets/            Encrypted secrets
 
 Underscore-prefixed files and directories are excluded from discovery. Hardware and disk
 sources live with their host-specific module. See [modules](docs/modules.md) for the v3
-contract and [MIGRATION.md](MIGRATION.md) for remaining work.
+contract and [library API](lib/modules/README.md) for the constructors.
 
 ## Known issues
 

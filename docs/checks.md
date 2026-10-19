@@ -14,43 +14,13 @@ configures appearance; it does not format source examples. VM fixtures compose e
 modules directly through `runNixOSTest` so they can inject fault conditions and test-only
 hardware without adding production host declarations.
 
-## Host evaluation tests
-
-Host evaluation tests live in `eval-tests/`, independently of the module registry and its
-ownership selection. They read final `nixosConfigurations` options and assert the intended
-composition of real hosts across their complete dependency trees, including imported NixOS
-modules and embedded Home Manager users. Expectations cover desktop services, networking,
-D-Bus, audio, printing, discovery, containers, persistence, updates, users, and home programs.
-For example, victim requires GNOME, NetworkManager, PipeWire, preservation, Podman, and its
-user's Nushell and Distrobox configuration. John inherits Avahi from its graphical installer
-configuration even though it does not select the repository's printing module. Wall-e must
-remain a terminal installer without GNOME, PipeWire, or workstation persistence.
-
-Tests inspect final merged option values rather than module IDs or individual declarations.
-They catch missing selections, transitive configuration changes, and accidental overrides
-without building or booting a system.
-
-Run every host evaluation test with:
-
-```bash
-nix eval --json .#evalTests
-```
-
-Successful tests return named `true` results. A mismatch fails evaluation and identifies
-the test, host, option path, expected value, and actual value. Missing hosts or options also
-fail evaluation. Add expectations in `eval-tests/hosts.nix` using `host`, an `option` path
-list, and `expected`; expectations stay separate from module declarations and host IDs.
-Basic CI validation runs the complete set on every run, including module-only changes.
-`nix flake check --no-build` alone does not run this separate output. These assertions
-complement behavioral VM tests; they do not establish that a desktop session works.
-
 ## CI tiers
 
 | Tier | Trigger | Work |
 | --- | --- | --- |
 | Basic validation | Every PR, pushes to main, and full runs | Reuse **Flake check** for Alejandra, Deadnix, Statix, CI policy tests, and `nix flake check --no-build --all-systems`. |
 | Non-ISO packages | Affected module directories in a PR; all on full runs | Build selected exported packages on their supported systems. Shared infrastructure changes select all non-ISO packages. |
-| Behavioral tests | Affected files in a PR; complete suite on full runs | Build selected VM tests and the retained documentation freshness check. Any `flake.lock` change selects the complete non-ISO suite. |
+| Behavioral tests | Affected files in a PR; complete suite on full runs | Build selected runtime and module-library checks. Any `flake.lock` change selects the complete non-ISO suite. |
 | ISO images and smoke tests | **ISO build** on demand | Build john, wall-e, or both at a selected ref and boot the actual exported images. |
 | Weekly master check | Thursday at 08:00 UTC on main | Basic validation, all non-ISO packages, the complete test suite, all four hosts, both ISO images, and both ISO smoke tests. |
 
@@ -74,8 +44,8 @@ Basic validation checks formatting and lints without rewriting the PR. Statix's
 independent flake exports; other lint checks remain enabled. Host and module templates are
 omitted from dead-code/lint validation where intentional placeholders require it. Start new
 behavioral checks from a nearby module-owned `_checks/` fixture and declare them in that module
-instead of adding flake-parts check declarations under `checks/`. Independent host evaluation
-tests live under `eval-tests/`. The remaining `checks/default.nix` only declares the opt-in `regressionChecks` output type.
+instead of adding flake-parts check declarations under `checks/`.
+The remaining `checks/default.nix` only declares the opt-in `regressionChecks` output type.
 
 ## Ownership selection
 
@@ -103,12 +73,11 @@ See [Output ownership][output-ownership] for the declaration format.
 Lock files, shared libraries, common arguments, host declarations, flake wiring, development
 environment files, CI infrastructure, and shared user/Home Manager composition select all
 non-ISO checks and packages. Unknown Nix sources outside `modules/` also select the full suite.
-Documentation-only changes normally omit both build tiers; the generated common-argument
-reference selects its freshness check. The workflow summary lists targets, systems, reasons,
-and removed outputs. Base/head snapshots and selected/full-run matrices remain workflow artifacts.
+Documentation-only changes normally omit both build tiers. The workflow summary lists targets,
+systems, reasons, and removed outputs. Base/head snapshots and selected/full-run matrices remain workflow artifacts.
 
-VM tests run on x86_64-linux. Documentation freshness and library evaluation fixtures run
-on both supported systems. The library evaluation check also evaluates production GNOME/Nushell
+VM tests run on x86_64-linux. Module-library fixtures run on both supported systems.
+The library evaluation check also evaluates production GNOME/Nushell
 and Zsh standalone Home Manager activation derivations without building their application
 dependencies. Packages follow their per-system export availability.
 The `iso-` checks and explicit ISO packages remain in the separate ISO tier, including after
@@ -128,33 +97,23 @@ Superseded PR runs are cancelled. Build and validation failures upload logs for 
 GitHub also retains runner logs. Weekly failures create or update the `ci-failure` issue
 with links to failed jobs. Test-selection matrices are retained as workflow artifacts.
 
-## Behavioral coverage and check audit
+## Retained checks
 
-The previous VM checks are removed from the default suite. These replacements each catch
-a distinct integration failure:
+Checks cover repository-owned behavior. The suite does not test upstream service defaults,
+GNOME sessions, Wi-Fi profiles, printing discovery, generated documentation, or host option
+assignments. Formatting, linting, full flake evaluation, and focused custom module-library
+fixtures remain in basic validation.
 
-| Previous check | Replacement and observable failure mode |
+| Check | Observable contract |
 | --- | --- |
-| `networking` | `networking-desktop-secrets` uses the actual secret-backed desktop networking module and disposable encrypted sops data; checks keyfile contents, root ownership, 0600 permissions, and profiles loaded by NetworkManager. It catches missing secret-service ordering and a failed profile reload. |
-| `gnome-minimal`, `john`, `wayland` | `GNOME-session` starts an actual GNOME Wayland user session, opens the configured terminal, and checks Home Manager activation. Starting a display-manager unit or running `wl-copy --version` alone cannot establish a usable session. |
-| `update` | `update` runs the actual service with a local recording `nixos-rebuild` substitute. It checks the boot command, selected hostname/flake, environment, and propagation of a nonzero exit status. It never upgrades from remote main. |
-| `printing` | `printing-discovery` resolves a real independent DNS-SD printer announcement from a client, resolves its mDNS hostname, and verifies that CUPS accepts loopback clients while rejecting access through the desktop network address and from a peer. |
-| No previous equivalent | `preservation-persistence` reboots a VM with tmpfs root and a disposable persistence disk. User/system state, machine ID, and SSH identities survive; unpreserved state disappears. |
-| No actual-image equivalent | `iso-john` and `iso-wall-e` boot the exported installation ISO with QEMU, exercise the public installer SSH/shell interface, and check Home Manager. John additionally checks the real GDM D-Bus interface; wall-e exercises its configured Nushell interface. |
-| `module-docs` | Compares generated common-argument documentation against the committed reference. Evaluation cannot detect stale committed documentation. |
+| `update` | The production timer is enabled with its boot/weekly schedule and targets the upgrade service. A delayed network target blocks rebuilding. The service calls `nixos-rebuild boot` for the correct flake/host, preserves failures, and recovers on a later run. The installed `rebuild` helper invokes `nh os boot` for that host and preserves failures. An accelerated timer triggers the real service. |
+| `preservation-persistence` | A reboot with tmpfs root retains selected user/system state, ownership, machine ID, and SSH identities while unpreserved control files disappear. |
+| `iso-john`, `iso-wall-e` | The actual exported installation images boot, expose their configured SSH interface, activate Home Manager, and execute their configured Nushell. John also contains the repository's gesture seed. These probes do not establish a working graphical session or installation. |
+| `module-library-exports`, `module-library-evaluation` | Synthetic declarations exercise the custom registry's discovery, selection, argument binding, assertions, ownership, and exports. Production standalone homes are evaluated, not built. |
 
-The clipboard candidate is deferred until a repository-specific integration failure
-justifies it. The background clipboard probe primarily exercised upstream tooling and
-fixture focus management, so it is removed. The fabricated local CUPS output queue and
-the clock-format assignment assertion are also removed; discovery, access boundaries,
-actual session usability, and Home Manager activation provide the retained integration value.
-
-Underscore-prefixed examples do not enter discovery. Tests use public disposable passwords, generated test-only age
-keys, isolated disks, and local service substitutes. They never use production credentials.
-The networking integration orders its keyfile writer after NetworkManager and the
-actual sops installation service, reloads connection profiles through `nmcli`, and propagates
-reload errors. Persistence creates the machine-ID symlink target on the first boot so
-systemd can initialize and preserve the identity.
+Fixtures use disposable public credentials and local rebuild recorders. They never deploy a
+system or use production credentials. Documentation generation remains available through
+`module-docs-reference` and `module-docs-update`; it has no test or freshness gate.
 
 ## Local validation and deliberate regressions
 
@@ -175,7 +134,7 @@ nix flake check --no-build --all-systems
 nix build -L .#checks.x86_64-linux.update
 ```
 
-Evaluation does not execute VM tests. Desktop and ISO checks require KVM; the CI runner
+Evaluation does not execute VM tests. ISO checks require KVM; the CI runner
 makes `/dev/kvm` available to builders. Failed test scripts include service diagnostics or
 serial logs. Use `--keep-failed` when investigating locally.
 
@@ -187,11 +146,7 @@ the intended assertion, rather than during dependency fetching or fixture setup.
 | Regression output | Intentional change and expected failure |
 | --- | --- |
 | `persistence-without-user-state` | Removes preserved home directories; the user marker disappears after reboot. |
-| `networkmanager-secrets-without-reload` | Replaces NetworkManager reload with a no-op; the generated WiFi profiles remain unloaded. |
-| `gnome-session` | Removes the real Home Manager gesture seed activation; the configured gesture file is missing. |
-| `upgrade` | Treats recorder exit 23 as success; the service failure assertion fails. |
-| `printing-discovery` | Closes the desktop's Avahi firewall opening; independent mDNS discovery fails. |
-| `iso-john`, `iso-wall-e` | Truncates the actual built ISO; the image cannot boot and satisfy the smoke probe. |
+| `upgrade` | Mutates the actual upgrade script to swallow a failed rebuild; the service-failure assertion fails. |
 
 For example, after the normal upgrade test passes, this command must fail:
 
