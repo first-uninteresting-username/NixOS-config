@@ -55,29 +55,9 @@ mkModule {
     };
   in {
     exports = fixtures.build;
-    evaluation = {
-      extraFiles = [
-        "modules/home-manager/default.nix"
-        "modules/xdg/default.nix"
-        "modules/shell-programs/default.nix"
-        "modules/nushell/default.nix"
-        "modules/zsh/default.nix"
-        "modules/stylix/default.nix"
-        "modules/stylix/_style.nix"
-        "modules/GNOME/default.nix"
-        "modules/DE-programs-gnome/default.nix"
-        "modules/wayland/default.nix"
-        "modules/browser/default.nix"
-        "modules/host-armin/default.nix"
-        "modules/networking-desktop/default.nix"
-        "modules/desktop-password/default.nix"
-        "modules/user/default.nix"
-        "modules/preservation/default.nix"
-      ];
-      derivation = assert builtins.all (value: value) (builtins.attrValues fixtures.results);
-      assert builtins.isString productionHome.activationPackage.drvPath;
-      assert builtins.isString zshHome.activationPackage.drvPath;
-        pkgs.runCommand "modules-v3-evaluation" {} "touch $out";
-    };
+    evaluation = assert builtins.all (value: value) (builtins.attrValues fixtures.results);
+    assert builtins.isString productionHome.activationPackage.drvPath;
+    assert builtins.isString zshHome.activationPackage.drvPath;
+      pkgs.runCommand "modules-v3-evaluation" {} "touch $out";
   };
 }

@@ -120,9 +120,6 @@ mkModule {
     ...
   }:
     lib.optionalAttrs (system == "x86_64-linux") {
-      persistence = {
-        derivation = (import ./_checks/persistence.nix {inherit self inputs lib pkgs;}).check;
-        extraFiles = ["modules/ssh/default.nix" "modules/bootloader/default.nix"];
-      };
+      persistence = (import ./_checks/persistence.nix {inherit self inputs lib pkgs;}).check;
     };
 }

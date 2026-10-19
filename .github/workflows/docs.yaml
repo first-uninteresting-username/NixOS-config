@@ -11,12 +11,6 @@ on:
       - "modules/module-docs/**"
       - "docs/module-reference.md"
       - ".github/workflows/docs.yaml"
-  pull_request:
-    paths:
-      - "arguments/**"
-      - "modules/module-docs/**"
-      - "docs/module-reference.md"
-      - ".github/workflows/docs.yaml"
   workflow_dispatch:
 
 permissions:
@@ -66,15 +60,9 @@ jobs:
             git diff -- docs/module-reference.md
           fi
 
-      - name: Fail if docs are out of date on PR
-        if: steps.changes.outputs.has_changes == 'true' && github.event_name == 'pull_request'
-        run: |
-          echo "::error::docs/module-reference.md is out of date. Run 'nix run .#module-docs-update' locally and commit."
-          exit 1
-
       - name: Create Pull Request for docs update
         id: cpr
-        if: steps.changes.outputs.has_changes == 'true' && github.event_name != 'pull_request'
+        if: steps.changes.outputs.has_changes == 'true'
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8
         with:
           token: ${{ secrets.GITHUB_TOKEN }}

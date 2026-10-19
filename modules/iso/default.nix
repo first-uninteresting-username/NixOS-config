@@ -52,13 +52,7 @@ mkModule {
     lib.optionalAttrs (system == "x86_64-linux") (let
       fixtures = (import ./_checks/smoke.nix {inherit self pkgs;}).checks;
     in {
-      john = {
-        derivation = fixtures.iso-john;
-        extraFiles = ["hosts/john.nix" "modules/host-john/default.nix"];
-      };
-      wall-e = {
-        derivation = fixtures.iso-wall-e;
-        extraFiles = ["hosts/wall-e.nix" "modules/host-wall-e/default.nix"];
-      };
+      john = fixtures.iso-john;
+      wall-e = fixtures.iso-wall-e;
     });
 }

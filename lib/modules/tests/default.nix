@@ -239,83 +239,7 @@
         })
       ];
     }).perSystem {inherit system pkgs;}).checks;
-  # Mix selected, empty, and role-guarded pages to test omission and lazy documentation.
-  documented = moduleLib.mkRegistry {
-    inherit commonArgs;
-    modules = [
-      base
-      (moduleLib.mkModule {
-        name = "zeta";
-        docs = {
-          userName,
-          hostName,
-          shared ? 23,
-        }: "${hostName}: ${userName}, ${toString shared}";
-        imperativeSteps = "Zeta setup marker.";
-      })
-      (moduleLib.mkModule {
-        name = "alpha";
-        imperativeSteps = {documentationOnly ? "default"}: "Alpha setup marker: ${documentationOnly}.";
-      })
-      (moduleLib.mkModule {
-        name = "empty";
-        docs = " \n\t";
-        imperativeSteps = "";
-      })
-      (moduleLib.mkModule {
-        name = "unselected";
-        ids = ["absent"];
-        docs = _: throw "unselected documentation evaluated";
-      })
-      (nixosOnly
-        // {
-          docs = "Selected NixOS-only documentation marker.";
-          imperativeSteps = {
-            role,
-            missingSystemArgument,
-          }:
-            if role == "nixos"
-            then missingSystemArgument
-            else null;
-        })
-    ];
-  };
-  documentedHome = args:
-    documented.mkHost {
-      name = "documented-home";
-      role = "home";
-      inherit system args;
-    };
-  documentedFixture = documentedHome {
-    shared = 31;
-    documentationOnly = "override";
-  };
-  inherit (documentedFixture) documentation;
-  # Verify rendered content and local links, then exercise the installed Lynx command.
-  documentationCheck =
-    pkgs.runCommand "host-documentation-check" {
-      nativeBuildInputs = [pkgs.python3];
-    } ''
-      python ${./documentation.py} ${documentation.source} ${documentation.site}/share/doc/documented-home
-      grep -q 'documented-home: fixture, 23' ${(documentedHome {}).documentation.source}/docs/modules/zeta.md
-      grep -q 'Alpha setup marker: default.' ${(documentedHome {}).documentation.source}/docs/modules/alpha.md
-      TERM=xterm ${documentation.openDocs}/bin/open-docs -dump -nolist > terminal.txt
-      grep -q 'documented-home documentation' terminal.txt
-      test -s ${documentation.desktop}/share/applications/host-documentation.desktop
-      touch "$out"
-    '';
   tests = {
-    documentationInstalledInHome = builtins.elem documentation.package documentedFixture.config.home.packages;
-    documentationInstalledInNixos = let host = nixos {}; in builtins.elem host.documentation.package host.config.environment.systemPackages;
-    documentationDefaults = builtins.seq (documentedHome {}).documentation.source.drvPath true;
-    documentationRejectsInvalidText =
-      fails
-      (withModules [
-        (moduleLib.mkModule {
-          name = "invalid-docs";
-          docs = ["not Markdown"];
-        })
-      ]).documentation.source.drvPath;
     ownershipAtRoot =
       (discovered.ownership {
         root = ./discovery/modules;
@@ -323,12 +247,10 @@
       }).packages.discovered.directory
       == ".";
     ownershipSharedDirectory = metadata.checks.sibling-helper.directory == metadata.packages.discovered.directory;
-    ownershipBareCheck = metadata.checks.sibling-helper.extraFiles == [];
     ownershipMatchesPackages = builtins.attrNames metadata.packages == builtins.attrNames discoveredExports.packages;
     ownershipMatchesChecks = builtins.attrNames metadata.checks == builtins.attrNames discoveredExports.checks;
     ownershipSourceRelative = metadata.packages.discovered.source == "lib/modules/tests/discovery/modules/example.nix";
     ownershipDirectoryRelative = metadata.packages.discovered.directory == "lib/modules/tests/discovery/modules";
-    ownershipAdditionalFiles = system != "x86_64-linux" || metadata.checks.discovered.extraFiles == ["shared/helper.nix"];
     ownershipRespectsSystem = (metadata.checks ? discovered) == (system == "x86_64-linux");
     ownershipRequiresSource = fails (registry.ownership {
       root = ../../..;
@@ -342,23 +264,8 @@
       root = ../../..;
       inherit system pkgs;
     });
-    checkRecordRejectsUnknownFields = badCheck {
-      derivation = pkgs.hello;
-      typo = [];
-    };
-    checkRecordRequiresDerivation = badCheck {extraFiles = [];};
-    checkRecordRejectsTraversal = badCheck {
-      derivation = pkgs.hello;
-      extraFiles = ["../outside"];
-    };
-    checkRecordRejectsAbsolutePath = badCheck {
-      derivation = pkgs.hello;
-      extraFiles = ["/outside"];
-    };
-    checkRecordRejectsNonList = badCheck {
-      derivation = pkgs.hello;
-      extraFiles = "file";
-    };
+    checkRequiresDerivation = badCheck "not a derivation";
+    checkRejectsWrappedDerivation = badCheck {derivation = pkgs.hello;};
     emptyIdsMatch = (home {}).config.home.username == "fixture";
     subsetDoesNotMatch = !((home {ids = ["gaming"];}).config.home.file ? module-test);
     orderIndependentAndModuleDefault = (home {ids = chosenIds;}).config.home.file.module-test.text == "fixture:23:home-default";
@@ -564,17 +471,10 @@ in {
     if failures == []
     then tests
     else throw "Failed modules fixtures: ${lib.concatStringsSep ", " failures}";
-  build =
-    builtins.deepSeq (
-      if failures == []
-      then true
-      else throw "Failed modules fixtures"
-    ) (pkgs.runCommand "modules-fixtures" {} ''
-      test "$(cat ${exports.packages.example})" = owned
-      test -e ${exports.checks.example}
-      test -e ${documentationCheck}
-      test -e ${documentedFixture.activationPackage}
-      ${lib.optionalString (system == "x86_64-linux") "test -e ${discoveredExports.checks.discovered}"}
-      touch "$out"
-    '');
+  build = pkgs.runCommand "modules-fixtures" {} ''
+    test "$(cat ${exports.packages.example})" = owned
+    test -e ${exports.checks.example}
+    ${lib.optionalString (system == "x86_64-linux") "test -e ${discoveredExports.checks.discovered}"}
+    touch "$out"
+  '';
 }

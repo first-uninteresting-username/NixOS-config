@@ -102,9 +102,6 @@ mkModule {
     ...
   }:
     lib.optionalAttrs (system == "x86_64-linux") {
-      default = {
-        derivation = (import ./_checks/default.nix {inherit self inputs lib pkgs;}).check;
-        extraFiles = [];
-      };
+      default = (import ./_checks/default.nix {inherit self inputs lib pkgs;}).check;
     };
 }

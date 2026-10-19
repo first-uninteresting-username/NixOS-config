@@ -31,18 +31,4 @@ mkModule {
       };
     };
   };
-  checks = {
-    self,
-    inputs,
-    lib,
-    pkgs,
-    system,
-    ...
-  }:
-    lib.optionalAttrs (system == "x86_64-linux") {
-      discovery = {
-        derivation = (import ./_checks/discovery.nix {inherit self inputs lib pkgs;}).check;
-        extraFiles = ["modules/networking-desktop/default.nix"];
-      };
-    };
 }

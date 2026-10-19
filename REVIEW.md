@@ -17,8 +17,9 @@ nix flake check --no-build --all-systems
 git diff --check
 ```
 
-Basic CI also runs Deadnix, Statix, Python CI-policy tests, Node branch-policy tests, and
-`python3 lib/modules/tests/run.py`. It checks formatting and lints without modifying files;
+Basic CI also runs Deadnix, Statix, Python CI-policy tests, and Node branch-policy tests.
+Selected library evaluation jobs run `lib/modules/tests/run.py --diagnostics-only --system <system>`.
+CI checks formatting and lints without modifying files;
 intentional placeholders in the host and module templates are excluded from lint checks.
 
 Evaluation does not run VM tests. Build affected packages, documentation, and behavioral
@@ -84,11 +85,11 @@ the `rebuild` helper for validation; that helper boots remote `main`.
 - [ ] Checks belong to their module and use explicit disposable fixture values. Start from
   a nearby `_checks/` fixture and exercise the actual production module.
 - [ ] Generated ownership metadata matches exported targets on both systems. Module-directory
-  changes select all owned checks and packages; literal `extraFiles` trigger relevant checks.
+  changes select all owned checks and packages; unrelated modules never select those checks.
 - [ ] Selection compares complete merge-base/head diffs and metadata, including deletions,
   renames, moved declarations, removed outputs, and deliberately empty selections.
-- [ ] Shared changes select the full non-ISO suite. Scheduled/manual full validation, host
-  builds, ISO tests, caching, diagnostics, and failure logs remain available.
+- [ ] Only the explicit core-infrastructure list selects the full non-ISO suite. Scheduled/manual
+  full validation, host builds, ISO tests, caching, diagnostics, and failure logs remain available.
 - [ ] The required `all-systems-passed` aggregate fails on discovery failures and unexpected
   skips. Only explicitly empty selections skip their build tier.
 - [ ] Intentional regressions stay outside normal checks. Proof runs first pass the positive
@@ -110,9 +111,8 @@ the `rebuild` helper for validation; that helper boots remote `main`.
 
 - [ ] User-facing changes update relevant guidance in active voice with language-tagged
   code blocks and headings without trailing punctuation. Verify changed local links.
-- [ ] `docs/module-reference.md` is generated from common arguments; regenerate it and build
-  `module-docs` after relevant changes. Do not edit it manually or change `docs/usage.md`
-  without an explicit request.
+- [ ] `docs/module-reference.md` is generated from common arguments; regenerate it after relevant
+  changes. Do not edit it manually or change `docs/usage.md` without an explicit request.
 - [ ] Every host installs local documentation. Selected content, alphabetical imperative
   steps, `open-docs` in Lynx, and the desktop entry remain usable without a web server.
   Documentation never includes secret values or executes imperative steps.
