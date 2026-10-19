@@ -21,15 +21,28 @@ mkModule {
     };
   };
   packages = {pkgs, ...}: let
-    release = builtins.fromJSON (builtins.readFile ./_sources/release.json);
-    source = release.sources.${pkgs.stdenv.hostPlatform.system};
+    version = "0.30.0";
+    sourceInfo = {
+      x86_64-linux = {
+        arch = "amd64";
+        hash = "sha256-8tLXxgfcMQVzrrCf1+g+bydVRbsiBgnT+RxIhR1tQp8=";
+      };
+      aarch64-linux = {
+        arch = "arm64";
+        hash = "sha256-vThtB4w06AeIrXNXXxtjyPHEUXLsGTWZpiIAcUWYaj4=";
+      };
+    };
+    sources = pkgs.lib.mapAttrs (_: source:
+      pkgs.fetchurl {
+        url = "https://github.com/LeafdTK/orchard-releases/releases/download/v${version}/orchard_${version}_linux_${source.arch}.tar.gz";
+        inherit (source) hash;
+      })
+    sourceInfo;
   in {
     default = pkgs.stdenvNoCC.mkDerivation {
       pname = "orchard-cli";
-      inherit (release) version;
-      src = pkgs.fetchurl {
-        inherit (source) url hash;
-      };
+      inherit version;
+      src = sources.${pkgs.stdenv.hostPlatform.system};
       sourceRoot = ".";
       dontConfigure = true;
       dontBuild = true;
@@ -41,20 +54,29 @@ mkModule {
           "$out/share/licenses/orchard-cli/THIRD_PARTY_NOTICES.txt"
         runHook postInstall
       '';
-      passthru.updateScript = pkgs.lib.getExe (pkgs.writeShellApplication {
-        name = "update-orchard-cli";
-        runtimeInputs = [pkgs.python3];
-        text = ''
-          exec python3 modules/orchard-cli/_sources/update.py
-        '';
-      });
+      passthru = {
+        inherit sources;
+        updateScript = pkgs.nix-update-script {
+          attrPath = "orchard-cli";
+          extraArgs = [
+            "--flake"
+            "--use-github-releases"
+            "--override-filename"
+            "modules/orchard-cli/default.nix"
+            "--subpackage"
+            "sources.x86_64-linux"
+            "--subpackage"
+            "sources.aarch64-linux"
+          ];
+        };
+      };
       meta = {
         description = "Orchard platform CLI";
         homepage = "https://github.com/LeafdTK/orchard-releases";
         license = pkgs.lib.licenses.agpl3Only;
         sourceProvenance = [pkgs.lib.sourceTypes.binaryNativeCode];
         mainProgram = "orchard";
-        platforms = builtins.attrNames release.sources;
+        platforms = builtins.attrNames sources;
       };
     };
   };
@@ -63,14 +85,6 @@ mkModule {
     packages,
     ...
   }: {
-    updater =
-      pkgs.runCommand "orchard-cli-updater-check" {
-        nativeBuildInputs = [pkgs.python3];
-        src = ./_sources;
-      } ''
-        python3 "$src/test-update.py"
-        touch "$out"
-      '';
     default = pkgs.runCommand "orchard-cli-smoke" {} ''
       export HOME="$TMPDIR"
       ${packages.default}/bin/orchard --version > version.txt
@@ -85,7 +99,7 @@ mkModule {
     The `orchard-cli` host ID enables it; victim and armin select it by default.
     Linux binaries for x86_64 and aarch64 use upstream SHA-256 checksums.
     Run `orchard --help` for commands.
-    `passthru.updateScript` refreshes the version and both architecture checksums together.
+    `passthru.updateScript` uses Nixpkgs’ `nix-update-script` for both Linux architectures.
     The scheduled package updater runs it on Mondays and Thursdays and opens an update PR.
     Run it manually from the repository root with:
 
