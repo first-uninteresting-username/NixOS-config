@@ -11,10 +11,6 @@ A comprehensive OS-as-a-code solution based on NixOS (Work in progress).
 [![Issues](https://img.shields.io/github/issues/first-uninteresting-username/NixOS-config?logo=github)](https://github.com/first-uninteresting-username/NixOS-config/issues)
 [![Built with Nix](https://img.shields.io/badge/built_with-Nix-5277C3?logo=nixos&logoColor=white&style=flat)](https://nixos.org)
 
-> [!NOTE]
-> This is a learning project in the first place.
-> Please point out any issues you encounter. I will be more than happy to fix them and learn on my mistakes.
-
 > [!IMPORTANT]
 > If you wish to use any part of this config (not by copying parts of nix code, but actual modules),
 > please let me know with a [Github issue](https://github.com/first-uninteresting-username/NixOS-config/issues)
