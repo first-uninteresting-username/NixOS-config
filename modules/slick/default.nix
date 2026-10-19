@@ -45,7 +45,7 @@ mkModule {
           homeDirs = [".config/slick" ".cache/slick"];
           readWrite = [config.xdg.userDirs.download];
           dbusOwn = ["dev.slick.Slick"];
-          dbusTalk = ["org.freedesktop.secrets"];
+          dbusTalk = ["org.freedesktop.secrets" "org.kde.kwalletd6"];
         })
       ];
     };

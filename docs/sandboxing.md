@@ -1,8 +1,8 @@
 # Application sandboxes
 
 `self.lib.mkJail` wraps a package with [jail.nix][jail-nix] and Bubblewrap.
-The shared helper follows the per-application permission model in
-[csd4ni3l's configuration][reference], with broader desktop compatibility mounts.
+The shared helper follows the per-application permission model and shared GUI permissions in
+[csd4ni3l's configuration][reference], with broader file reads for Firefox and Slick.
 Application modules apply their policies directly, including in standalone Home Manager.
 No extra host ID enables sandboxing.
 
@@ -36,7 +36,7 @@ another package or an executable outside `bin` needs an application-specific ove
 
 | Field | Effect |
 | --- | --- |
-| `gui` | Grants Wayland, GPU, audio, fonts, theme configuration, portal file access, notifications, and filtered session D-Bus access. |
+| `gui` | Grants the reference's shared GUI access: Wayland, GPU, audio, fonts, themes, portal and GVFS services, notifications, accessibility, and dconf. |
 | `network` | Shares the host network and supplies DNS, TLS certificates, and hostname configuration. |
 | `readHostFiles` | Exposes the host filesystem read only, including home and mounted data, subject to the user's existing file permissions. `/dev`, `/proc`, `/tmp`, and `/run` are replaced with private trees before explicit grants; mounted drives under `/run/media` are exposed read only. |
 | `homeDirs` | Creates and mounts writable home-relative directories before launch. Use these for persistent application settings and caches. |
@@ -63,9 +63,8 @@ permissions = c: [
 ```
 
 GUI mode expects a graphical session with `XDG_RUNTIME_DIR` and a session bus at
-`$XDG_RUNTIME_DIR/bus`. It uses
-Wayland by default. CLI mode does not require a graphical session. By default, the home
-is hidden. `readHostFiles` makes the host's ordinary files readable, while retaining private
+`$XDG_RUNTIME_DIR/bus`. It uses Wayland by default. CLI mode does not require a graphical
+session. By default, the home is hidden. `readHostFiles` makes the host's ordinary files readable, while retaining private
 runtime paths and hiding the usual system-bus and Nix-daemon sockets. File access does
 not override normal ownership or mode restrictions. Writable mounts still take precedence.
 Read-only mounts do not prevent communicating with sockets outside the private runtime
@@ -76,15 +75,28 @@ paths; this mode does not provide confidentiality for the user's files.
 | Applications | Network | Readable files | Writable user data |
 | --- | --- | --- | --- |
 | Firefox | Yes | Host filesystem | Mozilla profile/cache and Downloads. |
-| Slick | Yes | Host filesystem | Slick settings/cache and Downloads; also allows the Secret Service for login. |
+| Slick | Yes | Host filesystem | Slick settings/cache and Downloads; also allows Secret Service and KWallet for login. |
 | Flow Desktop | Yes | Explicit mounts and shared desktop paths | Flow Beta settings/data/cache and Downloads. |
 | Inkscape | No | Explicit mounts and shared desktop paths | Inkscape settings/cache, Documents, Downloads, and Pictures. |
 | Papers, File Roller, Gradia, Text Editor, Loupe, Rnote | No | Explicit mounts and shared desktop paths | Each app's settings/data/cache, Documents, Downloads, Pictures, and Videos. |
 
 Firefox and Slick can read arbitrary project folders, dotfiles, and mounted data without
-a portal chooser. They can write only their listed application state and Downloads,
-plus private temporary/runtime storage. Other applications retain their restricted mounts;
-portal file choosers can grant additional file access when supported.
+a portal chooser. Their ordinary filesystem writes are limited to the listed application
+state and Downloads, plus temporary/runtime storage. Firefox also has full `/dev` access,
+matching the reference's framework16 desktop setting, including devices such as cameras
+and FIDO tokens when the user's device permissions permit them. It may own its Firefox
+MPRIS names for media controls and talk to `org.mozilla.*`. Slick can contact both
+`org.freedesktop.secrets` and `org.kde.kwalletd6`.
+
+All ten existing sandboxes use the reference's shared D-Bus allowlist:
+`org.freedesktop.DBus`, `org.gtk.vfs`, `org.gtk.vfs.*`, `org.freedesktop.portal.*`,
+`org.freedesktop.Notifications`, `org.a11y.Bus`, and `ca.desrt.dconf`. Runtime dconf and
+document-portal directories are writable, as in the reference. `/lib64` is available for
+foreign binaries. GUI data and cursor paths retain the session's paths and add the
+reference's Adwaita icon and shared MIME data fallbacks; Electron's Ozone hint is `auto`.
+The existing ten applications stay sandboxed; this alignment adds no applications.
+The other eight sandboxes retain their existing file mounts; portal file choosers can
+grant additional file access when supported.
 
 This is the first rollout for [issue #570][issue], not complete coverage of the desktop.
 Steam/nix-crab, game launchers, development tools and agents, remote desktop, hardware
@@ -109,7 +121,9 @@ argument preservation, offline and online network namespaces, aliases, hidden
 executables, package overrides, symlinked package directories, desktop/service launcher
 rewriting, and allowed versus blocked D-Bus calls. It also checks broad read access to
 home, system files, symlink targets, and mounted data while keeping ungranted writes
-blocked and runtime paths private:
+blocked and runtime paths private. Reference-compatibility probes exercise portal/GVFS
+calls, writable runtime dconf, `/lib64`, desktop data fallbacks, device access, and the
+Secret Service/KWallet grants:
 
 ```bash
 nix build -L .#checks.x86_64-linux.jail

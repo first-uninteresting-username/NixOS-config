@@ -69,7 +69,14 @@ mkModule {
             readHostFiles = true;
             homeDirs = [".mozilla" ".cache/mozilla"];
             readWrite = [config.xdg.userDirs.download];
-            dbusOwn = ["org.mozilla.firefox.*"];
+            dbusOwn = [
+              "org.mozilla.firefox.*"
+              "org.mpris.MediaPlayer2.firefox"
+              "org.mpris.MediaPlayer2.firefox.*"
+            ];
+            dbusTalk = ["org.mozilla.*"];
+            # Match the reference desktop's full-device Firefox policy.
+            permissions = c: [(c.unsafe-add-raw-args "--dev-bind /dev /dev")];
           };
 
           languagePacks = [

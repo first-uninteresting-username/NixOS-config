@@ -54,7 +54,22 @@
       printf saved > "$HOME/app state/broad"
       readlink /proc/self/ns/net > "$HOME/app state/broad-net"
       SCRIPT
-      chmod +x "$out/bin/probe" "$out/bin/bus-probe" "$out/bin/full-read-probe"
+      cat > "$out/bin/desktop-probe" <<'SCRIPT'
+      #!${pkgs.bash}/bin/bash
+      set -eu
+      test -r /lib64/jail-loader
+      test "$XDG_CONFIG_HOME" = "$HOME/.config"
+      case "$XDG_DATA_DIRS" in *"${pkgs.adwaita-icon-theme}/share"*) ;; *) exit 1;; esac
+      case "$XDG_DATA_DIRS" in *"${pkgs.shared-mime-info}/share"*) ;; *) exit 1;; esac
+      test "$ELECTRON_OZONE_PLATFORM_HINT" = auto
+      echo writable > "$XDG_RUNTIME_DIR/dconf/probe"
+      SCRIPT
+      cat > "$out/bin/device-probe" <<'SCRIPT'
+      #!${pkgs.bash}/bin/bash
+      test -r /dev/jail-device
+      SCRIPT
+      chmod +x "$out/bin/probe" "$out/bin/bus-probe" "$out/bin/full-read-probe" \
+        "$out/bin/desktop-probe" "$out/bin/device-probe"
       ln -s probe "$out/bin/alias"
       ln -s probe "$out/bin/.hidden"
       cat > "$out/share/applications/probe.desktop" <<DESKTOP
@@ -122,6 +137,20 @@
     homeDirs = ["app state"];
     dbusTalk = ["example.Allowed"];
   };
+  deviceAccess = self.lib.mkJail {
+    inherit pkgs;
+    package = original;
+    gui = true;
+    readHostFiles = true;
+    permissions = c: [(c.unsafe-add-raw-args "--dev-bind /dev /dev")];
+  };
+  keyringAccess = self.lib.mkJail {
+    inherit pkgs;
+    package = original;
+    gui = true;
+    readHostFiles = true;
+    dbusTalk = ["org.freedesktop.secrets" "org.kde.kwalletd6"];
+  };
   sessionTest = pkgs.writeShellScript "jail-session-test" ''
     set -eu
     XDG_RUNTIME_DIR=$(mktemp -d)
@@ -129,12 +158,16 @@
     export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
     busPid=$(${pkgs.dbus}/bin/dbus-daemon --session --fork --print-pid \
       --address="$DBUS_SESSION_BUS_ADDRESS")
-    ${pkgs.dbus}/bin/dbus-test-tool echo --name=example.Allowed &
-    allowedPid=$!
-    ${pkgs.dbus}/bin/dbus-test-tool echo --name=example.Blocked &
-    blockedPid=$!
-    trap 'kill "$allowedPid" "$blockedPid" "$busPid"; rm -rf "$XDG_RUNTIME_DIR"' EXIT
-    for name in example.Allowed example.Blocked; do
+    mkdir -p "$XDG_RUNTIME_DIR/dconf"
+    serviceNames=(
+      example.Allowed example.Blocked org.freedesktop.portal.Test
+      org.gtk.vfs org.gtk.vfs.Test org.freedesktop.secrets org.kde.kwalletd6
+    )
+    servicePids=()
+    trap 'kill "''${servicePids[@]}" "$busPid"; rm -rf "$XDG_RUNTIME_DIR"' EXIT
+    for name in "''${serviceNames[@]}"; do
+      ${pkgs.dbus}/bin/dbus-test-tool echo --name="$name" &
+      servicePids+=("$!")
       for attempt in $(seq 1 50); do
         if ${pkgs.dbus}/bin/dbus-send --session --print-reply \
           --dest=org.freedesktop.DBus /org/freedesktop/DBus \
@@ -143,7 +176,19 @@
         fi
         sleep 0.1
       done
+      # A denied call only proves filtering if the unfiltered service is reachable.
+      ${pkgs.dbus}/bin/dbus-send --session --print-reply --dest="$name" / example.Test.Ping
     done
+    for wrapper in ${graphical} ${graphicalFullRead}; do
+      for name in org.freedesktop.portal.Test org.gtk.vfs org.gtk.vfs.Test; do
+        "$wrapper/bin/bus-probe" "$name"
+      done
+      "$wrapper/bin/desktop-probe"
+      test "$(cat "$XDG_RUNTIME_DIR/dconf/probe")" = writable
+    done
+    ${deviceAccess}/bin/device-probe
+    ${keyringAccess}/bin/bus-probe org.freedesktop.secrets
+    ${keyringAccess}/bin/bus-probe org.kde.kwalletd6
     ${graphical}/bin/bus-probe example.Allowed
     if ${graphical}/bin/bus-probe example.Blocked; then
       echo "blocked D-Bus name was reachable" >&2
@@ -172,6 +217,7 @@ in
 
       machine.start()
       machine.wait_for_unit("multi-user.target")
+      machine.succeed("mkdir -p /lib64; touch /lib64/jail-loader /dev/jail-device")
       machine.succeed("su - alice -c 'mkdir -p \"read only\" .ssh; echo visible > \"read only/input\"; touch secret'")
 
       machine.succeed("mkdir -p /srv/data /mnt /run/media; mount -t tmpfs tmpfs /mnt; echo readable > /srv/data/file; cp /srv/data/file /mnt/file; cp /srv/data/file /run/media/file; chown -R alice:users /srv/data /mnt /run/media; touch /tmp/host-only")

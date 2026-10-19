@@ -111,7 +111,7 @@ architecture; the exports check does not repeat the evaluation assertions.
 
 | Check | Observable contract |
 | --- | --- |
-| `jail` | File and network isolation, writable state, argument and alias preservation, package overrides, desktop/D-Bus launcher rewriting, and filtered session-bus calls through `lib.mkJail`. |
+| `jail` | File and network isolation, writable state, argument and alias preservation, package overrides, desktop/D-Bus launcher rewriting, filtered session-bus calls, and reference GUI/device access through `lib.mkJail`. |
 | `update` | The production timer is enabled and targets the upgrade service. A delayed network target blocks rebuilding. The service calls `nixos-rebuild boot` for the correct flake/host, preserves failures, and recovers on a later run. The installed `rebuild` helper invokes `nh os boot` for that host and preserves failures. An accelerated timer triggers the real service. |
 | `preservation-persistence` | A reboot with tmpfs root retains selected user/system state, user write access, machine ID, and an SSH host key while unpreserved control files disappear. |
 | `iso-john`, `iso-wall-e` | The actual exported installation images boot, expose their configured SSH interface, activate Home Manager, and execute their configured Nushell. John also contains the repository's gesture seed. These probes do not establish a working graphical session or installation. |

@@ -72,19 +72,27 @@
       (c.unsafe-add-raw-args
         ''--bind-try "$XDG_RUNTIME_DIR/doc" "$XDG_RUNTIME_DIR/doc"'')
       (c.unsafe-add-raw-args
-        ''--ro-bind-try "$XDG_RUNTIME_DIR/dconf" "$XDG_RUNTIME_DIR/dconf"'')
+        ''--bind-try "$XDG_RUNTIME_DIR/dconf" "$XDG_RUNTIME_DIR/dconf"'')
       (c.dbus {
         own = dbusOwn;
         talk =
           [
-            "org.freedesktop.portal.Desktop"
-            "org.freedesktop.portal.Documents"
+            "org.freedesktop.DBus"
+            "org.gtk.vfs"
+            "org.gtk.vfs.*"
+            "org.freedesktop.portal.*"
             "org.freedesktop.Notifications"
             "org.a11y.Bus"
             "ca.desrt.dconf"
           ]
           ++ dbusTalk;
       })
+      (c.set-env "XDG_CONFIG_HOME" (c.noescape ''"$HOME/.config"''))
+      (c.set-env "XDG_DATA_DIRS" (c.noescape
+          ''"''${XDG_DATA_DIRS:+$XDG_DATA_DIRS:}/run/current-system/sw/share:${pkgs.adwaita-icon-theme}/share:${pkgs.shared-mime-info}/share"''))
+      (c.set-env "XCURSOR_PATH" (c.noescape
+          ''"''${XCURSOR_PATH:+$XCURSOR_PATH:}${pkgs.adwaita-icon-theme}/share/icons:${pkgs.adwaita-icon-theme}/share/pixmaps"''))
+      (c.set-env "ELECTRON_OZONE_PLATFORM_HINT" "auto")
       (c.readonly-paths-from-var "XDG_DATA_DIRS" ":")
       (c.readonly-paths-from-var "XCURSOR_PATH" ":")
     ]
@@ -101,6 +109,7 @@
       (c.try-readonly "/run/current-system/sw")
       (c.try-readonly "/etc/profiles")
       (c.try-readonly "/etc/static/profiles")
+      (c.try-readonly "/lib64")
       c.time-zone
     ]
     ++ lib.optionals readHostFiles [
