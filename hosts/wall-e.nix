@@ -5,10 +5,11 @@
   name = "wall-e";
   role = "nixos";
   system = "x86_64-linux";
-  ids = ["home-manager" "host-wall-e" "hostname" "input" "iso" "iso-terminal" "locale" "networking-minimal" "nix" "power" "preservation" "secretless-git" "shell" "nushell" "ssh-debug" "stylix" "sudo" "tty" "user" "xdg"];
+  ids = ["home-manager" "host-wall-e" "hostname" "input" "iso" "iso-terminal" "locale" "networking-minimal" "nix" "power" "preservation" "git" "secrets" "shell" "nushell" "ssh-debug" "stylix" "sudo" "tty" "user" "xdg"];
   args = {
     userName = "nixos";
     userEnable = true;
+    secretsEnable = false;
     preservationEnable = false;
     theme = {
       enable = true;

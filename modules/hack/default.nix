@@ -8,27 +8,35 @@ mkModule {
   module = {hackApiKeyPath ? "/run/secrets/HACK_CLUB_AI_API_KEY"}: {
     nixos = {
       lib,
-      config,
+      secretsEnable,
       userName,
       ...
     }: {
-      config = lib.mkIf (config ? sops) {
+      config = lib.optionalAttrs secretsEnable {
         sops.secrets."HACK_CLUB_AI_API_KEY" = {
           path = hackApiKeyPath;
           owner = userName;
         };
       };
     };
-    home = {inputs, ...}: {
+    home = {
+      inputs,
+      lib,
+      secretsEnable,
+      ...
+    }: {
       imports = [inputs.hack.homeManagerModules.default];
       config = {
         programs.hack = {
           enable = true;
-          settings = {
-            base_url = "https://ai.hackclub.com/proxy/v1";
-            model = "deepseek/deepseek-v4.1-flash-1017";
-            api_key_path = hackApiKeyPath;
-          };
+          settings =
+            {
+              base_url = "https://ai.hackclub.com/proxy/v1";
+              model = "deepseek/deepseek-v4.1-flash-1017";
+            }
+            // lib.optionalAttrs secretsEnable {
+              api_key_path = hackApiKeyPath;
+            };
         };
       };
     };

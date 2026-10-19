@@ -8,12 +8,15 @@ mkModule {
   module = _: {
     nixos = {
       config,
+      lib,
+      secretsEnable,
       hostName,
       userName,
       ...
-    }: {
-      sops.secrets."sudo_password/${hostName}".neededForUsers = true;
-      users.users.${userName}.hashedPasswordFile = config.sops.secrets."sudo_password/${hostName}".path;
-    };
+    }:
+      lib.optionalAttrs secretsEnable {
+        sops.secrets."sudo_password/${hostName}".neededForUsers = true;
+        users.users.${userName}.hashedPasswordFile = config.sops.secrets."sudo_password/${hostName}".path;
+      };
   };
 }

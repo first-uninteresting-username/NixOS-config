@@ -14,6 +14,12 @@ configures appearance; it does not format source examples. VM fixtures compose e
 modules directly through `runNixOSTest` so they can inject fault conditions and test-only
 hardware without adding production host declarations.
 
+The `secrets-toggle` evaluation check composes all credential consumers with secrets
+both enabled and disabled, including a disabled fixture without sops imported and a
+standalone Home Manager fixture. It catches accidental sops dependencies and shell startup
+scripts that still read managed tokens when secrets are disabled. It does not decrypt
+production secrets or execute VM tests.
+
 ## CI tiers
 
 | Tier | Trigger | Work |

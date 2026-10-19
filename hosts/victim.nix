@@ -9,6 +9,7 @@
   args = {
     userName = "nixi";
     userEnable = true;
+    secretsEnable = true;
     preservationEnable = true;
     theme = {
       enable = true;

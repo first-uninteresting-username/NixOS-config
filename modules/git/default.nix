@@ -5,39 +5,44 @@
 mkModule {
   name = "git";
   ids = ["git"];
-  module = {githubTokenPath ? "/run/secrets/github_pat"}: {
+  module = {
+    secretsEnable,
+    githubTokenPath ? "/run/secrets/github_pat",
+  }: {
     nixos = {
       pkgs,
       lib,
       userName,
       preservationEnable,
       ...
-    }: {
-      preservation.preserveAt = lib.mkIf preservationEnable {
-        "/persist" = {
-          users.${userName} = {
-            directories = [
-              ".config/git"
-              ".config/gh"
-            ];
+    }:
+      {
+        preservation.preserveAt = lib.mkIf preservationEnable {
+          "/persist" = {
+            users.${userName} = {
+              directories = [
+                ".config/git"
+                ".config/gh"
+              ];
+            };
+          };
+        };
+
+        programs.git.enable = lib.mkForce false;
+
+        environment.systemPackages = with pkgs; [
+          git
+          gh
+        ];
+      }
+      // lib.optionalAttrs secretsEnable {
+        sops.secrets = {
+          "github_pat" = {
+            path = githubTokenPath;
+            owner = userName;
           };
         };
       };
-
-      programs.git.enable = lib.mkForce false;
-
-      environment.systemPackages = with pkgs; [
-        git
-        gh
-      ];
-
-      sops.secrets = {
-        "github_pat" = {
-          path = githubTokenPath;
-          owner = userName;
-        };
-      };
-    };
     home = {
       pkgs,
       config,
@@ -50,8 +55,14 @@ mkModule {
           enable = true;
           settings = {
             user = {
-              name = "first-uninteresting-username";
-              email = "janekmusin@proton.me";
+              name =
+                if secretsEnable
+                then "first-uninteresting-username"
+                else "local";
+              email =
+                if secretsEnable
+                then "janekmusin@proton.me"
+                else "local@local.local";
             };
             push = {
               autoSetupRemote = true;
@@ -71,10 +82,10 @@ mkModule {
             prompt = "enabled";
           };
         };
-        zsh.initContent = lib.mkIf config.programs.zsh.enable ''
+        zsh.initContent = lib.mkIf (secretsEnable && config.programs.zsh.enable) ''
           export GH_TOKEN="$(cat ${githubTokenPath})"
         '';
-        nushell.extraEnv = lib.mkIf config.programs.nushell.enable ''
+        nushell.extraEnv = lib.mkIf (secretsEnable && config.programs.nushell.enable) ''
           $env.GH_TOKEN = (open ${githubTokenPath} | str trim)
         '';
       };
