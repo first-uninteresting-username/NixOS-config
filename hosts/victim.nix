@@ -5,7 +5,7 @@
   name = "victim";
   role = "nixos";
   system = "x86_64-linux";
-  ids = ["GNOME" "IDE" "agents" "audio" "bootloader" "browser" "desktop-password" "gaming" "git" "home-manager" "host-victim" "hostname" "input" "languages" "llama-cpp" "locale" "moonlight" "networking-desktop" "nix" "power" "preservation" "printing" "programs-desktop" "secrets" "shell" "nushell" "hack" "slick" "smart" "ssh" "stylix" "sudo" "tty" "update" "user" "virtualization-desktop" "wayland" "xdg"];
+  ids = ["GNOME" "IDE" "agents" "audio" "bootloader" "browser" "desktop-password" "gaming" "git" "home-manager" "host-victim" "hostname" "input" "languages" "llama-cpp" "locale" "moonlight" "networking-desktop" "nix" "power" "preservation" "printing" "programs-desktop" "orchard-cli" "secrets" "shell" "nushell" "hack" "slick" "smart" "ssh" "stylix" "sudo" "tty" "update" "user" "virtualization-desktop" "wayland" "xdg"];
   args = {
     userName = "nixi";
     userEnable = true;
