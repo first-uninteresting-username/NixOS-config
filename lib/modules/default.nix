@@ -292,7 +292,7 @@ in rec {
         then fail "host '${name}': failed assertions:\n${lib.concatMapStringsSep "\n" (entry: entry.message) failures}"
         else result // {inherit documentation;}
       ));
-    # Normalize check records before validating names, derivations, and watched paths.
+    # Packages and checks export derivations directly.
     outputEntries = kind: system: pkgs:
       lib.concatMap (declaration: let
         packages = packageSet system pkgs declaration;
@@ -309,34 +309,12 @@ in rec {
           then builtins.seq boundChecks.required boundChecks.value
           else declaration.checks;
       in
-        lib.mapAttrsToList (name: definition: let
-          wrapped = kind == "check" && builtins.isAttrs definition && !(lib.isDerivation definition);
-          value =
-            if wrapped
-            then definition.derivation or null
-            else definition;
-          extraFiles =
-            if wrapped
-            then definition.extraFiles or []
-            else [];
-          validFiles =
-            builtins.isList extraFiles
-            && builtins.all (path:
-              builtins.isString path
-              && path != ""
-              && !(lib.hasPrefix "/" path)
-              && builtins.all (part: !(builtins.elem part ["" "." ".."])) (lib.splitString "/" path))
-            extraFiles;
-        in {
+        lib.mapAttrsToList (name: definition: {
           name = exportName declaration.name name;
-          inherit declaration extraFiles;
+          inherit declaration;
           value =
-            if wrapped && builtins.removeAttrs definition ["derivation" "extraFiles"] != {}
-            then fail "check '${exportName declaration.name name}' has unknown fields"
-            else if !validFiles
-            then fail "check '${exportName declaration.name name}' extraFiles must be repository-relative file names"
-            else if lib.isDerivation value
-            then value
+            if lib.isDerivation definition
+            then definition
             else fail "${kind} '${exportName declaration.name name}' is not a derivation";
         })
         definitions)
@@ -371,12 +349,11 @@ in rec {
                 module = entry.declaration.name;
                 source = relative entry.declaration.name entry.declaration.source;
                 directory = relative entry.declaration.name entry.declaration.directory;
-                inherit (entry) extraFiles;
               };
           })
           entries));
     in {
-      schemaVersion = 1;
+      schemaVersion = 2;
       inherit system;
       packages = targets "package";
       checks = targets "check";

@@ -19,11 +19,10 @@ spec.loader.exec_module(selection)
 SYSTEMS = ["x86_64-linux", "aarch64-linux"]
 
 
-def add_target(snapshot, kind, name, module, system="x86_64-linux", directory=None, extra=()):
+def add_target(snapshot, kind, name, module, system="x86_64-linux", directory=None):
     directory = directory or f"modules/{module}"
     snapshot["ownership"][system][kind][name] = {
         "module": module, "source": f"{directory}/default.nix", "directory": directory,
-        "extraFiles": list(extra),
     }
     key = (kind, system, name)
     tier = ("isoTests" if kind == "checks" else "isos") if selection.is_iso(key) else (
@@ -33,13 +32,13 @@ def add_target(snapshot, kind, name, module, system="x86_64-linux", directory=No
 
 
 def snapshot():
-    result = {"ownership": {system: {"system": system, "schemaVersion": 1,
+    result = {"ownership": {system: {"system": system, "schemaVersion": 2,
                                      "packages": {}, "checks": {}} for system in SYSTEMS},
               **{tier: {"include": []} for tier in selection.KINDS}}
     for system in SYSTEMS:
         add_target(result, "packages", "example-tool", "example", system)
-        add_target(result, "checks", "docs", "docs", system, extra=["docs/reference.md"])
-    add_target(result, "checks", "example", "example", extra=["modules/neighbor/default.nix"])
+        add_target(result, "checks", "docs", "docs", system)
+    add_target(result, "checks", "example", "example")
     add_target(result, "checks", "neighbor", "neighbor")
     for host in ["john", "wall-e"]:
         add_target(result, "packages", f"host-{host}", f"host-{host}")
@@ -69,16 +68,23 @@ class SelectionTests(unittest.TestCase):
                 self.assertEqual({row["system"] for row in matrices["packages"]["include"]}, set(SYSTEMS))
                 self.assertIn(path, next(iter(reasons[("checks", SYSTEMS[0], "example")])))
 
-    def test_extra_files_select_only_checks_and_use_literal_paths(self):
-        self.assertEqual(self.names(["modules/neighbor/default.nix"]), {"example", "neighbor"})
+    def test_other_modules_do_not_select_unrelated_checks(self):
+        self.assertEqual(self.names(["modules/neighbor/default.nix"]), {"neighbor"})
         self.assertEqual(self.names(["modules/neighbor/default.nix"], "packages"), set())
-        self.assertEqual(self.names(["modules/neighbor/other.md"]), {"neighbor"})
-        self.assertEqual(self.names(["docs/reference.md"]), {"docs"})
-        self.assertEqual(self.names(["docs/referenceXmd"]), set())
         self.assertEqual(self.names(["modules/example-similar/default.nix"]), set())
-        self.head["ownership"][SYSTEMS[0]]["checks"]["docs"]["extraFiles"] += ["docs/[a]*.md"]
-        self.assertEqual(self.names(["docs/[a]*.md"]), {"docs"})
-        self.assertEqual(self.names(["docs/anything.md"]), set())
+        self.assertEqual(self.names(["docs/reference.md"]), set())
+
+    def test_legacy_watches_never_select_another_module(self):
+        for system in SYSTEMS:
+            self.base["ownership"][system]["schemaVersion"] = 1
+            for kind in ["packages", "checks"]:
+                for owner in self.base["ownership"][system][kind].values():
+                    owner["extraFiles"] = []
+        self.base["ownership"][SYSTEMS[0]]["checks"]["example"]["extraFiles"] = [
+            "modules/neighbor/default.nix", "docs/reference.md"]
+        self.assertEqual(self.names(["modules/neighbor/default.nix"]), {"neighbor"})
+        self.assertEqual(self.names(["docs/reference.md"]), set())
+        self.assertEqual(self.names(["modules/example/deleted-helper"]), {"example"})
 
     def test_modules_without_checks_do_not_add_tests(self):
         add_target(self.head, "packages", "new-tool", "new")
@@ -89,9 +95,12 @@ class SelectionTests(unittest.TestCase):
 
     def test_shared_changes_select_full_non_iso_suite(self):
         for path in ["flake.lock", "flake.nix", "arguments/user.nix", "lib/helper.nix",
-                     "hosts/example.nix", "github-actions/default.nix", "checks/new.nix",
-                     ".github/scripts/select-tests.py", ".github/workflows/flake-build.yaml",
-                     ".github/nix.conf", "devenv.yaml", "overlays/new.nix",
+                     "github-actions/default.nix", "checks/new.nix",
+                     ".github/scripts/select-tests.py", ".github/scripts/aggregate-status.py",
+                     ".github/scripts/prove-regression.py", ".github/workflows/flake-build.yaml",
+                     ".github/workflows/flake-check.yaml", ".github/workflows/build-targets.yaml",
+                     ".github/workflows/regression-checks.yaml", ".github/workflows/iso-build.yaml",
+                     ".github/nix.conf",
                      "modules/user/default.nix", "modules/home-manager/default.nix"]:
             with self.subTest(path=path):
                 matrices, _, _ = self.select([path])
@@ -99,7 +108,10 @@ class SelectionTests(unittest.TestCase):
                 self.assertEqual(matrices["packages"], self.head["packages"])
 
     def test_empty_and_documentation_only_selections(self):
-        for paths in [[], ["docs/checks.md"], ["README.md"]]:
+        for paths in [[], ["docs/checks.md"], ["README.md"], ["hosts/example.nix"],
+                      ["devenv.nix"], ["devenv.yaml"], ["overlays/new.nix"],
+                      [".github/workflows/docs.yaml"], [".github/workflows/cleanup-branches.yaml"],
+                      [".github/scripts/auto-merge.py"], [".github/scripts/tests/test_policy.py"]]:
             with self.subTest(paths=paths):
                 matrices, reasons, retired = self.select(paths)
                 self.assertEqual(matrices, {"packages": {"include": []}, "tests": {"include": []}})
@@ -109,10 +121,6 @@ class SelectionTests(unittest.TestCase):
     def test_new_checks_require_only_generated_ownership(self):
         add_target(self.head, "checks", "new-test", "new")
         self.assertEqual(self.names(["modules/new/default.nix"]), {"new-test"})
-
-    def test_base_watched_files_survive_dependency_removal(self):
-        self.head["ownership"][SYSTEMS[0]]["checks"]["example"]["extraFiles"] = []
-        self.assertEqual(self.names(["modules/neighbor/default.nix"]), {"example", "neighbor"})
 
     def test_moved_declaration_uses_base_directory_and_follows_module(self):
         for system in SYSTEMS:
@@ -137,7 +145,7 @@ class SelectionTests(unittest.TestCase):
         self.head["tests"]["include"] = [row for row in self.head["tests"]["include"]
                                           if row["name"] != "neighbor"]
         matrices, _, retired = self.select(["modules/neighbor/default.nix"])
-        self.assertEqual({row["name"] for row in matrices["tests"]["include"]}, {"example"})
+        self.assertEqual(matrices["tests"]["include"], [])
         self.assertIn(("checks", SYSTEMS[0], "neighbor"), retired)
 
     def test_multiple_declarations_in_one_directory(self):
@@ -147,7 +155,7 @@ class SelectionTests(unittest.TestCase):
     def test_base_target_follows_changed_ownership_at_head(self):
         owner = self.head["ownership"][SYSTEMS[0]]["checks"]["example"]
         owner.update(module="different", source="modules/different/default.nix",
-                     directory="modules/different", extraFiles=[])
+                     directory="modules/different")
         self.assertEqual(self.names(["modules/example/deleted-fixture"]), {"example"})
 
     def test_bootstrap_and_full_runs_keep_all_ordinary_outputs(self):
@@ -209,8 +217,7 @@ class SelectionTests(unittest.TestCase):
             with self.subTest(value=value), self.assertRaises(ValueError):
                 selection.select(self.head, [], value)
         for field, value in [("source", "/outside.nix"), ("directory", "../other"),
-                             ("source", "modules/other/file.nix"), ("extraFiles", ["../bad"]),
-                             ("extraFiles", "file"), ("module", "")]:
+                             ("source", "modules/other/file.nix"), ("module", "")]:
             with self.subTest(field=field, value=value):
                 base = copy.deepcopy(self.base)
                 base["ownership"][SYSTEMS[0]]["checks"]["example"][field] = value

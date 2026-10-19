@@ -85,6 +85,16 @@ jobs:
           fi
           nix run github:Mic92/nix-fast-build -- "${args[@]}" 2>&1 | tee logs/build.log
 
+      - name: Validate module-library diagnostics
+        if: matrix.type == 'checks' && matrix.name == 'module-library-evaluation'
+        shell: bash
+        env:
+          CHECK_SYSTEM: ${{ matrix.system }}
+        run: |
+          set -Eeuo pipefail
+          python3 lib/modules/tests/run.py --diagnostics-only --system "$CHECK_SYSTEM" \
+            2>&1 | tee logs/module-library.log
+
       - name: Collect derivation failure logs
         if: failure()
         shell: bash

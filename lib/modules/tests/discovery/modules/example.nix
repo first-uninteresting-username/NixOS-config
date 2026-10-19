@@ -11,10 +11,7 @@
       lib,
     }:
       lib.optionalAttrs (system == "x86_64-linux") {
-        default = {
-          derivation = pkgs.runCommand "discovered-check" {} "touch $out";
-          extraFiles = ["shared/helper.nix"];
-        };
+        default = pkgs.runCommand "discovered-check" {} "touch $out";
       };
     module = {userName}: {
       home = _: {

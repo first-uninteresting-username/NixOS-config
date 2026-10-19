@@ -247,12 +247,10 @@
       }).packages.discovered.directory
       == ".";
     ownershipSharedDirectory = metadata.checks.sibling-helper.directory == metadata.packages.discovered.directory;
-    ownershipBareCheck = metadata.checks.sibling-helper.extraFiles == [];
     ownershipMatchesPackages = builtins.attrNames metadata.packages == builtins.attrNames discoveredExports.packages;
     ownershipMatchesChecks = builtins.attrNames metadata.checks == builtins.attrNames discoveredExports.checks;
     ownershipSourceRelative = metadata.packages.discovered.source == "lib/modules/tests/discovery/modules/example.nix";
     ownershipDirectoryRelative = metadata.packages.discovered.directory == "lib/modules/tests/discovery/modules";
-    ownershipAdditionalFiles = system != "x86_64-linux" || metadata.checks.discovered.extraFiles == ["shared/helper.nix"];
     ownershipRespectsSystem = (metadata.checks ? discovered) == (system == "x86_64-linux");
     ownershipRequiresSource = fails (registry.ownership {
       root = ../../..;
@@ -266,23 +264,8 @@
       root = ../../..;
       inherit system pkgs;
     });
-    checkRecordRejectsUnknownFields = badCheck {
-      derivation = pkgs.hello;
-      typo = [];
-    };
-    checkRecordRequiresDerivation = badCheck {extraFiles = [];};
-    checkRecordRejectsTraversal = badCheck {
-      derivation = pkgs.hello;
-      extraFiles = ["../outside"];
-    };
-    checkRecordRejectsAbsolutePath = badCheck {
-      derivation = pkgs.hello;
-      extraFiles = ["/outside"];
-    };
-    checkRecordRejectsNonList = badCheck {
-      derivation = pkgs.hello;
-      extraFiles = "file";
-    };
+    checkRequiresDerivation = badCheck "not a derivation";
+    checkRejectsWrappedDerivation = badCheck {derivation = pkgs.hello;};
     emptyIdsMatch = (home {}).config.home.username == "fixture";
     subsetDoesNotMatch = !((home {ids = ["gaming"];}).config.home.file ? module-test);
     orderIndependentAndModuleDefault = (home {ids = chosenIds;}).config.home.file.module-test.text == "fixture:23:home-default";
@@ -488,15 +471,10 @@ in {
     if failures == []
     then tests
     else throw "Failed modules fixtures: ${lib.concatStringsSep ", " failures}";
-  build =
-    builtins.deepSeq (
-      if failures == []
-      then true
-      else throw "Failed modules fixtures"
-    ) (pkgs.runCommand "modules-fixtures" {} ''
-      test "$(cat ${exports.packages.example})" = owned
-      test -e ${exports.checks.example}
-      ${lib.optionalString (system == "x86_64-linux") "test -e ${discoveredExports.checks.discovered}"}
-      touch "$out"
-    '');
+  build = pkgs.runCommand "modules-fixtures" {} ''
+    test "$(cat ${exports.packages.example})" = owned
+    test -e ${exports.checks.example}
+    ${lib.optionalString (system == "x86_64-linux") "test -e ${discoveredExports.checks.discovered}"}
+    touch "$out"
+  '';
 }

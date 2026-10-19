@@ -65,16 +65,20 @@ suite so the initial migration remains covered. Evaluation errors never trigger 
 A change anywhere inside a module directory selects every check and package declared in
 that directory. Multiple declarations in one directory share its trigger. A module without
 checks adds no behavioral tests merely because it changes; its exported packages still build.
-Checks can declare additional literal watched files with `extraFiles`; these select the check,
-including when a watched dependency is removed at head. Declare cross-module fixture inputs
-there rather than in a central dependency map.
+Checks export derivations directly. They have no cross-module watched-file list: importing
+another module into a fixture does not make changes to that module select the fixture's checks.
+Older merge-base metadata remains readable, but its watched files do not affect selection.
 See [Output ownership][output-ownership] for the declaration format.
 
-Lock files, shared libraries, common arguments, host declarations, flake wiring, development
-environment files, CI infrastructure, and shared user/Home Manager composition select all
-non-ISO checks and packages. Unknown Nix sources outside `modules/` also select the full suite.
-Documentation-only changes normally omit both build tiers. The workflow summary lists targets,
-systems, reasons, and removed outputs. Base/head snapshots and selected/full-run matrices remain workflow artifacts.
+Core infrastructure selects all non-ISO checks and packages: `flake.nix`, `flake.lock`, `lib/`,
+`arguments/`, `github-actions/`, `checks/`, shared user/Home Manager composition, `.github/nix.conf`,
+the selection/aggregate/regression-proof scripts, and the flake-check, flake-build, build-targets,
+regression-checks, and iso-build workflows. The selector contains this explicit list. Host declarations,
+development tools, other workflows/scripts, documentation, and unknown Nix files do not fan out to
+module checks. Add new shared infrastructure to the core list when introducing it.
+Documentation-only changes outside module directories omit both build tiers. The workflow summary
+lists targets, systems, reasons, and removed outputs. Base/head snapshots and selected/full-run
+matrices remain workflow artifacts.
 
 VM tests run on x86_64-linux. Module-library fixtures run on both supported systems.
 The library evaluation check also evaluates production GNOME/Nushell
@@ -101,15 +105,23 @@ with links to failed jobs. Test-selection matrices are retained as workflow arti
 
 Checks cover repository-owned behavior. The suite does not test upstream service defaults,
 GNOME sessions, Wi-Fi profiles, printing discovery, generated documentation, or host option
-assignments. Formatting, linting, full flake evaluation, and focused custom module-library
-fixtures remain in basic validation.
+assignments. Formatting, linting, policy tests, and full flake evaluation remain in basic
+validation. Library diagnostics run only alongside the selected library evaluation check on its
+architecture; the exports check does not repeat the evaluation assertions.
 
 | Check | Observable contract |
 | --- | --- |
-| `update` | The production timer is enabled with its boot/weekly schedule and targets the upgrade service. A delayed network target blocks rebuilding. The service calls `nixos-rebuild boot` for the correct flake/host, preserves failures, and recovers on a later run. The installed `rebuild` helper invokes `nh os boot` for that host and preserves failures. An accelerated timer triggers the real service. |
-| `preservation-persistence` | A reboot with tmpfs root retains selected user/system state, ownership, machine ID, and SSH identities while unpreserved control files disappear. |
+| `update` | The production timer is enabled and targets the upgrade service. A delayed network target blocks rebuilding. The service calls `nixos-rebuild boot` for the correct flake/host, preserves failures, and recovers on a later run. The installed `rebuild` helper invokes `nh os boot` for that host and preserves failures. An accelerated timer triggers the real service. |
+| `preservation-persistence` | A reboot with tmpfs root retains selected user/system state, user write access, machine ID, and an SSH host key while unpreserved control files disappear. |
 | `iso-john`, `iso-wall-e` | The actual exported installation images boot, expose their configured SSH interface, activate Home Manager, and execute their configured Nushell. John also contains the repository's gesture seed. These probes do not establish a working graphical session or installation. |
 | `module-library-exports`, `module-library-evaluation` | Synthetic declarations exercise the custom registry's discovery, selection, argument binding, assertions, ownership, and exports. Production standalone homes are evaluated, not built. |
+
+The persistence fixture checks this repository's selected paths and production integration.
+At the pinned revisions, upstream preservation's [basic test][preservation-basic] covers generic
+ownership, permissions, and symlinks, while its [first-boot test][preservation-firstboot] covers
+machine-ID setup and persistence. This suite does not repeat that feature matrix. The ISO shell
+probe loads this repository's generated Nushell configuration, beyond upstream's
+[generic shell/plugin tests][nushell-tests].
 
 Fixtures use disposable public credentials and local rebuild recorders. They never deploy a
 system or use production credentials. Documentation generation remains available through
@@ -243,3 +255,7 @@ requirements, and reviews. API refusals leave the PR open and are explained in t
 summary. This does not require enabling GitHub's separate auto-merge repository setting.
 
 [output-ownership]: https://github.com/first-uninteresting-username/NixOS-config/blob/main/lib/modules/README.md#output-ownership
+
+[preservation-basic]: https://github.com/nix-community/preservation/blob/93416f4614ad2dfed5b0dcf12f27e57d27a5ab11/tests/basic.nix
+[preservation-firstboot]: https://github.com/nix-community/preservation/blob/93416f4614ad2dfed5b0dcf12f27e57d27a5ab11/tests/firstboot.nix
+[nushell-tests]: https://github.com/NixOS/nixpkgs/blob/7fd4004d0511991fff3a0524856a9be09e28c5f0/nixos/tests/nushell.nix

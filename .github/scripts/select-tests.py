@@ -12,10 +12,14 @@ import re
 import subprocess
 
 
-SHARED = [
-    "flake.nix", "flake.lock", "lib/**", "arguments/**", "hosts/**",
-    "github-actions/**", ".github/scripts/**", ".github/workflows/**", ".github/nix.conf",
-    "devenv.nix", "devenv.yaml", "checks/**", "modules/user/**", "modules/home-manager/**",
+# Only infrastructure used to construct or run module outputs fans out to every module.
+CORE = [
+    "flake.nix", "flake.lock", "lib/**", "arguments/**", "github-actions/**", "checks/**",
+    ".github/nix.conf", ".github/scripts/select-tests.py", ".github/scripts/aggregate-status.py",
+    ".github/scripts/prove-regression.py", ".github/workflows/flake-check.yaml",
+    ".github/workflows/flake-build.yaml", ".github/workflows/build-targets.yaml",
+    ".github/workflows/regression-checks.yaml", ".github/workflows/iso-build.yaml",
+    "modules/user/**", "modules/home-manager/**",
 ]
 KINDS = {"packages": "packages", "tests": "checks", "isos": "packages", "isoTests": "checks"}
 
@@ -77,7 +81,7 @@ def validate_snapshot(snapshot):
         raise ValueError("Empty ownership metadata")
     for system, metadata in snapshot["ownership"].items():
         if (not isinstance(metadata, dict) or type(metadata.get("schemaVersion")) is not int
-                or metadata["schemaVersion"] != 1 or metadata.get("system") != system):
+                or metadata["schemaVersion"] not in {1, 2} or metadata.get("system") != system):
             raise ValueError(f"Invalid ownership schema/system: {system}")
         for kind in {"packages", "checks"}:
             entries = metadata.get(kind)
@@ -87,10 +91,7 @@ def validate_snapshot(snapshot):
                 if (not isinstance(owner, dict) or not isinstance(owner.get("module"), str)
                         or not owner["module"] or not relative_path(owner.get("source"))
                         or not relative_path(owner.get("directory"), directory=True)
-                        or not within(owner["source"], owner["directory"])
-                        or not isinstance(owner.get("extraFiles"), list)
-                        or not all(relative_path(path) for path in owner["extraFiles"])
-                        or (kind == "packages" and owner["extraFiles"])):
+                        or not within(owner["source"], owner["directory"])):
                     raise ValueError(f"Invalid ownership for {kind}.{system}.{name}: {owner}")
                 owners[(kind, system, name)] = owner
     targets = {}
@@ -129,13 +130,9 @@ def select(head, paths, base=None, mode="pr"):
             add(key, reason)
     else:
         for path in sorted(set(paths)):
-            shared = any(fnmatch.fnmatchcase(path, pattern) for pattern in SHARED)
-            # New modules without outputs add no behavioral checks. Unknown shared Nix
-            # sources outside modules remain conservative, as in checks v2.
-            shared |= path.endswith(".nix") and not path.startswith("modules/")
-            if shared:
+            if any(fnmatch.fnmatchcase(path, pattern) for pattern in CORE):
                 for key in available:
-                    add(key, f"{path}: shared dependency or infrastructure")
+                    add(key, f"{path}: core infrastructure")
                 continue
             for revision, entries in [("base", previous), ("head", owners)]:
                 for key, owner in entries.items():
@@ -146,8 +143,6 @@ def select(head, paths, base=None, mode="pr"):
                         for current, current_owner in owners.items():
                             if current_owner["module"] == owner["module"]:
                                 add(current, reason)
-                    elif path in owner["extraFiles"]:
-                        add(key, f"{path}: {revision} extra watched file")
     matrices = {tier: {"include": [row for row in head[tier]["include"]
                                   if (kind, row["system"], row["name"]) in reasons]}
                 for tier, kind in [("packages", "packages"), ("tests", "checks")]}

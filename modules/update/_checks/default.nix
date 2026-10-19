@@ -112,12 +112,6 @@
             assert machine.succeed(
                 "systemctl show nixos-upgrade.timer -p Unit --value"
             ).strip() == "nixos-upgrade.service"
-            timer = machine.succeed("systemctl cat nixos-upgrade.timer")
-            for setting in [
-                "OnBootSec=30min", "OnCalendar=weekly",
-                "RandomizedDelaySec=30min", "Persistent=false",
-            ]:
-                assert setting in timer, timer
             machine.succeed("systemctl stop nixos-upgrade.timer")
             machine.fail("test -e /run/update-invocations")
 

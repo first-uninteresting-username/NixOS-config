@@ -137,38 +137,29 @@ Read companion Markdown explicitly with `builtins.readFile` when plain strings a
 ## Output ownership
 
 `registry.ownership { root; system; pkgs; }` produces JSON-serializable metadata with
-`schemaVersion = 1`, `system`, and `packages` and `checks` maps keyed by final export
+`schemaVersion = 2`, `system`, and `packages` and `checks` maps keyed by final export
 names. Pass the repository root as `root`. Each target records its declaring `module`,
-repository-relative `source` and `directory`, and `extraFiles` (empty for packages).
+repository-relative `source` and `directory`.
 Discovery supplies the source locations automatically. Metadata fails for exported targets
 without source locations or outside the supplied root, and rejects export collisions and
 invalid derivations just as the normal exports do.
 
-Checks can use a derivation directly or a record carrying additional watched files:
-
-```nix
-checks = { pkgs, ... }: {
-  default = {
-    derivation = pkgs.runCommand "example-check" {} "touch $out";
-    extraFiles = [ "shared/helper.nix" ];
-  };
-};
-```
-
-`extraFiles` contains literal repository-relative file names, not glob patterns. Absolute
-paths, empty components, `.` and `..` components, and unknown record fields fail.
-The record is unwrapped for flake check exports. Per-system conditions apply equally to
-exports and metadata, so omitted architecture-specific checks have no ownership entry.
-Multiple declarations in one directory retain that directory as their shared trigger.
+Checks export derivations directly, just like packages. There is no cross-module watched-file
+API. Per-system conditions apply equally to exports and metadata, so omitted
+architecture-specific checks have no ownership entry. Multiple declarations in one directory
+retain that directory as their shared trigger.
 
 `githubActions.selection` exports this metadata for every supported system together with
 ordinary and ISO package/check matrices. CI validates that metadata and exported targets
 agree in both directions at each revision. The selector compares merge-base and head
-snapshots, watches whole module directories and literal extra files, and follows moved
+snapshots, watches whole module directories, and follows moved
 modules to their current exports. Removed targets appear in diagnostics without requesting
 nonexistent builds. Shared changes select the full non-ISO suite; the ISO tier stays separate.
 A base without the snapshot selects the full non-ISO suite for the initial migration.
-Snapshot evaluation errors and malformed or incomplete metadata fail discovery.
+Snapshot evaluation errors and malformed or incomplete metadata fail discovery. Older schema-1
+snapshots remain readable for merge-base comparisons; their `extraFiles` do not affect selection.
+The explicit core-infrastructure list in `.github/scripts/select-tests.py` selects all ordinary
+outputs. Unrelated modules, host declarations, development tools, and other workflows do not.
 
 ## Arguments and Home Manager integration
 
@@ -256,4 +247,13 @@ warnings. The build executes a package-consuming check with its own explicit hos
 The root flake exports these evaluation and package/check fixtures under `module-library-*`
 and evaluates production-module standalone Home Manager activation derivations on both supported
 systems without building their application dependencies.
-The runner additionally checks failure messages and warnings; basic CI runs it explicitly.
+The exports check builds only the synthetic package/check artifacts. The evaluation check owns
+the pure assertions and production-home evaluation. Its selected CI job runs diagnostic checks
+for that job's architecture:
+
+```bash
+python3 lib/modules/tests/run.py --diagnostics-only --system <system>
+```
+
+Basic CI does not run the separate fixture runner. Full flake evaluation still validates all
+exported check derivations without executing their builds.
