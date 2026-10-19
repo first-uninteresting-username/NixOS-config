@@ -38,6 +38,7 @@ another package or an executable outside `bin` needs an application-specific ove
 | --- | --- |
 | `gui` | Grants Wayland, GPU, audio, fonts, theme configuration, portal file access, notifications, and filtered session D-Bus access. |
 | `network` | Shares the host network and supplies DNS, TLS certificates, and hostname configuration. |
+| `readHostFiles` | Exposes the host filesystem read only, including home and mounted data, subject to the user's existing file permissions. `/dev`, `/proc`, `/tmp`, and `/run` are replaced with private trees before explicit grants; mounted drives under `/run/media` are exposed read only. |
 | `homeDirs` | Creates and mounts writable home-relative directories before launch. Use these for persistent application settings and caches. |
 | `readOnly` | Mounts existing absolute paths read only. Missing paths are skipped. |
 | `readWrite` | Mounts existing absolute paths writable. Missing paths are skipped. |
@@ -47,7 +48,7 @@ another package or an executable outside `bin` needs an application-specific ove
 
 `homeDirs` accepts directories, not files. Paths must be relative to home and cannot
 contain empty components, `.` or `..`. Paths containing spaces are supported. `readOnly` and
-`readWrite` do not create paths. The jail starts in an empty home and private `/tmp`;
+`readWrite` do not create paths. By default, the jail starts in an empty home and private `/tmp`;
 unmounted application state disappears when the app exits. Existing preservation rules
 retain mounted settings across reboots; `mkJail` does not add preservation rules.
 
@@ -63,23 +64,27 @@ permissions = c: [
 
 GUI mode expects a graphical session with `XDG_RUNTIME_DIR` and a session bus at
 `$XDG_RUNTIME_DIR/bus`. It uses
-Wayland by default. CLI mode does not require a graphical session. Neither mode exposes
-the host system bus, SSH agent, Nix daemon, or home directory wholesale.
+Wayland by default. CLI mode does not require a graphical session. By default, the home
+is hidden. `readHostFiles` makes the host's ordinary files readable, while retaining private
+runtime paths and hiding the usual system-bus and Nix-daemon sockets. File access does
+not override normal ownership or mode restrictions. Writable mounts still take precedence.
+Read-only mounts do not prevent communicating with sockets outside the private runtime
+paths; this mode does not provide confidentiality for the user's files.
 
 ## Current application policies
 
-| Applications | Network | Writable user data |
-| --- | --- | --- |
-| Firefox | Yes | Mozilla profile/cache and Downloads. |
-| Slick | Yes | Slick settings/cache and Downloads; also allows the Secret Service for login. |
-| Flow Desktop | Yes | Flow Beta settings/data/cache and Downloads. |
-| Inkscape | No | Inkscape settings/cache, Documents, Downloads, and Pictures. |
-| Papers, File Roller, Gradia, Text Editor, Loupe, Rnote | No | Each app's settings/data/cache, Documents, Downloads, Pictures, and Videos. |
+| Applications | Network | Readable files | Writable user data |
+| --- | --- | --- | --- |
+| Firefox | Yes | Host filesystem | Mozilla profile/cache and Downloads. |
+| Slick | Yes | Host filesystem | Slick settings/cache and Downloads; also allows the Secret Service for login. |
+| Flow Desktop | Yes | Explicit mounts and shared desktop paths | Flow Beta settings/data/cache and Downloads. |
+| Inkscape | No | Explicit mounts and shared desktop paths | Inkscape settings/cache, Documents, Downloads, and Pictures. |
+| Papers, File Roller, Gradia, Text Editor, Loupe, Rnote | No | Explicit mounts and shared desktop paths | Each app's settings/data/cache, Documents, Downloads, Pictures, and Videos. |
 
-Other paths can be selected through a portal file chooser when the application supports
-it. Firefox cannot directly upload files from arbitrary project directories; use the
-portal chooser or copy them into Downloads. Portal access is user-mediated and can grant
-additional files beyond the static mounts.
+Firefox and Slick can read arbitrary project folders, dotfiles, and mounted data without
+a portal chooser. They can write only their listed application state and Downloads,
+plus private temporary/runtime storage. Other applications retain their restricted mounts;
+portal file choosers can grant additional file access when supported.
 
 This is the first rollout for [issue #570][issue], not complete coverage of the desktop.
 Steam/nix-crab, game launchers, development tools and agents, remote desktop, hardware
@@ -90,9 +95,9 @@ sockets would provide little useful file isolation.
 
 ## Boundaries and verification
 
-Every jail hides unmounted home files and separates user, PID, IPC, UTS, and cgroup
-namespaces. Network access is isolated unless explicitly enabled. GUI applications can
-use audio capture through the exposed sound services; those sockets are not playback-only.
+Jails hide unmounted home files unless `readHostFiles` is enabled. All jails separate
+user, PID, IPC, UTS, and cgroup namespaces. Network access is isolated unless explicitly
+enabled. GUI applications can use audio capture through the exposed sound services; those sockets are not playback-only.
 The entire Nix store and system profile are readable for compatibility. Do not put
 secrets in the Nix store. Applications with network access can reach the LAN too.
 There is no seccomp filter or per-destination network filter. Portals and explicitly
@@ -102,7 +107,9 @@ X11, when explicitly requested, permits interaction with other X11 clients.
 The `jail` VM check exercises hidden home files, read-only mounts, writable state,
 argument preservation, offline and online network namespaces, aliases, hidden
 executables, package overrides, symlinked package directories, desktop/service launcher
-rewriting, and allowed versus blocked D-Bus calls:
+rewriting, and allowed versus blocked D-Bus calls. It also checks broad read access to
+home, system files, symlink targets, and mounted data while keeping ungranted writes
+blocked and runtime paths private:
 
 ```bash
 nix build -L .#checks.x86_64-linux.jail

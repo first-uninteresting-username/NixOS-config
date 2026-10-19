@@ -31,7 +31,30 @@
       #!${pkgs.bash}/bin/bash
       exec ${pkgs.dbus}/bin/dbus-send --session --print-reply --dest="$1" / example.Test.Ping
       SCRIPT
-      chmod +x "$out/bin/probe" "$out/bin/bus-probe"
+      cat > "$out/bin/full-read-probe" <<'SCRIPT'
+      #!${pkgs.bash}/bin/bash
+      set -eu
+      test -e "$HOME/secret"
+      test -d "$HOME/.ssh"
+      test "$(cat "$HOME/data-link")" = readable
+      test "$(cat /srv/data/file)" = readable
+      test "$(cat /mnt/file)" = readable
+      test "$(cat /run/media/file)" = readable
+      test -r /etc/os-release
+      test -r /etc/resolv.conf
+      /bin/sh -c 'test -r /etc/passwd'
+      ! test -e /tmp/host-only
+      ! test -e /run/dbus/system_bus_socket
+      ! test -e /nix/var/nix/daemon-socket/socket
+      ! touch "$HOME/forbidden" 2>/dev/null
+      ! touch /srv/data/forbidden 2>/dev/null
+      ! touch /mnt/forbidden 2>/dev/null
+      ! touch /run/media/forbidden 2>/dev/null
+      ! printf changed > /srv/data/file 2>/dev/null
+      printf saved > "$HOME/app state/broad"
+      readlink /proc/self/ns/net > "$HOME/app state/broad-net"
+      SCRIPT
+      chmod +x "$out/bin/probe" "$out/bin/bus-probe" "$out/bin/full-read-probe"
       ln -s probe "$out/bin/alias"
       ln -s probe "$out/bin/.hidden"
       cat > "$out/share/applications/probe.desktop" <<DESKTOP
@@ -84,6 +107,21 @@
     readOnly = ["/home/alice/read only"];
     dbusTalk = ["example.Allowed"];
   };
+  fullRead = self.lib.mkJail {
+    inherit pkgs;
+    package = original;
+    readHostFiles = true;
+    homeDirs = ["app state"];
+  };
+  graphicalFullRead = self.lib.mkJail {
+    inherit pkgs;
+    package = original;
+    gui = true;
+    network = true;
+    readHostFiles = true;
+    homeDirs = ["app state"];
+    dbusTalk = ["example.Allowed"];
+  };
   sessionTest = pkgs.writeShellScript "jail-session-test" ''
     set -eu
     XDG_RUNTIME_DIR=$(mktemp -d)
@@ -112,6 +150,12 @@
       exit 1
     fi
     ${graphical}/bin/probe 'one argument' 'two;$(false)'
+    ${graphicalFullRead}/bin/bus-probe example.Allowed
+    if ${graphicalFullRead}/bin/bus-probe example.Blocked; then
+      echo "blocked D-Bus name was reachable with readHostFiles" >&2
+      exit 1
+    fi
+    ${graphicalFullRead}/bin/full-read-probe
   '';
 in
   pkgs.testers.runNixOSTest {
@@ -129,6 +173,9 @@ in
       machine.start()
       machine.wait_for_unit("multi-user.target")
       machine.succeed("su - alice -c 'mkdir -p \"read only\" .ssh; echo visible > \"read only/input\"; touch secret'")
+
+      machine.succeed("mkdir -p /srv/data /mnt /run/media; mount -t tmpfs tmpfs /mnt; echo readable > /srv/data/file; cp /srv/data/file /mnt/file; cp /srv/data/file /run/media/file; chown -R alice:users /srv/data /mnt /run/media; touch /tmp/host-only")
+      machine.succeed("su - alice -c 'ln -s /srv/data/file data-link'")
 
       def run(binary):
           command = shlex.quote(binary) + " 'one argument' 'two;$(false)'"
@@ -158,6 +205,10 @@ in
       run(service.split("Exec=", 1)[1].strip())
       machine.succeed("test ! -e '/home/alice/read only/forbidden'")
       machine.fail("su - alice -c 'XDG_RUNTIME_DIR=/missing ${graphical}/bin/bus-probe example.Allowed'")
+      machine.succeed("su - alice -c '${fullRead}/bin/full-read-probe'")
+      assert machine.succeed("cat '/home/alice/app state/broad-net'").strip() != host_net
       machine.succeed("su - alice -c '${sessionTest}'")
+      assert machine.succeed("cat '/home/alice/app state/broad-net'").strip() == host_net
+      machine.succeed("test ! -e /home/alice/forbidden; test ! -e /srv/data/forbidden; test ! -e /mnt/forbidden; test ! -e /run/media/forbidden")
     '';
   }

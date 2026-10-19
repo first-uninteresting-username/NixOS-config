@@ -66,6 +66,7 @@ mkModule {
             package = pkgs.firefox;
             gui = true;
             network = true;
+            readHostFiles = true;
             homeDirs = [".mozilla" ".cache/mozilla"];
             readWrite = [config.xdg.userDirs.download];
             dbusOwn = ["org.mozilla.firefox.*"];

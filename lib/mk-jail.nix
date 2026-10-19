@@ -6,6 +6,7 @@
   package,
   gui ? false,
   network ? false,
+  readHostFiles ? false,
   homeDirs ? [],
   readOnly ? [],
   readWrite ? [],
@@ -17,8 +18,23 @@
   mkJail = import ./mk-jail.nix {inherit inputs;};
   jail = inputs.jail-nix.lib.extend {
     inherit pkgs;
-    # The whole store is public on these hosts and avoids closure walks at startup.
-    basePermissions = c: [c.base c.fake-passwd (c.readonly "/nix/store")];
+    basePermissions = c:
+      if readHostFiles
+      then [
+        (c.readonly "/")
+        # Preserve the host's symlinks; mounting /bin/sh over them would fail.
+        (c.unsafe-add-raw-args "--proc /proc --dev /dev --tmpfs /tmp --tmpfs /run --clearenv")
+        (c.fwd-env "HOME")
+        (c.try-fwd-env "LANG")
+        (c.try-fwd-env "TERM")
+        (c.add-runtime ''
+          if [ -d /nix/var/nix/daemon-socket ]; then
+            RUNTIME_ARGS+=(--tmpfs /nix/var/nix/daemon-socket)
+          fi
+        '')
+      ]
+      # The whole store is public on these hosts and avoids closure walks at startup.
+      else [c.base c.fake-passwd (c.readonly "/nix/store")];
   };
   c = jail.combinators;
   binaryPackage = lib.getBin package;
@@ -41,7 +57,11 @@
       '')
       c.pulse
       c.pipewire
-      (c.try-readonly "/etc/fonts")
+      (
+        if readHostFiles
+        then c.compose []
+        else c.try-readonly "/etc/fonts"
+      )
       (c.try-readonly "/sys/dev/char")
       (c.try-readonly "/sys/devices")
       (c.try-readonly "/run/opengl-driver")
@@ -68,20 +88,25 @@
       (c.readonly-paths-from-var "XDG_DATA_DIRS" ":")
       (c.readonly-paths-from-var "XCURSOR_PATH" ":")
     ]
-    ++ map (path: c.try-readonly (homePath path)) [
+    ++ lib.optionals (!readHostFiles) (map (path: c.try-readonly (homePath path)) [
       ".config/gtk-2.0"
       ".config/gtk-3.0"
       ".config/gtk-4.0"
       ".config/fontconfig"
       ".config/dconf"
-    ];
+    ]);
   wrapped = jail "${lib.getName package}-jail" package (
-    [
+    lib.optionals (!readHostFiles) [
       (c.try-readonly "/etc/os-release")
       (c.try-readonly "/run/current-system/sw")
       (c.try-readonly "/etc/profiles")
       (c.try-readonly "/etc/static/profiles")
       c.time-zone
+    ]
+    ++ lib.optionals readHostFiles [
+      # /run remains private, but these public profiles and mounted drives are readable.
+      (c.try-readonly "/run/current-system/sw")
+      (c.try-readonly "/run/media")
     ]
     ++ map c.try-fwd-env ["PATH" "USER" "LOGNAME" "SHELL" "LOCALE_ARCHIVE"]
     ++ lib.optionals gui desktopPermissions
@@ -99,7 +124,15 @@
       "QT_QPA_PLATFORMTHEME"
       "QT_STYLE_OVERRIDE"
     ])
-    ++ lib.optional network c.network
+    ++ lib.optionals network (
+      if readHostFiles
+      then [
+        (c.share-ns "net")
+        (c.try-readonly "/run/systemd/resolve")
+        (c.try-readonly "/run/NetworkManager/resolv.conf")
+      ]
+      else [c.network]
+    )
     ++ lib.concatMap (path: [
       (c.add-runtime ''mkdir -p -- ${(homePath path)._noescape}'')
       (c.readwrite (homePath path))

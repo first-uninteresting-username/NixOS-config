@@ -41,6 +41,7 @@ mkModule {
           };
           gui = true;
           network = true;
+          readHostFiles = true;
           homeDirs = [".config/slick" ".cache/slick"];
           readWrite = [config.xdg.userDirs.download];
           dbusOwn = ["dev.slick.Slick"];
