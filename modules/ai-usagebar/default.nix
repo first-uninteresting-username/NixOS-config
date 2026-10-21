@@ -28,7 +28,7 @@ mkModule {
           assertion =
             builtins.elem (lib.versions.major pkgs.gnome-shell.version)
             packages.extension.supportedShellVersions;
-          message = "ai-usagebar supports GNOME Shell 45–50; check upstream before upgrading.";
+          message = "ai-usagebar does not support GNOME Shell ${pkgs.gnome-shell.version}.";
         }
       ];
       home.packages = [packages.default];
@@ -84,10 +84,4 @@ mkModule {
       touch "$out"
     '';
   };
-  docs = builtins.readFile ./README.md;
-  imperativeSteps = ''
-    Run `codex login` locally if Codex is not already authenticated.
-    After the first rebuild, log out of GNOME and back in to load the extension.
-    Follow the verification steps in the ai-usagebar module documentation.
-  '';
 }

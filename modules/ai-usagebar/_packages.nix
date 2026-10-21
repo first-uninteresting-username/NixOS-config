@@ -8,11 +8,15 @@
     sha256 = "2371a9f67c8291d8313f03ed1bfbe5571f232e2ebf780202e6b0ef27815cabad";
   };
   extensionUuid = "ai-usagebar@akitaonrails.github.io";
+  updateScript = pkgs.writeShellScript "update-ai-usagebar" ''
+    exec ${pkgs.python3}/bin/python ${./_sources/update.py}
+  '';
 in {
   default = pkgs.rustPlatform.buildRustPackage {
     pname = "ai-usagebar";
     inherit version src;
     cargoLock.lockFile = ./_sources/Cargo.lock;
+    passthru = {inherit updateScript;};
     nativeBuildInputs = [pkgs.makeWrapper] ++ pkgs.lib.optionals pkgs.stdenv.hostPlatform.isx86_64 [pkgs.nasm];
     # Upstream's archive tests require /usr/bin/tar outside the Nix sandbox.
     checkFlags = ["--skip=claude_desktop::app::tests"];
@@ -55,7 +59,7 @@ in {
       runHook postInstall
     '';
     passthru = {
-      inherit extensionUuid;
+      inherit extensionUuid updateScript;
       supportedShellVersions = ["45" "46" "47" "48" "49" "50"];
     };
     meta = {
