@@ -185,6 +185,7 @@ mkModule {
 
           yazi = {
             enable = true;
+            shellWrapperName = "yy";
           };
           nix-your-shell = {
             enable = true;
@@ -230,4 +231,42 @@ mkModule {
       };
     };
   };
+  checks = {
+    mkHost,
+    pkgs,
+    system,
+    ...
+  }: let
+    shellConfig = shell:
+      (mkHost {
+        name = "yazi-${shell}-fixture";
+        role = "home";
+        inherit system;
+        ids = ["home-manager" "xdg" "shell" shell];
+        args = {
+          userName = "fixture";
+          homeStateVersion = "26.11";
+        };
+      }).config.programs;
+    zshConfig = shellConfig "zsh";
+    nuConfig = shellConfig "nushell";
+  in {
+    yazi-integration =
+      pkgs.runCommand "yazi-shell-integration" {
+        nativeBuildInputs = [pkgs.python3 pkgs.zsh pkgs.nushell];
+        zshSource = pkgs.writeText "yazi-zsh-init" zshConfig.zsh.initContent;
+        nuSource = pkgs.writeText "yazi-nushell-init" nuConfig.nushell.extraConfig;
+      } ''
+        python3 ${./_checks/yazi-integration.py} "$zshSource" "$nuSource"
+        touch "$out"
+      '';
+  };
+  docs = ''
+    Run `yy` in Zsh or Nushell to open Yazi. Browse to a directory and press `q`
+    to change the parent shell's working directory to it. Paths with spaces work;
+    for example, `yy "My Documents"` opens that directory.
+
+    Run `yazi` directly when you want to keep the parent shell's working directory.
+    The `shell` host ID installs Yazi; select `zsh` or `nushell` for shell integration.
+  '';
 }
