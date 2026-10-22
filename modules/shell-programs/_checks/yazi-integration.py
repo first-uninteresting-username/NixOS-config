@@ -23,8 +23,7 @@ def check(shell, source):
         bin_dir = root / "bin"
         bin_dir.mkdir()
         stub = bin_dir / "yazi"
-        stub.write_text('''#!/usr/bin/env python3
-import os
+        stub.write_text(f'#!{sys.executable}\n' + '''import os
 from pathlib import Path
 import sys
 args = sys.argv[1:]
