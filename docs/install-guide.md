@@ -17,6 +17,9 @@ ISOs that come with this config can be accessed via SSH open with `nixos` passwo
 
 ### Seed the age key
 
+This step applies when the host sets `secretsEnable = true`. Hosts with secrets disabled
+do not need an age identity.
+
 Put your `keys.txt` file in `./tmp/var/lib/sops-nix/keys.txt` in the workspace. That tmp part can be whatever, just be consistant with it.
 Add `/persist` to the path if your config uses the preservation module (so the path is `./tmp/persist/var/lib/sops-nix/keys.txt`).
 

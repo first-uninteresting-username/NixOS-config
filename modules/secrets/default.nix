@@ -7,14 +7,17 @@ mkModule {
   ids = ["secrets"];
   docs = ''
     Sops-nix decrypts the host's encrypted secrets with an age identity supplied during installation.
+    Set `secretsEnable = true` to enable decryption and credential consumers.
+    With it disabled, selected modules retain their ordinary functionality without managed credentials.
     The `sops-easy` command selects the installed identity when editing encrypted files.
     Keep secret values and private keys out of the repository and generated documentation.
   '';
   imperativeSteps = {
     role,
+    secretsEnable,
     preservationEnable,
   }:
-    if role != "nixos"
+    if role != "nixos" || !secretsEnable
     then null
     else let
       keyDirectory = "${
@@ -37,6 +40,7 @@ mkModule {
       lib,
       userName,
       preservationEnable,
+      secretsEnable,
       inputs,
       self,
       packages,
@@ -49,34 +53,45 @@ mkModule {
     in {
       imports = [
         inputs.sops-nix.nixosModules.sops
-        # TODO: Create secrets module (same concept as preservation module)
       ];
 
-      preservation.preserveAt = lib.mkIf preservationEnable {
-        "/persist" = {
-          directories = ["/var/lib/sops-nix"];
-          users.${userName} = {
-            directories = [".config/sops/age"];
+      config = lib.mkIf secretsEnable {
+        preservation.preserveAt = lib.mkIf preservationEnable {
+          "/persist" = {
+            directories = ["/var/lib/sops-nix"];
+            users.${userName} = {
+              directories = [".config/sops/age"];
+            };
+          };
+        };
+
+        environment.systemPackages = with pkgs; [
+          sops
+          age
+          packages.sops-easy
+        ];
+
+        sops = {
+          defaultSopsFile = "${self}/secrets/secrets.yaml";
+
+          age = {
+            keyFile = "${preservationDir}/var/lib/sops-nix/keys.txt";
+            generateKey = false;
+            sshKeyPaths = [];
           };
         };
       };
-
-      environment.systemPackages = with pkgs; [
-        sops
-        age
-        packages.sops-easy
-      ];
-
-      sops = {
-        defaultSopsFile = "${self}/secrets/secrets.yaml";
-
-        age = {
-          keyFile = "${preservationDir}/var/lib/sops-nix/keys.txt";
-          generateKey = false;
-          sshKeyPaths = [];
-        };
-      };
     };
+  };
+  checks = {
+    self,
+    inputs,
+    lib,
+    pkgs,
+    system,
+    ...
+  }: {
+    toggle = import ./_checks/toggle.nix {inherit self inputs lib pkgs system;};
   };
   packages = {pkgs, ...}: {
     sops-easy = pkgs.writeShellApplication {

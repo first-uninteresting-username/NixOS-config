@@ -5,61 +5,66 @@
 mkModule {
   name = "IDE";
   ids = ["IDE"];
-  module = {mistralApiKeyPath ? "/run/secrets/MISTRAL_API_KEY"}: {
+  module = {
+    secretsEnable,
+    mistralApiKeyPath ? "/run/secrets/MISTRAL_API_KEY",
+  }: {
     nixos = {
       lib,
       config,
       userName,
       preservationEnable,
       ...
-    }: {
-      preservation.preserveAt = lib.mkIf preservationEnable {
-        "/persist" = {
-          users.${userName} = {
-            directories = [
-              ".config/zed"
-              ".local/share/zed"
-              ".cache/zed"
-              ".wakatime"
+    }:
+      {
+        preservation.preserveAt = lib.mkIf preservationEnable {
+          "/persist" = {
+            users.${userName} = {
+              directories = [
+                ".config/zed"
+                ".local/share/zed"
+                ".cache/zed"
+                ".wakatime"
 
-              ".config/Google"
-              ".local/share/Google"
-              ".android"
-              ".gradle"
-              ".cache/Google"
-              ".java"
+                ".config/Google"
+                ".local/share/Google"
+                ".android"
+                ".gradle"
+                ".cache/Google"
+                ".java"
 
-              "Android"
-              ".m2"
-              ".konan"
-            ];
+                "Android"
+                ".m2"
+                ".konan"
+              ];
+            };
           };
         };
-      };
-
-      sops = {
-        secrets = {
-          "wakatime_api_key" = {};
-          "MISTRAL_API_KEY" = {
-            path = mistralApiKeyPath;
+      }
+      // lib.optionalAttrs secretsEnable {
+        sops = {
+          secrets = {
+            "wakatime_api_key" = {};
+            "MISTRAL_API_KEY" = {
+              path = mistralApiKeyPath;
+              owner = userName;
+            };
+          };
+          templates.".wakatime.cfg" = {
+            content = ''
+              [settings]
+              api_url = https://hackatime.hackclub.com/api/hackatime/v1
+              api_key = ${config.sops.placeholder.wakatime_api_key}
+              heartbeat_rate_limit_seconds = 1
+              sync_ai_disabled = true
+            '';
+            path = "${config.users.users.${userName}.home}/.wakatime.cfg";
             owner = userName;
+            group = userName;
+            mode = "0444";
           };
         };
-        templates.".wakatime.cfg" = {
-          content = ''
-            [settings]
-            api_url = https://hackatime.hackclub.com/api/hackatime/v1
-            api_key = ${config.sops.placeholder.wakatime_api_key}
-            heartbeat_rate_limit_seconds = 1
-            sync_ai_disabled = true
-          '';
-          path = "${config.users.users.${userName}.home}/.wakatime.cfg";
-          owner = userName;
-          group = userName;
-          mode = "0444";
-        };
       };
-    };
     home = {
       pkgs,
       config,
@@ -68,15 +73,19 @@ mkModule {
       nixLogo = "${pkgs.nixos-icons}/share/icons/hicolor/scalable/apps/nix-snowflake.svg";
       configPath = "${config.xdg.userDirs.projects}/NixOS-config";
       keyFile = mistralApiKeyPath;
-      zedPackage = pkgs.symlinkJoin {
-        name = "zed-editor-env";
-        paths = [pkgs.zed-editor];
-        nativeBuildInputs = [pkgs.makeWrapper];
-        postBuild = ''
-          wrapProgram $out/bin/zeditor \
-            --run '[ -r "${keyFile}" ] && export CODESTRAL_API_KEY="$(cat "${keyFile}")"'
-        '';
-      };
+      zedPackage =
+        if !secretsEnable
+        then pkgs.zed-editor
+        else
+          pkgs.symlinkJoin {
+            name = "zed-editor-env";
+            paths = [pkgs.zed-editor];
+            nativeBuildInputs = [pkgs.makeWrapper];
+            postBuild = ''
+              wrapProgram $out/bin/zeditor \
+                --run '[ -r "${keyFile}" ] && export CODESTRAL_API_KEY="$(cat "${keyFile}")"'
+            '';
+          };
     in {
       programs = {
         micro = {

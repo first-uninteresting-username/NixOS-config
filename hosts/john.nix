@@ -5,10 +5,11 @@
   name = "john";
   role = "nixos";
   system = "x86_64-linux";
-  ids = ["GNOME" "audio" "browser" "home-manager" "host-john" "hostname" "input" "iso" "iso-graphical" "locale" "networking-minimal" "nix" "power" "preservation" "secretless-git" "shell" "nushell" "ssh-debug" "stylix" "sudo" "tty" "user" "wayland" "xdg"];
+  ids = ["GNOME" "audio" "browser" "home-manager" "host-john" "hostname" "input" "iso" "iso-graphical" "locale" "networking-minimal" "nix" "power" "preservation" "git" "secrets" "shell" "nushell" "ssh-debug" "stylix" "sudo" "tty" "user" "wayland" "xdg"];
   args = {
     userName = "nixos";
     userEnable = true;
+    secretsEnable = false;
     preservationEnable = false;
     theme = {
       enable = true;

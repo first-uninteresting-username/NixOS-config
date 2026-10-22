@@ -46,6 +46,27 @@ false
 
 
 
+## secretsEnable
+
+
+
+Decrypt and use sops-managed credentials\. Select the secrets module when enabled\.
+
+
+
+*Type:*
+boolean
+
+
+
+*Default:*
+
+```nix
+false
+```
+
+
+
 ## theme
 
 

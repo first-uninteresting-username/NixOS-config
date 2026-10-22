@@ -42,8 +42,12 @@ Match `homeStateVersion` to the intended Home Manager compatibility version and 
 
 Set `userName` and enable user creation with `userEnable`. Desktop declarations select
 `desktop-password`, `secrets`, and `ssh`, which resolve encrypted credentials for the
-derived host name. Set `preservationEnable` only with a suitable `/persist` filesystem.
-The public credentials in ISO declarations are installation fixtures.
+derived host name when `secretsEnable = true`. This argument defaults to false.
+Select the ordinary `git`, `ssh`, and `networking-desktop` modules on hosts without
+managed secrets too; separate secretless variants are no longer needed. Without managed
+secrets, Git uses a local identity, SSH uses keys supplied by the user, and NetworkManager
+accepts manually configured connections. ISO hosts keep their public user credentials.
+Set `preservationEnable` only with a suitable `/persist` filesystem.
 
 Edit encrypted secrets through `sops` or `sops-easy`. A desktop needs its password hash,
 SSH identity, and host keys under the matching names in `secrets/secrets.yaml`.
