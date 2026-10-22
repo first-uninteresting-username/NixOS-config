@@ -251,14 +251,15 @@ mkModule {
     zshConfig = shellConfig "zsh";
     nuConfig = shellConfig "nushell";
   in {
-    yazi-integration = pkgs.runCommand "yazi-shell-integration" {
-      nativeBuildInputs = [pkgs.python3 pkgs.zsh pkgs.nushell];
-      zshSource = pkgs.writeText "yazi-zsh-init" zshConfig.zsh.initContent;
-      nuSource = pkgs.writeText "yazi-nushell-init" nuConfig.nushell.extraConfig;
-    } ''
-      python3 ${./_checks/yazi-integration.py} "$zshSource" "$nuSource"
-      touch "$out"
-    '';
+    yazi-integration =
+      pkgs.runCommand "yazi-shell-integration" {
+        nativeBuildInputs = [pkgs.python3 pkgs.zsh pkgs.nushell];
+        zshSource = pkgs.writeText "yazi-zsh-init" zshConfig.zsh.initContent;
+        nuSource = pkgs.writeText "yazi-nushell-init" nuConfig.nushell.extraConfig;
+      } ''
+        python3 ${./_checks/yazi-integration.py} "$zshSource" "$nuSource"
+        touch "$out"
+      '';
   };
   docs = ''
     Run `yy` in Zsh or Nushell to open Yazi. Browse to a directory and press `q`
