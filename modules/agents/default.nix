@@ -6,6 +6,15 @@ mkModule {
   name = "agents";
   ids = ["agents"];
   docs = "Installs Claude Desktop and Claude Code and preserves their local configuration.";
+  imperativeSteps = ''
+    Open Claude Desktop and follow the sign-in prompts.
+
+    Start Claude Code in a terminal and follow the sign-in prompts:
+
+    ```bash
+    claude
+    ```
+  '';
   module = _: {
     nixos = {
       lib,
