@@ -7,6 +7,7 @@ mkModule {
   ids = ["browser"];
   module = _: {
     nixos = {
+      config,
       lib,
       userName,
       preservationEnable,
@@ -17,6 +18,7 @@ mkModule {
           users.${userName} = {
             directories = [
               ".mozilla"
+              config.home-manager.users.${userName}.programs.firefox.configPath
               ".cache/mozilla"
             ];
           };
@@ -67,7 +69,11 @@ mkModule {
             gui = true;
             network = true;
             readHostFiles = true;
-            homeDirs = [".mozilla" ".cache/mozilla"];
+            homeDirs = [
+              ".mozilla"
+              config.programs.firefox.configPath
+              ".cache/mozilla"
+            ];
             readWrite = [config.xdg.userDirs.download];
             dbusOwn = [
               "org.mozilla.firefox.*"
@@ -185,4 +191,9 @@ mkModule {
       };
     };
   };
+  docs = ''
+    Firefox runs in a sandbox with writable access to its Home Manager profile directory,
+    legacy Mozilla directory, cache, and downloads. The profile directory is preserved
+    across reboots when preservation is enabled.
+  '';
 }
