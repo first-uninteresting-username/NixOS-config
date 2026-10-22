@@ -104,6 +104,8 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    jail-nix.url = "sourcehut:~alexdavid/jail.nix";
+
     slick = {
       url = "github:3kh0/slick";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -135,6 +137,7 @@
       flake = {
         inherit (registry) nixosModules homeModules nixosConfigurations homeConfigurations;
         lib.modules = registry;
+        lib.mkJail = import ./lib/mk-jail.nix {inherit inputs;};
       };
       perSystem = {
         pkgs,
