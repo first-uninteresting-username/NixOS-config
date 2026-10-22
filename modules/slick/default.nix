@@ -25,6 +25,8 @@ mkModule {
     home = {
       pkgs,
       inputs,
+      self,
+      config,
       ...
     }: {
       xdg.mimeApps.defaultApplications = {
@@ -32,8 +34,18 @@ mkModule {
       };
 
       home.packages = [
-        (inputs.slick.packages.${pkgs.stdenv.hostPlatform.system}.slick.override {
-          slackPackage = pkgs.slack;
+        (self.lib.mkJail {
+          inherit pkgs;
+          package = inputs.slick.packages.${pkgs.stdenv.hostPlatform.system}.slick.override {
+            slackPackage = pkgs.slack;
+          };
+          gui = true;
+          network = true;
+          readHostFiles = true;
+          homeDirs = [".config/slick" ".cache/slick"];
+          readWrite = [config.xdg.userDirs.download];
+          dbusOwn = ["dev.slick.Slick"];
+          dbusTalk = ["org.freedesktop.secrets" "org.kde.kwalletd6"];
         })
       ];
     };

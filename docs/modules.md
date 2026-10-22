@@ -71,6 +71,12 @@ base and head revisions. Module directories and explicitly watched files trigger
 owned targets; shared infrastructure changes select the full non-ISO suite. The
 [checks guide](checks.md) describes selection, validation, and the separate ISO tier.
 
+## Application sandboxes
+
+Application modules use `self.lib.mkJail` for shared jail.nix defaults and per-app
+permissions. See [application sandboxes](sandboxing.md) for the helper API, current
+coverage, and access boundaries.
+
 ## Read host documentation
 
 Every host automatically installs its own static HTML documentation. Run `open-docs` to

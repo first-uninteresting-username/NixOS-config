@@ -16,6 +16,7 @@ home configuration, packages, checks, and documentation.
 
 - [Module declarations and local host documentation](modules.md)
 - [Common argument reference](module-reference.md)
+- [Application sandboxes](sandboxing.md)
 - [Behavioral checks and CI policy](checks.md)
 - [Configuration versions](versions.md)
 
