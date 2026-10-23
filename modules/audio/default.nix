@@ -86,7 +86,60 @@ mkModule {
         };
       };
     };
-    home = _: {
+    home = {
+      pkgs,
+      lib,
+      ...
+    }: let
+      solumDevice = "alsa_card.usb-Solum_Voice_S_Mic_Solum_Voice_S_Mic-00";
+
+      # At login WirePlumber can activate the Solum's "on" profile without
+      # creating its source and sink nodes. Cycling the profile creates them.
+      micProfileReset = pkgs.writeShellScript "mic-profile-reset" ''
+        set -euo pipefail
+        export PATH=${lib.makeBinPath [pkgs.coreutils pkgs.jq pkgs.pipewire pkgs.wireplumber]}
+
+        id=""
+        for _ in $(seq 30); do
+          id="$(pw-dump | jq -r --arg name ${solumDevice} \
+            '.[] | select(.info.props."device.name"? == $name) | .id' | head -n 1)"
+          if [ -n "$id" ]; then
+            break
+          fi
+          sleep 1
+        done
+
+        if [ -z "$id" ]; then
+          echo "Solum Voice S Mic is not present, nothing to reset" >&2
+          exit 0
+        fi
+
+        # Give WirePlumber a moment to create nodes on its own first.
+        sleep 2
+        nodes="$(pw-dump | jq --arg id "$id" \
+          '[.[] | select(.info.props."device.id"? == ($id | tonumber))] | length')"
+        if [ "$nodes" -gt 0 ]; then
+          exit 0
+        fi
+
+        wpctl set-profile "$id" 0
+        sleep 1
+        wpctl set-profile "$id" 1
+      '';
+    in {
+      systemd.user.services.mic-profile-reset = {
+        Unit = {
+          Description = "Create Solum Voice S Mic nodes missing after login";
+          After = ["wireplumber.service"];
+          PartOf = ["wireplumber.service"];
+        };
+        Service = {
+          Type = "oneshot";
+          ExecStart = "${micProfileReset}";
+        };
+        Install.WantedBy = ["wireplumber.service"];
+      };
+
       xdg.configFile."wireplumber/wireplumber.conf.d/50-solum-mic.conf".text = ''
         # The Solum Voice S Mic (USB 3738:00a4) is a UAC 1.0 device that ships
         # no UAC profile descriptors. PipeWire's ACP (alsa card profile)
