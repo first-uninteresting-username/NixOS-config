@@ -76,16 +76,27 @@ mkModule {
     };
   };
   packages = {pkgs, ...}: let
-    release = builtins.fromJSON (builtins.readFile ./_flow-desktop/release.json);
-    source = release.sources.${pkgs.stdenv.hostPlatform.system};
+    version = "0.1.0-beta2";
+    sources = pkgs.lib.mapAttrs (_: source:
+      pkgs.fetchurl {
+        url = "https://github.com/Flow-Tube/Flow-Desktop/releases/download/v${version}/Flow_${version}_linux_${source.arch}.deb";
+        inherit (source) hash;
+      }) {
+      x86_64-linux = {
+        arch = "amd64";
+        hash = "sha256-5i+b4bg/B3xFhcd5si6ojXBFVYq+BEginRtfqyAlmfc=";
+      };
+      aarch64-linux = {
+        arch = "arm64";
+        hash = "sha256-2fIooG6GRJ1vTaABXn07NnisuG000szNnGHfarMwDpw=";
+      };
+    };
   in {
     flow-desktop = pkgs.stdenvNoCC.mkDerivation {
       pname = "flow-desktop";
-      inherit (release) version;
+      inherit version;
 
-      src = pkgs.fetchurl {
-        inherit (source) url hash;
-      };
+      src = sources.${pkgs.stdenv.hostPlatform.system};
 
       nativeBuildInputs = [
         pkgs.autoPatchelfHook
@@ -135,14 +146,22 @@ mkModule {
         )
       '';
 
-      passthru.updateScript = pkgs.lib.getExe (pkgs.writeShellApplication {
-        name = "update-flow-desktop";
-        runtimeInputs = [pkgs.python3 pkgs.nix];
-        # Run the checkout script so release.json remains writable.
-        text = ''
-          exec python3 modules/programs-desktop/_flow-desktop/update.py
-        '';
-      });
+      passthru = {
+        inherit sources;
+        updateScript = pkgs.nix-update-script {
+          extraArgs = [
+            "--flake"
+            "--use-github-releases"
+            # Subpackage hashes belong to fetchurl, whose position is in Nixpkgs.
+            "--override-filename"
+            "modules/programs-desktop/default.nix"
+            "--subpackage"
+            "sources.x86_64-linux"
+            "--subpackage"
+            "sources.aarch64-linux"
+          ];
+        };
+      };
 
       meta = {
         description = "YouTube and YouTube Music client with local recommendations";

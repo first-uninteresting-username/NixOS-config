@@ -3,20 +3,21 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 {pkgs, ...}: let
   version = "1.41.0";
-  src = pkgs.fetchurl {
-    url = "https://github.com/akitaonrails/ai-usagebar/archive/refs/tags/v${version}.tar.gz";
-    sha256 = "2371a9f67c8291d8313f03ed1bfbe5571f232e2ebf780202e6b0ef27815cabad";
+  src = pkgs.fetchFromGitHub {
+    owner = "akitaonrails";
+    repo = "ai-usagebar";
+    tag = "v${version}";
+    hash = "sha256-mS5K/IntyuDEsFmsMWtKYhjsS3T3qeRAYsTqS1TsZxA=";
   };
   extensionUuid = "ai-usagebar@akitaonrails.github.io";
-  updateScript = pkgs.writeShellScript "update-ai-usagebar" ''
-    exec ${pkgs.python3}/bin/python ${./_sources/update.py}
-  '';
+  shellVersion = pkgs.lib.versions.major pkgs.gnome-shell.version;
 in {
   default = pkgs.rustPlatform.buildRustPackage {
     pname = "ai-usagebar";
     inherit version src;
-    cargoLock.lockFile = ./_sources/Cargo.lock;
-    passthru = {inherit updateScript;};
+    cargoHash = "sha256-VV7If1vQFufyFHK6C+K9LADLU90FsD7gOGcvSJ4U3wo=";
+    # Updating this package also updates the extension, which shares its version and source.
+    passthru.updateScript = pkgs.nix-update-script {extraArgs = ["--flake"];};
     nativeBuildInputs = [pkgs.makeWrapper] ++ pkgs.lib.optionals pkgs.stdenv.hostPlatform.isx86_64 [pkgs.nasm];
     # Upstream's archive tests require /usr/bin/tar outside the Nix sandbox.
     checkFlags = ["--skip=claude_desktop::app::tests"];
@@ -40,10 +41,16 @@ in {
   extension = pkgs.stdenvNoCC.mkDerivation {
     pname = "gnome-shell-extension-ai-usagebar";
     inherit version src;
-    nativeBuildInputs = [pkgs.glib];
+    nativeBuildInputs = [pkgs.glib pkgs.jq];
     dontConfigure = true;
     buildPhase = ''
       runHook preBuild
+      # Automatic updates can change upstream metadata; fail before installing an incompatible extension.
+      jq -e --arg uuid '${extensionUuid}' '.uuid == $uuid' gnome-extension/metadata.json > /dev/null \
+        || { echo "ai-usagebar changed its extension UUID; review the integration" >&2; exit 1; }
+      jq -e --arg shell '${shellVersion}' '."shell-version" | index($shell)' \
+        gnome-extension/metadata.json > /dev/null \
+        || { echo "ai-usagebar does not support GNOME Shell ${shellVersion}" >&2; exit 1; }
       glib-compile-schemas --strict gnome-extension/schemas
       runHook postBuild
     '';
@@ -58,10 +65,7 @@ in {
           "['${pkgs.ptyxis}/bin/ptyxis', '--new-window', '--', tui],"
       runHook postInstall
     '';
-    passthru = {
-      inherit extensionUuid updateScript;
-      supportedShellVersions = ["45" "46" "47" "48" "49" "50"];
-    };
+    passthru = {inherit extensionUuid;};
     meta = {
       description = "AI usage indicator for GNOME Shell";
       homepage = "https://github.com/akitaonrails/ai-usagebar";

@@ -2,7 +2,6 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import base64
 import copy
 import importlib.util
 import json
@@ -254,64 +253,32 @@ class RegressionProofTests(unittest.TestCase):
                     regression.prove("upgrade", runner=run)
 
 
-def sri(byte):
-    return "sha256-" + base64.b64encode(bytes([byte]) * 32).decode()
-
-
 class EligibilityTests(unittest.TestCase):
-    def setUp(self):
-        self.old = {"version": "1.0", "sources": {
-            "x86_64-linux": {"url": "https://example.invalid/x86.deb", "hash": sri(1)},
-            "aarch64-linux": {"url": "https://example.invalid/arm.deb", "hash": sri(2)}}}
-        self.new = copy.deepcopy(self.old)
-        self.new["sources"]["x86_64-linux"]["hash"] = sri(3)
+    def change(self, path="flake.lock", status="M", before=b'{"version":7}',
+               after=b'{"version":7,"nodes":{}}'):
+        return (status, path, before, after)
 
-    def change(self, path=merge.HASH_FILE, status="M", before=None, after=None):
-        return (status, path, json.dumps(self.old if before is None else before).encode(),
-                json.dumps(self.new if after is None else after).encode())
+    def test_lock_update_eligible(self):
+        self.assertTrue(merge.eligible([self.change()])[0])
 
-    def test_lock_hash_and_combination_eligible(self):
-        lock = self.change("flake.lock", before={"version": 7}, after={"version": 7, "nodes": {}})
-        for changes in [[lock], [self.change()], [lock, self.change()]]:
-            self.assertTrue(merge.eligible(changes)[0])
+    def test_package_sources_and_other_files_block(self):
+        # Package updates edit Nix sources, which always need a manual review.
+        for path in ["flake.nix", "modules/change.nix", ".github/workflows/flake-build.yaml",
+                     "modules/orchard-cli/default.nix", "modules/ai-usagebar/_packages.nix",
+                     "modules/programs-desktop/_flow-desktop/release.json"]:
+            with self.subTest(path=path):
+                self.assertFalse(merge.eligible([self.change(path=path)])[0])
+                self.assertFalse(merge.eligible([self.change(), self.change(path=path)])[0])
 
-    def test_versions_urls_structure_and_invalid_hashes_block(self):
-        variants = []
-        for key, value in [("version", "2.0"), ("unexpected", True)]:
-            changed = copy.deepcopy(self.new)
-            changed[key] = value
-            variants.append(changed)
-        for key, value in [("url", "https://elsewhere.invalid/source"), ("hash", "sha256-AAAA"),
-                           ("hash", 42), ("hash", ""), ("hash", "sha256-" + "!" * 44)]:
-            changed = copy.deepcopy(self.new)
-            changed["sources"]["x86_64-linux"][key] = value
-            variants.append(changed)
-        changed = copy.deepcopy(self.new)
-        del changed["sources"]["aarch64-linux"]
-        variants.append(changed)
-        for changed in variants:
-            with self.subTest(changed=changed):
-                self.assertFalse(merge.eligible([self.change(after=changed)])[0])
-
-    def test_added_deleted_renamed_mixed_and_empty_block(self):
+    def test_added_deleted_renamed_mode_and_empty_block(self):
         self.assertFalse(merge.eligible([])[0])
         for status in ["A", "D", "R100", "mode"]:
             self.assertFalse(merge.eligible([self.change(status=status)])[0])
-        for path in ["flake.nix", "modules/change.nix", ".github/workflows/flake-build.yaml",
-                     "packages/new/default.nix", "modules/programs-desktop/_flow-desktop/package.nix"]:
-            self.assertFalse(merge.eligible([self.change(), self.change(path=path)])[0])
 
-    def test_noop_duplicate_json_and_invalid_lock_block(self):
-        self.assertFalse(merge.source_hash_only(json.dumps(self.old), json.dumps(self.old)))
-        self.assertFalse(merge.source_hash_only('{"sources":{},"sources":{}}', json.dumps(self.new)))
-        self.assertFalse(merge.eligible([("M", "flake.lock", b"{}", b"not JSON")])[0])
-
-    def test_source_metadata_types_cannot_change_with_hashes(self):
-        before = {**self.old, "releaseNumber": 1}
-        for value in [True, 1.0]:
-            with self.subTest(value=value):
-                after = {**self.new, "releaseNumber": value}
-                self.assertFalse(merge.eligible([self.change(before=before, after=after)])[0])
+    def test_invalid_or_duplicate_key_lock_blocks(self):
+        for after in [b"not JSON", b"[]", b'{"nodes":{},"nodes":{}}']:
+            with self.subTest(after=after):
+                self.assertFalse(merge.eligible([self.change(after=after)])[0])
 
 
 class CurrentStatusTests(unittest.TestCase):

@@ -18,19 +18,10 @@ mkModule {
       };
     };
     home = {
-      pkgs,
       lib,
       packages,
       ...
     }: {
-      assertions = [
-        {
-          assertion =
-            builtins.elem (lib.versions.major pkgs.gnome-shell.version)
-            packages.extension.supportedShellVersions;
-          message = "ai-usagebar does not support GNOME Shell ${pkgs.gnome-shell.version}.";
-        }
-      ];
       home.packages = [packages.default];
       programs.gnome-shell = {
         enable = true;
