@@ -91,6 +91,9 @@ mkModule {
 - Package and check names receive the declaring module's prefix; `default` exports as the
   module name. Package exports do not install themselves. Sections access only their own
   packages through the explicitly requested `packages` argument.
+- Packages that pin an upstream release declare `passthru.updateScript` with
+  `pkgs.nix-update-script` and `--flake`, keeping `version` and hashes literal in the module's
+  Nix file. Update them with `nix run .#update-packages`; see `docs/package-updates.md`.
 - Check fixtures supply explicit values rather than borrowing real host settings. Gate
   KVM-dependent checks to `x86_64-linux`; package/check conditions determine output availability.
 - Both supported systems remain `x86_64-linux` and `aarch64-linux`. Inspect pinned upstream

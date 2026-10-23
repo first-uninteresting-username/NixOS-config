@@ -64,6 +64,10 @@ For example, `programs-desktop` installs Inkscape and Flow Desktop and exports
 ISO packages are `host-john` and `host-wall-e`; their checks remain `iso-john` and
 `iso-wall-e` in the separate ISO tier.
 
+Packages that pin an upstream release declare `passthru.updateScript` with
+`pkgs.nix-update-script`. Run `nix run .#update-packages` to update them; see
+[package updates](package-updates.md).
+
 Checks use independent fixtures with explicit argument values. Existing VM checks live in
 module-local `_checks/` directories, and KVM checks run only on x86_64-linux.
 CI selects affected checks and packages from generated ownership metadata at the merge
