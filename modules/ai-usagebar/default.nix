@@ -38,7 +38,7 @@ mkModule {
       };
       dconf.settings."org/gnome/shell/extensions/ai-usagebar" = {
         binary-path = lib.getExe packages.default;
-        vendor = "openai";
+        vendor = "anthropic";
         refresh-interval = 300;
       };
       # Keep the file writable for local API keys and upstream's Settings UI.
@@ -49,11 +49,11 @@ mkModule {
           install -d -m700 "$configDir"
           (umask 077; cat > "$configFile" <<'TOML'
         [ui]
-        primary = "openai"
+        primary = "anthropic"
         [openai]
-        enabled = true
-        [anthropic]
         enabled = false
+        [anthropic]
+        enabled = true
         [zai]
         enabled = false
         [openrouter]
