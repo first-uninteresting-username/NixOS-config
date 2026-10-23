@@ -19,22 +19,26 @@
   jail = inputs.jail-nix.lib.extend {
     inherit pkgs;
     basePermissions = c:
-      if readHostFiles
-      then [
-        (c.readonly "/")
-        # Preserve the host's symlinks; mounting /bin/sh over them would fail.
-        (c.unsafe-add-raw-args "--proc /proc --dev /dev --tmpfs /tmp --tmpfs /run --clearenv")
-        (c.fwd-env "HOME")
-        (c.try-fwd-env "LANG")
-        (c.try-fwd-env "TERM")
-        (c.add-runtime ''
-          if [ -d /nix/var/nix/daemon-socket ]; then
-            RUNTIME_ARGS+=(--tmpfs /nix/var/nix/daemon-socket)
-          fi
-        '')
-      ]
-      # The whole store is public on these hosts and avoids closure walks at startup.
-      else [c.base c.fake-passwd (c.readonly "/nix/store")];
+      (
+        if readHostFiles
+        then [
+          (c.readonly "/")
+          # Preserve the host's symlinks; mounting /bin/sh over them would fail.
+          (c.unsafe-add-raw-args "--proc /proc --dev /dev --tmpfs /tmp --tmpfs /run --clearenv")
+          (c.fwd-env "HOME")
+          (c.try-fwd-env "LANG")
+          (c.try-fwd-env "TERM")
+          (c.add-runtime ''
+            if [ -d /nix/var/nix/daemon-socket ]; then
+              RUNTIME_ARGS+=(--tmpfs /nix/var/nix/daemon-socket)
+            fi
+          '')
+        ]
+        # The whole store is public on these hosts and avoids closure walks at startup.
+        else [c.base c.fake-passwd (c.readonly "/nix/store")]
+      )
+      # WebKitGTK buffers progressive media, such as audio streams, in /var/tmp.
+      ++ [(c.tmpfs "/var/tmp")];
   };
   c = jail.combinators;
   binaryPackage = lib.getBin package;
