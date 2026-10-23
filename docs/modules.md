@@ -16,7 +16,7 @@ and `home-manager`. The `hack` ID selects Hack and its API-key integration. Styl
 MoreWaita icons directly; desktop, shell, and icon choices need no host arguments.
 
 IDs need no matching empty module declaration. A module exists only when it contributes
-configuration, packages, checks, assertions, or documentation.
+configuration, state, packages, checks, assertions, or documentation.
 
 `hostName` is derived from `name`. The generated NixOS modules embed the user's home
 configuration, while standalone Home Manager ignores NixOS-only sections.
@@ -52,6 +52,34 @@ Each module has its own directory. Place companion Nix sources in underscore-pre
 files or directories so discovery excludes them. Modules do not import other registry
 modules or consume another module's package exports.
 
+## Declare state
+
+Declare the paths a module needs across reboots in its `state` field, not in
+`preservation` options:
+
+```nix
+mkModule {
+  name = "example";
+  ids = ["example"];
+  state = {
+    nixos.directories = ["/var/lib/example"];
+    home = {config}: {
+      directories = [".local/share/example" config.programs.firefox.configPath];
+      files = [".config/example/settings.json"];
+    };
+  };
+}
+```
+
+System paths are absolute. Home paths are relative to the user's home directory, and a
+`home` function receives the Home Manager `config`. Entries can also be attribute sets in
+the preservation format, such as `{directory = ".ssh"; mode = "0700";}`. Use functions with
+`lib.optional` for conditional state, for example on `secretsEnable`.
+
+The `preservation` module keeps the collected state under `/persist` when
+`preservationEnable` is true. Modules therefore need neither `preservationEnable` nor
+`userName` for persistence. Each host's documentation lists its declared state.
+
 ## Packages and checks
 
 A module's `default` package exports under its module name. Other packages export as
@@ -84,7 +112,8 @@ read it in Lynx, or use the host documentation entry in the application menu to 
 in a graphical browser. Both entry points work with local files and do not require a server.
 
 The site includes pages for selected modules supplying `docs` or `imperativeSteps`, a
-combined imperative-steps page sorted by module name, and the common-argument reference.
+combined imperative-steps page sorted by module name, a State page listing declared state
+by module, and the common-argument reference.
 Opening a page does not execute its instructions. Selected modules without content do
 not produce empty pages.
 
