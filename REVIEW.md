@@ -38,8 +38,8 @@ the `rebuild` helper for validation; that helper boots remote `main`.
 - [ ] Root discovery loads regular `.nix` files recursively from `modules/`, `hosts/`, and
   `arguments/`. Companion Nix sources and fixtures use underscore-prefixed paths.
 - [ ] Module, host, argument, and final package/check export names remain unique.
-  `checks/` declares the regression output type; `github-actions/` supplies CI outputs.
-  These remaining flake-parts imports do not replace registry discovery.
+  `flake.nix` takes its outputs from registry discovery. `github-actions/` only derives CI
+  matrices and the opt-in regression outputs from the registry; it does not replace discovery.
 
 ## Hosts and arguments
 

@@ -14,7 +14,7 @@ import subprocess
 
 # Only infrastructure used to construct or run module outputs fans out to every module.
 CORE = [
-    "flake.nix", "flake.lock", "lib/**", "arguments/**", "github-actions/**", "checks/**",
+    "flake.nix", "flake.lock", "lib/**", "arguments/**", "github-actions/**",
     ".github/nix.conf", ".github/scripts/select-tests.py", ".github/scripts/aggregate-status.py",
     ".github/scripts/prove-regression.py", ".github/workflows/flake-check.yaml",
     ".github/workflows/flake-build.yaml", ".github/workflows/build-targets.yaml",

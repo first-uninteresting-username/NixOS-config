@@ -192,11 +192,12 @@
         })
       ];
     };
-  discovered = moduleLib.discover {
+  discoveryRoots = {
     modulesDir = ./discovery/modules;
     hostsDir = ./discovery/hosts;
     argumentsDir = ./discovery/arguments;
   };
+  discovered = moduleLib.discover (discoveryRoots // {systems = [system];});
   onlyHome = moduleLib.mkModule {
     name = "only-home";
     module = _: {home = {config}: {home.file."only-home".text = config.home.username;};};
@@ -314,6 +315,18 @@
     discoveryExclusions = builtins.attrNames discovered.declarations == ["discovered" "sibling"];
     discoverySource = discovered.declarations.discovered.source == ./discovery/modules/example.nix;
     discoveredHome = discovered.homeConfigurations.discovered.config.home.username == "discovered";
+    # Flake exports must match perSystem with the system's default Nixpkgs.
+    discoveredSystemExports = let
+      exported = {
+        packages = discovered.packages.${system};
+        checks = discovered.checks.${system};
+      };
+    in
+      builtins.attrNames discovered.packages
+      == [system]
+      && builtins.attrNames exported.checks == builtins.attrNames discoveredExports.checks
+      && exported.packages.discovered.drvPath == discoveredExports.packages.discovered.drvPath;
+    discoveryWithoutSystemsExportsNothing = (moduleLib.discover discoveryRoots).packages == {};
     homeOnlyNixosWrapper =
       (nixos {
         ids = chosenIds;

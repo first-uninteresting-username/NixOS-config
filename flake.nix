@@ -19,15 +19,6 @@
       url = "github:nixos/nixpkgs/nixos-unstable";
     };
 
-    flake-parts = {
-      url = "github:hercules-ci/flake-parts";
-      inputs.nixpkgs-lib.follows = "nixpkgs";
-    };
-
-    import-tree = {
-      url = "github:vic/import-tree";
-    };
-
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -113,40 +104,32 @@
   };
 
   outputs = inputs: let
+    inherit (inputs.nixpkgs) lib;
+    systems = [
+      "x86_64-linux"
+      # Literally useless
+      "aarch64-linux"
+    ];
     registry =
       (import ./lib/modules {
         inherit inputs;
         inherit (inputs) self;
       }).discover {
+        inherit systems;
         modulesDir = ./modules;
         hostsDir = ./hosts;
         argumentsDir = ./arguments;
       };
-  in
-    inputs.flake-parts.lib.mkFlake {inherit inputs;} {
-      systems = [
-        "x86_64-linux"
-        # Literally useless
-        "aarch64-linux"
-      ];
-
-      imports = [
-        (inputs.import-tree ./checks)
-        (inputs.import-tree ./github-actions)
-      ];
-      flake = {
-        inherit (registry) nixosModules homeModules nixosConfigurations homeConfigurations;
-        lib.modules = registry;
-        lib.mkJail = import ./lib/mk-jail.nix {inherit inputs;};
-      };
-      perSystem = {
-        pkgs,
-        system,
-        ...
-      }:
-        (registry.perSystem {inherit pkgs system;})
-        // {
-          formatter = pkgs.alejandra;
-        };
+    ci = import ./github-actions {inherit lib inputs registry systems;};
+  in {
+    inherit (registry) nixosModules homeModules nixosConfigurations homeConfigurations;
+    inherit (registry) packages checks;
+    inherit (ci) githubActions hosts regressionChecks;
+    formatter = lib.genAttrs systems (system: inputs.nixpkgs.legacyPackages.${system}.alejandra);
+    lib = {
+      # Checks and packages use these through self; the registry itself stays internal.
+      modules = {inherit (registry) mkHost commonArgs;};
+      mkJail = import ./lib/mk-jail.nix {inherit inputs;};
     };
+  };
 }
