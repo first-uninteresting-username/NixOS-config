@@ -6,17 +6,12 @@ mkModule {
   name = "ai-usagebar";
   ids = ["GNOME" "agents"];
   packages = import ./_packages.nix;
+  state = {
+    home.directories = [
+      ".config/ai-usagebar"
+    ];
+  };
   module = _: {
-    nixos = {
-      lib,
-      userName,
-      preservationEnable,
-      ...
-    }: {
-      preservation.preserveAt = lib.mkIf preservationEnable {
-        "/persist".users.${userName}.directories = [".config/ai-usagebar"];
-      };
-    };
     home = {
       pkgs,
       lib,

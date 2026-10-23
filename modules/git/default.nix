@@ -5,6 +5,12 @@
 mkModule {
   name = "git";
   ids = ["git"];
+  state = {
+    home.directories = [
+      ".config/git"
+      ".config/gh"
+    ];
+  };
   module = {
     secretsEnable,
     githubTokenPath ? "/run/secrets/github_pat",
@@ -13,21 +19,9 @@ mkModule {
       pkgs,
       lib,
       userName,
-      preservationEnable,
       ...
     }:
       {
-        preservation.preserveAt = lib.mkIf preservationEnable {
-          "/persist" = {
-            users.${userName} = {
-              directories = [
-                ".config/git"
-                ".config/gh"
-              ];
-            };
-          };
-        };
-
         programs.git.enable = lib.mkForce false;
 
         environment.systemPackages = with pkgs; [

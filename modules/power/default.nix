@@ -5,20 +5,13 @@
 mkModule {
   name = "power";
   ids = ["power"];
+  state = {
+    nixos.directories = [
+      "/var/lib/power-profiles-daemon"
+    ];
+  };
   module = _: {
-    nixos = {
-      lib,
-      preservationEnable,
-      ...
-    }: {
-      preservation.preserveAt = lib.mkIf preservationEnable {
-        "/persist" = {
-          directories = [
-            "/var/lib/power-profiles-daemon"
-          ];
-        };
-      };
-
+    nixos = _: {
       services = {
         upower.enable = true;
         power-profiles-daemon.enable = true;

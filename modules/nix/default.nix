@@ -20,23 +20,13 @@ mkModule {
     Cache availability depends on the exact pinned kernel output; a missing output can still
     require local compilation.
   '';
+  state = {
+    home.directories = [
+      ".cache/nix"
+    ];
+  };
   module = _: {
-    nixos = {
-      lib,
-      userName,
-      preservationEnable,
-      inputs,
-      ...
-    }: {
-      preservation.preserveAt = lib.mkIf preservationEnable {
-        "/persist" = {
-          users.${userName} = {
-            directories = [
-              ".cache/nix"
-            ];
-          };
-        };
-      };
+    nixos = {inputs, ...}: {
       nix = {
         registry = {
           nixpkgs.flake = inputs.nixpkgs;

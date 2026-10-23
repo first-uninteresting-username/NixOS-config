@@ -6,19 +6,66 @@ mkModule {
   name = "preservation";
   ids = ["preservation"];
   docs = ''
-    Selected modules declare the system and home state retained under `/persist`.
-    These declarations take effect only when `preservationEnable` is true.
-    System paths and home-relative paths remain separate in the preservation configuration.
+    Selected modules declare system and home state with their `state` field.
+    With `preservationEnable` true, this module keeps that state under `/persist`:
+    system paths at their absolute location and home paths under the user's home.
+    The host documentation's State page lists every declared path.
   '';
+  state = {
+    nixos = {
+      directories = [
+        "/var/lib/nixos"
+        "/var/lib/systemd"
+        "/var/log"
+        "/var/lib/AccountsService"
+      ];
+      files = [
+        "/etc/adjtime"
+        {
+          file = "/etc/ssh/ssh_host_ed25519_key";
+          how = "symlink";
+          configureParent = true;
+        }
+        {
+          file = "/etc/ssh/ssh_host_ed25519_key.pub";
+          how = "symlink";
+          configureParent = true;
+        }
+        {
+          file = "/etc/machine-id";
+          inInitrd = true;
+          how = "symlink";
+          createLinkTarget = true;
+          configureParent = true;
+        }
+      ];
+    };
+    home.directories = [
+      ".cache/mesa_shader_cache"
+      "persist"
+      ".cache/fontconfig"
+    ];
+  };
   module = _: {
     nixos = {
       lib,
       config,
       userName,
       preservationEnable,
+      state,
       inputs,
       ...
-    }: {
+    }: let
+      entries = scope: kind: lib.concatMap (declared: declared.${kind}) (builtins.attrValues state.${scope});
+      # A separate /var/lib filesystem already retains its contents.
+      outsideVarLib = entry: let
+        path =
+          if builtins.isString entry
+          then entry
+          else entry.directory or entry.file;
+      in
+        !(config.fileSystems ? "/var/lib" && lib.hasPrefix "/var/lib" path);
+    in {
       imports = [
         inputs.preservation.nixosModules.preservation
       ];
@@ -46,53 +93,11 @@ mkModule {
           enable = true;
           preserveAt."/persist" = {
             commonMountOptions = ["x-gvfs-hide"];
-
-            directories =
-              lib.filter (
-                d: let
-                  dir =
-                    if builtins.isString d
-                    then d
-                    else d.directory;
-                in
-                  !(config.fileSystems ? "/var/lib" && lib.hasPrefix "/var/lib" dir)
-              ) [
-                "/var/lib/nixos"
-                "/var/lib/systemd"
-                "/var/log"
-                "/var/lib/AccountsService"
-              ];
-
-            files = [
-              "/etc/adjtime"
-              {
-                file = "/etc/ssh/ssh_host_ed25519_key";
-                how = "symlink";
-                configureParent = true;
-              }
-              {
-                file = "/etc/ssh/ssh_host_ed25519_key.pub";
-                how = "symlink";
-                configureParent = true;
-              }
-              {
-                file = "/etc/machine-id";
-                inInitrd = true;
-                how = "symlink";
-                createLinkTarget = true;
-                configureParent = true;
-              }
-            ];
-
+            directories = lib.filter outsideVarLib (entries "nixos" "directories");
+            files = lib.filter outsideVarLib (entries "nixos" "files");
             users.${userName} = {
-              directories = [
-                ".cache/mesa_shader_cache"
-                "persist"
-                ".cache/fontconfig"
-              ];
-
-              files = [
-              ];
+              directories = entries "home" "directories";
+              files = entries "home" "files";
             };
           };
         };

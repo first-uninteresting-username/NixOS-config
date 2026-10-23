@@ -5,35 +5,30 @@
 mkModule {
   name = "GNOME";
   ids = ["GNOME"];
+  state = {
+    nixos.directories = [
+      "/var/lib/gdm"
+    ];
+    home = {
+      directories = [
+        ".local/share/keyrings"
+        ".local/share/nautilus"
+        ".config/goa-1.0"
+        ".cache/tracker3"
+      ];
+      files = [
+        ".local/share/recently-used.xbel"
+        ".config/hexecute/gestures.json"
+      ];
+    };
+  };
   module = _: {
     nixos = {
       lib,
       pkgs,
-      userName,
-      preservationEnable,
       ...
     }: {
       config = {
-        preservation.preserveAt = lib.mkIf preservationEnable {
-          "/persist" = {
-            directories = [
-              "/var/lib/gdm"
-            ];
-            users.${userName} = {
-              directories = [
-                ".local/share/keyrings"
-                ".local/share/nautilus"
-                ".config/goa-1.0"
-                ".cache/tracker3"
-              ];
-              files = [
-                ".local/share/recently-used.xbel"
-                ".config/hexecute/gestures.json"
-              ];
-            };
-          };
-        };
-
         programs = {
           ssh.startAgent = lib.mkForce false;
           dconf.enable = true;

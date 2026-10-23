@@ -5,6 +5,25 @@
 mkModule {
   name = "IDE";
   ids = ["IDE"];
+  state = {
+    home.directories = [
+      ".config/zed"
+      ".local/share/zed"
+      ".cache/zed"
+      ".wakatime"
+
+      ".config/Google"
+      ".local/share/Google"
+      ".android"
+      ".gradle"
+      ".cache/Google"
+      ".java"
+
+      "Android"
+      ".m2"
+      ".konan"
+    ];
+  };
   module = {
     secretsEnable,
     mistralApiKeyPath ? "/run/secrets/MISTRAL_API_KEY",
@@ -13,35 +32,9 @@ mkModule {
       lib,
       config,
       userName,
-      preservationEnable,
       ...
     }:
-      {
-        preservation.preserveAt = lib.mkIf preservationEnable {
-          "/persist" = {
-            users.${userName} = {
-              directories = [
-                ".config/zed"
-                ".local/share/zed"
-                ".cache/zed"
-                ".wakatime"
-
-                ".config/Google"
-                ".local/share/Google"
-                ".android"
-                ".gradle"
-                ".cache/Google"
-                ".java"
-
-                "Android"
-                ".m2"
-                ".konan"
-              ];
-            };
-          };
-        };
-      }
-      // lib.optionalAttrs secretsEnable {
+      lib.optionalAttrs secretsEnable {
         sops = {
           secrets = {
             "wakatime_api_key" = {};

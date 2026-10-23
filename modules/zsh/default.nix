@@ -5,25 +5,18 @@
 mkModule {
   name = "zsh";
   ids = ["zsh"];
+  state = {
+    home.directories = [
+      ".config/zsh"
+    ];
+  };
   module = _: {
     nixos = {
-      lib,
       pkgs,
       userName,
-      preservationEnable,
       ...
     }: {
       config = {
-        preservation.preserveAt = lib.mkIf preservationEnable {
-          "/persist" = {
-            users.${userName} = {
-              directories = [
-                ".config/zsh"
-              ];
-            };
-          };
-        };
-
         users.users.${userName}.shell = pkgs.zsh;
         programs.zsh.enable = true;
       };

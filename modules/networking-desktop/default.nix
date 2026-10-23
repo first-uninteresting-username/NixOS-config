@@ -5,25 +5,22 @@
 mkModule {
   name = "networking-desktop";
   ids = ["networking-desktop"];
+  state = {
+    nixos.directories = [
+      "/var/lib/bluetooth"
+      "/etc/NetworkManager"
+      "/var/lib/NetworkManager"
+    ];
+  };
   module = _: {
     nixos = {
       lib,
       config,
       pkgs,
-      preservationEnable,
       secretsEnable,
       ...
     }:
       {
-        preservation.preserveAt = lib.mkIf preservationEnable {
-          "/persist" = {
-            directories = [
-              "/var/lib/bluetooth"
-              "/etc/NetworkManager"
-              "/var/lib/NetworkManager"
-            ];
-          };
-        };
         networking = {
           networkmanager = {
             enable = true;

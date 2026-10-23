@@ -34,11 +34,25 @@ mkModule {
       mode `0700` and the key to mode `0600`, both owned by root, before installation.
       Transfer the key securely and keep it outside Git.
     '';
+  state = {
+    # The identity and its state exist only while decryption is enabled.
+    nixos = {
+      lib,
+      secretsEnable,
+    }: {
+      directories = lib.optional secretsEnable "/var/lib/sops-nix";
+    };
+    home = {
+      lib,
+      secretsEnable,
+    }: {
+      directories = lib.optional secretsEnable ".config/sops/age";
+    };
+  };
   module = _: {
     nixos = {
       pkgs,
       lib,
-      userName,
       preservationEnable,
       secretsEnable,
       inputs,
@@ -56,15 +70,6 @@ mkModule {
       ];
 
       config = lib.mkIf secretsEnable {
-        preservation.preserveAt = lib.mkIf preservationEnable {
-          "/persist" = {
-            directories = ["/var/lib/sops-nix"];
-            users.${userName} = {
-              directories = [".config/sops/age"];
-            };
-          };
-        };
-
         environment.systemPackages = with pkgs; [
           sops
           age
