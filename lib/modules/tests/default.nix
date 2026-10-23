@@ -224,6 +224,62 @@
       };
     };
   };
+  # State binds in its scope's context; sections read the host's collected result.
+  stateful = moduleLib.mkModule {
+    name = "stateful";
+    state = {
+      nixos = {stateRoot}: {
+        directories = ["${stateRoot}/system"];
+        files = [
+          {
+            file = "/etc/fixture-state";
+            mode = "0600";
+          }
+        ];
+      };
+      home = {config}: {
+        directories = [".local/share/${config.home.username}"];
+      };
+    };
+  };
+  stateConsumer = moduleLib.mkModule {
+    name = "state-consumer";
+    module = _: {
+      nixos = {state}: {environment.etc."state.json".text = builtins.toJSON state;};
+      home = {state}: {home.file."state.json".text = builtins.toJSON state;};
+    };
+  };
+  homeState = {
+    stateful = {
+      directories = [".local/share/fixture"];
+      files = [];
+    };
+  };
+  systemState = {
+    stateful = {
+      directories = ["/var/lib/fixture/system"];
+      files = [
+        {
+          file = "/etc/fixture-state";
+          mode = "0600";
+        }
+      ];
+    };
+  };
+  stateHost = role: args: modules:
+    moduleLib.mkHost {
+      modules = [base] ++ modules;
+      inherit commonArgs system role args;
+      name = "state-${role}";
+    };
+  statefulNixos = stateHost "nixos" {stateRoot = "/var/lib/fixture";} [stateful stateConsumer];
+  invalidState = scope: kind: path:
+    stateHost "nixos" {} [
+      (moduleLib.mkModule {
+        name = "invalid-state";
+        state.${scope}.${kind} = [path];
+      })
+    ];
   metadata = discovered.ownership {
     root = ../../..;
     inherit system pkgs;
@@ -455,6 +511,62 @@
         name = "too-many-users";
         role = "nixos";
       }).config.networking.hostName;
+    stateCollectsBothScopes =
+      statefulNixos.config.moduleLibrary.state
+      == {
+        nixos = systemState;
+        home = homeState;
+      };
+    stateVisibleToSystemSections =
+      statefulNixos.config.environment.etc."state.json".text
+      == builtins.toJSON statefulNixos.config.moduleLibrary.state;
+    stateVisibleToEmbeddedHomes =
+      statefulNixos.config.home-manager.users.fixture.home.file."state.json".text
+      == builtins.toJSON statefulNixos.config.moduleLibrary.state;
+    standaloneHomeCollectsHomeState =
+      (stateHost "home" {} [stateful stateConsumer]).config.home.file."state.json".text
+      == builtins.toJSON {
+        home = homeState;
+        nixos = {};
+      };
+    stateWithoutDeclarationsIsEmpty =
+      (stateHost "nixos" {} [stateConsumer]).config.moduleLibrary.state
+      == {
+        nixos = {};
+        home = {};
+      };
+    unselectedStateStaysOut =
+      (stateHost "nixos" {} [(stateful // {ids = ["unselected"];})]).config.moduleLibrary.state.home
+      == {};
+    missingStateArgumentFails = fails (stateHost "nixos" {} [stateful]).config.networking.hostName;
+    relativeSystemStateFails = fails (invalidState "nixos" "directories" "var/lib/relative").config.moduleLibrary.state;
+    absoluteHomeStateFails = fails (invalidState "home" "files" "/etc/absolute").config.moduleLibrary.state;
+    entryWithoutPathFails = fails (invalidState "nixos" "files" {mode = "0600";}).config.moduleLibrary.state;
+    unknownStateScopeFails = fails (moduleLib.mkModule {
+      name = "unknown-scope";
+      state.system = {};
+    });
+    unknownStateFieldFails =
+      fails
+      (stateHost "nixos" {} [
+        (moduleLib.mkModule {
+          name = "unknown-field";
+          state.nixos.paths = ["/var/lib/unknown"];
+        })
+      ]).config.moduleLibrary.state;
+    directNixosConsumerState =
+      (inputs.nixpkgs.lib.nixosSystem {
+        inherit system;
+        specialArgs = {
+          userName = "fixture";
+          stateRoot = "/var/lib/fixture";
+        };
+        modules = [registry.nixosModules.base (moduleLib.mkRegistry {modules = [stateful];}).nixosModules.stateful];
+      }).config.moduleLibrary.state
+      == {
+        nixos = systemState;
+        home = homeState;
+      };
   };
   failures = builtins.attrNames (lib.filterAttrs (_: passed: !passed) tests);
 in {
@@ -466,6 +578,7 @@ in {
     assertion = (withModules [(sharedAssertion false)]).config.home.username;
     conditionalHomeAssertion = (assertionHost "home" mergedAssertions).config.home.username;
     conditionalNixosAssertion = (assertionHost "nixos" mergedAssertions).config.networking.hostName;
+    stateType = (invalidState "home" "files" "/etc/absolute").config.moduleLibrary.state;
   };
   results =
     if failures == []
@@ -475,6 +588,9 @@ in {
     test "$(cat ${exports.packages.example})" = owned
     test -e ${exports.checks.example}
     ${lib.optionalString (system == "x86_64-linux") "test -e ${discoveredExports.checks.discovered}"}
+    grep -F -- '- `/var/lib/fixture/system`' ${statefulNixos.documentation.source}/docs/state.md
+    grep -F -- '- `/etc/fixture-state` (mode: 0600)' ${statefulNixos.documentation.source}/docs/state.md
+    grep -F -- '- `.local/share/fixture`' ${statefulNixos.documentation.source}/docs/state.md
     touch "$out"
   '';
 }

@@ -63,6 +63,9 @@ for architecture in systems:
             "host 'conditional-nixos'", "module 'conditional-assertion'",
             "enabled conditional assertion",
         ],
+        "stateType": [
+            "host 'state-nixos'", "module 'invalid-state'", "home-relative path",
+        ],
     }.items():
         result = evaluate(f"diagnostics.{case}", architecture)
         require(result.returncode != 0, f"Expected {case} to fail", result)
@@ -79,4 +82,4 @@ for architecture in systems:
         "Missing unused-argument warning",
         result,
     )
-    print(f"{architecture}: 7 diagnostic fixtures passed", flush=True)
+    print(f"{architecture}: 8 diagnostic fixtures passed", flush=True)

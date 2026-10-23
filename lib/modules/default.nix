@@ -16,8 +16,66 @@
     entries;
   validName = name: builtins.isString name && builtins.match "[a-zA-Z0-9][a-zA-Z0-9_-]*" name != null;
   idsValid = ids: builtins.isList ids && builtins.all builtins.isString ids;
+  stateScopes = ["nixos" "home"];
+  stateValid = state:
+    builtins.isAttrs state
+    && builtins.all (scope: builtins.elem scope stateScopes) (builtins.attrNames state)
+    && builtins.all (value: builtins.isAttrs value || builtins.isFunction value) (builtins.attrValues state);
+  # Entries keep the upstream preservation format: a path or an attribute set naming one.
+  stateEntry = scope: kind: let
+    field =
+      if kind == "directories"
+      then "directory"
+      else "file";
+    absolute = scope == "nixos";
+    path = entry:
+      if builtins.isString entry
+      then entry
+      else entry.${field} or null;
+    valid = entry: builtins.isString (path entry) && path entry != "" && lib.hasPrefix "/" (path entry) == absolute;
+  in
+    lib.types.addCheck (lib.types.either lib.types.str (lib.types.attrsOf lib.types.anything)) valid
+    // {
+      description = "${
+        if absolute
+        then "absolute"
+        else "home-relative"
+      } path, or attribute set with such a ${field}";
+    };
+  # Keyed so that every generated module can import it; persistence modules read the result.
+  stateOptions = {
+    key = "lib/modules#state";
+    options.moduleLibrary.state = lib.genAttrs stateScopes (scope:
+      lib.mkOption {
+        type = lib.types.attrsOf (lib.types.submodule {
+          options = lib.genAttrs ["directories" "files"] (kind:
+            lib.mkOption {
+              type = lib.types.listOf (stateEntry scope kind);
+              default = [];
+            });
+        });
+        default = {};
+        internal = true;
+        description = "State declared by each selected module, keyed by module name.";
+      });
+  };
+  # Embedded home state joins the system collection once per evaluation.
+  stateBridge = user: {config, ...}: {
+    key = "lib/modules#state-bridge";
+    config = {
+      home-manager.users.${user}.imports = [stateOptions];
+      moduleLibrary.state.home = config.home-manager.users.${user}.moduleLibrary.state.home;
+    };
+  };
+  stateNames = role: declaration:
+    builtins.filter (scope: declaration.state ? ${scope})
+    (
+      if role == "nixos"
+      then stateScopes
+      else ["home"]
+    );
   # Context comes from the evaluator; only the remaining names are host arguments.
-  contextNames = ["config" "options" "lib" "pkgs" "inputs" "self" "system" "role" "packages" "osConfig" "modulesPath" "specialArgs"];
+  contextNames = ["config" "options" "lib" "pkgs" "inputs" "self" "system" "role" "packages" "state" "osConfig" "modulesPath" "specialArgs"];
   hostRequests = fn: builtins.filter (name: !(builtins.elem name contextNames)) (arguments.requests fn);
   documentationRequests = declaration:
     lib.concatMap (field:
@@ -42,6 +100,7 @@ in rec {
     name,
     ids ? [],
     module ? (_: {}),
+    state ? {},
     packages ? {},
     checks ? {},
     assertions ? (_: []),
@@ -54,8 +113,10 @@ in rec {
     then fail "module '${name}': ids must be a list of strings"
     else if !(builtins.isFunction module && builtins.isFunction assertions)
     then fail "module '${name}': module and assertions must be functions"
+    else if !(stateValid state)
+    then fail "module '${name}': state may only contain nixos and home sets or functions"
     else {
-      inherit name ids module packages checks assertions docs imperativeSteps;
+      inherit name ids module state packages checks assertions docs imperativeSteps;
     };
 
   mkRegistry = {
@@ -100,7 +161,7 @@ in rec {
         call "host '${hostName}', Home Manager integration" values context config._module.args
         ({userName}: userName);
     in {
-      imports = [inputs.home-manager.nixosModules.home-manager];
+      imports = [inputs.home-manager.nixosModules.home-manager stateOptions (stateBridge user.value)];
       home-manager = {
         useGlobalPkgs = true;
         useUserPackages = true;
@@ -127,11 +188,13 @@ in rec {
       body = outer.value;
       active = applicable role body;
       ownPackages = packageSet pkgs.stdenv.hostPlatform.system pkgs declaration;
+      # Sections read the host's collected state; embedded homes see the system collection.
       sectionContext =
         baseContext
         // context
         // {
           packages = ownPackages;
+          inherit (config.moduleLibrary) state;
           system = pkgs.stdenv.hostPlatform.system;
         };
       # Home sections need the embedded user’s config, not the surrounding system config.
@@ -148,6 +211,25 @@ in rec {
             message = "${label}: argument validation";
           }
         ];
+      };
+      # State binds like a section, so home paths can refer to the home configuration.
+      stateModule = scope: sectionArgs: let
+        input = declaration.state.${scope};
+        bound =
+          call label values (sectionContext // sectionArgs)
+          sectionArgs.config._module.args
+          input;
+      in {
+        _file = "${label} state";
+        imports = [stateOptions];
+        moduleLibrary.state.${scope}.${declaration.name} =
+          if builtins.isFunction input
+          then bound.value
+          else input;
+        assertions = lib.optional (builtins.isFunction input) {
+          assertion = bound.required;
+          message = "${label}: state argument validation";
+        };
       };
       assertions = call label values sectionContext config._module.args declaration.assertions;
       # Resolve conditional lists with the public module API before adding diagnostics.
@@ -174,7 +256,7 @@ in rec {
       then {}
       else {
         imports =
-          [shared]
+          [shared stateOptions]
           ++ (
             if role == "nixos"
             then [(integration values hostName)]
@@ -185,6 +267,7 @@ in rec {
             then [(section role context)]
             else []
           )
+          ++ lib.optional (declaration.state ? ${role}) (stateModule role context)
           ++ lib.optional (role == "nixos" && body ? home) {
             home-manager.users.${user} = {
               config,
@@ -192,6 +275,14 @@ in rec {
               ...
             } @ homeContext:
               section "home" (homeContext // {inherit config pkgs;});
+          }
+          ++ lib.optional (role == "nixos" && declaration.state ? home) {
+            home-manager.users.${user} = {
+              config,
+              pkgs,
+              ...
+            } @ homeContext:
+              stateModule "home" (homeContext // {inherit config pkgs;});
           };
       };
     namedModules = role: lib.mapAttrs (_: compile role {} "<direct consumer>") declarations;
@@ -220,6 +311,7 @@ in rec {
       chosen = builtins.filter (selected ids) ordered;
       documentation = import ./documentation.nix {
         inherit lib pkgs name;
+        inherit (result.config.moduleLibrary) state;
         commonArgs = validatedCommonArgs;
         pages =
           lib.filterAttrs (_: page: page.docs != null || page.imperativeSteps != null)
@@ -251,7 +343,9 @@ in rec {
         lib.optionals (applicable targetRole body)
         (hostRequests declaration.module
           ++ hostRequests declaration.assertions
-          ++ lib.concatMap (section: hostRequests body.${section}) (sectionNames targetRole body));
+          ++ lib.concatMap (section: hostRequests body.${section}) (sectionNames targetRole body)
+          ++ lib.concatMap (scope: lib.optionals (builtins.isFunction declaration.state.${scope}) (hostRequests declaration.state.${scope}))
+          (stateNames targetRole declaration));
       known = lib.unique (["userName"]
         ++ builtins.attrNames validatedCommonArgs
         ++ lib.concatMap (declaration: requested "nixos" declaration ++ documentationRequests declaration) ordered);
@@ -275,7 +369,7 @@ in rec {
         else
           inputs.home-manager.lib.homeManagerConfiguration {
             inherit pkgs;
-            modules = [{home.packages = [documentation.package];}] ++ compiled;
+            modules = [stateOptions {home.packages = [documentation.package];}] ++ compiled;
           };
       # Check embedded homes too; their assertions are not system-level assertions.
       failures =

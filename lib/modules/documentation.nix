@@ -7,9 +7,65 @@
   name,
   pages,
   commonArgs,
+  state,
 }: let
   reference = import ./argument-reference.nix {inherit lib pkgs commonArgs;};
   instructions = lib.filterAttrs (_: page: page.imperativeSteps != null) pages;
+  # Attribute-set entries name their path and list the remaining upstream settings.
+  describe = field: entry:
+    if builtins.isString entry
+    then "- `${entry}`"
+    else let
+      settings = builtins.removeAttrs entry [field];
+      render = value:
+        if builtins.isString value
+        then value
+        else builtins.toJSON value;
+    in
+      "- `${entry.${field}}`"
+      + lib.optionalString (settings != {})
+      " (${lib.concatStringsSep ", " (lib.mapAttrsToList (name: value: "${name}: ${render value}") settings)})";
+  stateLists = moduleName:
+    builtins.filter (list: list.entries != []) [
+      {
+        title = "System directories";
+        field = "directory";
+        entries = state.nixos.${moduleName}.directories or [];
+      }
+      {
+        title = "System files";
+        field = "file";
+        entries = state.nixos.${moduleName}.files or [];
+      }
+      {
+        title = "Home directories";
+        field = "directory";
+        entries = state.home.${moduleName}.directories or [];
+      }
+      {
+        title = "Home files";
+        field = "file";
+        entries = state.home.${moduleName}.files or [];
+      }
+    ];
+  stateModules = builtins.filter (moduleName: stateLists moduleName != []) (builtins.attrNames (state.nixos // state.home));
+  statePage = pkgs.writeText "state.md" ''
+    # State
+
+    Selected modules declare this state. System paths are absolute; home paths are relative
+    to the user's home directory. A selected persistence module decides where it is kept.
+
+    ${
+      if stateModules == []
+      then "No selected modules declare state."
+      else
+        lib.concatMapStringsSep "\n\n" (moduleName:
+          "## ${moduleName}\n\n"
+          + lib.concatMapStringsSep "\n\n" (list: "### ${list.title}\n\n${lib.concatMapStringsSep "\n" (describe list.field) list.entries}")
+          (stateLists moduleName))
+        stateModules
+    }
+  '';
   # The caller omits blank pages; only selected modules with content get navigation.
   moduleFiles =
     lib.mapAttrsToList (moduleName: page: {
@@ -29,6 +85,7 @@
     Opening it does not execute the manual instructions.
 
     - [Imperative steps](imperative-steps.md)
+    - [State](state.md)
     - [Common argument reference](module-reference.md)
 
     ## Modules
@@ -80,6 +137,7 @@
         [
           {Home = "index.md";}
           {"Imperative steps" = "imperative-steps.md";}
+          {State = "state.md";}
           {"Common argument reference" = "module-reference.md";}
         ]
         ++ lib.optional (pages != {}) {
@@ -104,6 +162,10 @@
       {
         name = "docs/imperative-steps.md";
         path = combined;
+      }
+      {
+        name = "docs/state.md";
+        path = statePage;
       }
       {
         name = "docs/module-reference.md";
