@@ -40,6 +40,7 @@ for the constructor API and output ownership contract.
 | `docs/`, `zensical.toml` | Documentation and site configuration |
 | `secrets/`, `.sops.yaml` | Encrypted secrets and age recipient rules |
 | `devenv.nix`, `devenv.yaml` | Development tools and formatting hook |
+| `.agents/skills/` | Agent skills; `.claude/skills` links here for Claude Code |
 
 Read affected files and nearby examples before editing. Keep changes scoped to the task.
 

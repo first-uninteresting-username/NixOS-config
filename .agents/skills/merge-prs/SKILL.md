@@ -1,8 +1,7 @@
 ---
 name: merge-prs
-description: Merge open pull requests in this repository one at a time, rebasing each onto main and waiting for the required CI check before merging with a merge commit. Use when the user asks to merge PRs, land the PR queue, or merge specific PR numbers.
+description: Merge open pull requests in this repository one at a time, rebasing each onto main and waiting for the required CI check before merging with a merge commit. Use only when the user explicitly asks to merge PRs, land the PR queue, or merge specific PR numbers.
 disable-model-invocation: true
-argument-hint: "[PR numbers or filter, e.g. 601 602 | label:deps | all]"
 ---
 
 # Merge pull requests
@@ -11,8 +10,8 @@ Land open pull requests into `main` serially. Invoking this skill authorizes mer
 selected PRs; it does not authorize bypassing the ruleset, editing PR code, or resolving
 conflicts.
 
-Arguments: `$ARGUMENTS`. With no arguments, select every eligible open PR. Otherwise select
-only the PRs the arguments name (numbers, branch names, labels, or a description).
+With no further instructions, select every eligible open PR. Otherwise select only the PRs
+the user names (numbers, branch names, labels, or a description).
 
 ## Repository constraints
 
@@ -65,12 +64,13 @@ For each PR `N`:
    unless the user asks. After the rebase, read the new `headRefOid`.
    If the PR is already up to date and `all-systems-passed` passed on its head, merge it
    at once.
-3. **Wait for CI.** Run the wait script **as a background command** (`run_in_background`),
-   so the harness notifies you when it exits. Do not use foreground `sleep` or poll in a loop
-   yourself:
+3. **Wait for CI.** Run the wait script as a background command if your environment
+   supports one and notifies you when it exits; otherwise run it in the foreground with the
+   longest allowed command timeout and run it again if it is cut off. Do not write your own
+   `sleep` loops:
 
    ```bash
-   python3 .claude/skills/merge-prs/wait-for-ci.py N --sha <head-sha>
+   python3 .agents/skills/merge-prs/wait-for-ci.py N --sha <head-sha>
    ```
 
    It polls every 90 seconds, times out after 90 minutes, and exits with:
@@ -83,9 +83,6 @@ For each PR `N`:
    | 3 | PR closed or merged elsewhere | record and continue |
    | 4 | someone pushed to the PR | restart from step 1 |
 
-   If background commands are unavailable, use
-   `gh pr checks N --required --watch --interval 90` with the longest allowed timeout and
-   repeat until it finishes.
 4. **Merge** only the SHA that passed:
 
    ```bash
