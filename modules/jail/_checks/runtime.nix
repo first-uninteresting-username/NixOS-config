@@ -23,6 +23,7 @@
       ! test -e "$HOME/.ssh"
       ! test -e /run/dbus/system_bus_socket
       ! touch "$HOME/read only/forbidden" 2>/dev/null
+      mktemp /var/tmp/probe-XXXXXX > /dev/null
       printf '%s\n' "$@" > "$HOME/app state/args"
       printf '%s\n' '${message}' > "$HOME/app state/message"
       readlink /proc/self/ns/net > "$HOME/app state/net"
@@ -44,6 +45,8 @@
       test -r /etc/resolv.conf
       /bin/sh -c 'test -r /etc/passwd'
       ! test -e /tmp/host-only
+      ! test -e /var/tmp/host-only
+      mktemp /var/tmp/probe-XXXXXX > /dev/null
       ! test -e /run/dbus/system_bus_socket
       ! test -e /nix/var/nix/daemon-socket/socket
       ! touch "$HOME/forbidden" 2>/dev/null
@@ -220,7 +223,7 @@ in
       machine.succeed("mkdir -p /lib64; touch /lib64/jail-loader /dev/jail-device")
       machine.succeed("su - alice -c 'mkdir -p \"read only\" .ssh; echo visible > \"read only/input\"; touch secret'")
 
-      machine.succeed("mkdir -p /srv/data /mnt /run/media; mount -t tmpfs tmpfs /mnt; echo readable > /srv/data/file; cp /srv/data/file /mnt/file; cp /srv/data/file /run/media/file; chown -R alice:users /srv/data /mnt /run/media; touch /tmp/host-only")
+      machine.succeed("mkdir -p /srv/data /mnt /run/media; mount -t tmpfs tmpfs /mnt; echo readable > /srv/data/file; cp /srv/data/file /mnt/file; cp /srv/data/file /run/media/file; chown -R alice:users /srv/data /mnt /run/media; touch /tmp/host-only /var/tmp/host-only")
       machine.succeed("su - alice -c 'ln -s /srv/data/file data-link'")
 
       def run(binary):
@@ -256,5 +259,6 @@ in
       machine.succeed("su - alice -c '${sessionTest}'")
       assert machine.succeed("cat '/home/alice/app state/broad-net'").strip() == host_net
       machine.succeed("test ! -e /home/alice/forbidden; test ! -e /srv/data/forbidden; test ! -e /mnt/forbidden; test ! -e /run/media/forbidden")
+      machine.fail("ls /var/tmp/probe-*")
     '';
   }

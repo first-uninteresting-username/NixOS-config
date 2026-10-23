@@ -48,7 +48,7 @@ another package or an executable outside `bin` needs an application-specific ove
 
 `homeDirs` accepts directories, not files. Paths must be relative to home and cannot
 contain empty components, `.` or `..`. Paths containing spaces are supported. `readOnly` and
-`readWrite` do not create paths. By default, the jail starts in an empty home and private `/tmp`;
+`readWrite` do not create paths. By default, the jail starts in an empty home and private `/tmp` and `/var/tmp`;
 unmounted application state disappears when the app exits. Existing preservation rules
 retain mounted settings across reboots; `mkJail` does not add preservation rules.
 
