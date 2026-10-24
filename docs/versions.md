@@ -6,4 +6,4 @@
 - Checks - v4
 - Hosts - v3
 - Dev setup - v2
-- Packages - v2
+- Packages - v3

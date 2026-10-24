@@ -5,8 +5,6 @@
 """Merge strictly scoped updates using trusted policy and checks on the current revision."""
 
 import argparse
-import base64
-import copy
 import json
 import os
 from pathlib import Path
@@ -19,7 +17,6 @@ import urllib.request
 AGGREGATE = "all-systems-passed"
 ACTIONS_APP = 15368
 ACTION_BOT_ID = 41898282
-HASH_FILE = "modules/programs-desktop/_flow-desktop/release.json"
 
 
 def same_repository(source, repository):
@@ -71,49 +68,11 @@ def unique_object(pairs):
     return result
 
 
-def valid_hash(value):
-    if not isinstance(value, str) or not value.startswith("sha256-"):
-        return False
-    try:
-        decoded = base64.b64decode(value[7:], validate=True)
-    except (ValueError, TypeError):
-        return False
-    return len(decoded) == 32 and base64.b64encode(decoded).decode() == value[7:]
-
-
-def source_hash_only(old, new):
-    """Allow only valid hash-leaf changes while preserving URLs, versions, and shape."""
-    try:
-        before = json.loads(old, object_pairs_hook=unique_object)
-        after = json.loads(new, object_pairs_hook=unique_object)
-        if not isinstance(before, dict) or not isinstance(after, dict):
-            return False
-        old_sources = before["sources"]
-        new_sources = after["sources"]
-        if not isinstance(old_sources, dict) or not old_sources or old_sources.keys() != new_sources.keys():
-            return False
-        scrubbed = copy.deepcopy(after)
-        changed = False
-        for system, source in old_sources.items():
-            new_source = new_sources[system]
-            if not isinstance(source, dict) or not isinstance(new_source, dict):
-                return False
-            if not valid_hash(source["hash"]) or not valid_hash(new_source["hash"]):
-                return False
-            changed |= source["hash"] != new_source["hash"]
-            scrubbed["sources"][system]["hash"] = source["hash"]
-        # Python equality treats true, 1 and 1.0 as equal; source metadata types must stay fixed.
-        return changed and (json.dumps(scrubbed, sort_keys=True, allow_nan=False)
-                            == json.dumps(before, sort_keys=True, allow_nan=False))
-    except (ValueError, TypeError, KeyError, AttributeError):
-        return False
-
-
 def eligible(changes):
     """changes contains (status, path, old bytes, new bytes), read without checking out PR code."""
     if not changes:
         return False, "empty diff"
-    for status, path, old, new in changes:
+    for status, path, _, new in changes:
         if status != "M":
             return False, f"{path}: additions, deletions and renames are not automatic updates"
         if path == "flake.lock":
@@ -122,11 +81,9 @@ def eligible(changes):
                     return False, "flake.lock must remain a JSON object"
             except (ValueError, TypeError):
                 return False, "flake.lock is not valid JSON"
-        elif path == HASH_FILE and source_hash_only(old, new):
-            continue
         else:
-            return False, f"{path}: not a supported package source-hash-only update"
-    return True, "diff contains only flake.lock and/or validated package source hashes"
+            return False, f"{path}: only flake.lock updates merge automatically"
+    return True, "diff contains only flake.lock"
 
 
 def required_contexts(branch, rules):

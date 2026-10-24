@@ -232,29 +232,26 @@ another person's later push eligible, and an owner rerun does not override an un
 original workflow actor. The checked workflow and its head source must also belong to the
 target repository; the global Actions bot identity from a fork cannot authorize merging.
 Fork PRs, outside contributors, other collaborators, and other bots require manual review,
-even when their diffs contain only lock or hash updates and every check passes. Missing
+even when their diffs contain only lock updates and every check passes. Missing
 identity data blocks automation. Repository and author trust are checked again immediately
 before the merge request. A PAT belonging to another service account does not implicitly
 grant automatic-merge eligibility.
 
-Eligible diffs contain only modifications to `flake.lock` and/or existing SHA256 source
-hash leaves in `modules/programs-desktop/_flow-desktop/release.json`. Every existing source key, URL,
-version, and other field must remain identical. Added/deleted/renamed files, file mode
-changes, unsupported package formats, and mixed configuration/workflow/implementation
-changes require manual merging. Add another package format only with a strict schema and
-policy tests; generic text matching of Nix hash assignments is insufficient.
+Eligible diffs contain only modifications to `flake.lock`. [Package updates](package-updates.md)
+edit Nix sources and always require manual merging, as do added/deleted/renamed files, file
+mode changes, and mixed configuration/workflow/implementation changes. Automate another file
+only with a strict schema and policy tests; generic text matching of Nix hash assignments
+is insufficient.
 
-Lock changes must pass the complete non-ISO test suite. Hash changes require basic
-validation and the packages and checks selected by their affected module directory. The merge
-policy requires a successful aggregate from the completed triggering check suite at the
-current PR head SHA, plus every applicable classic/ruleset required status. Missing,
-pending, cancelled, failed, or skipped required checks block merging. A superseded run or
-a PR retargeted while checking cannot authorize a merge.
+Lock changes must pass the complete non-ISO test suite. The merge policy requires a
+successful aggregate from the completed triggering check suite at the current PR head SHA,
+plus every applicable classic/ruleset required status. Missing, pending, cancelled, failed,
+or skipped required checks block merging. A superseded run or a PR retargeted while
+checking cannot authorize a merge.
 
 A newer successful full run at the same revision does not hide the triggering PR's
 successful aggregate. The PR's own aggregate must still exist and pass, and newer pending
-or unsuccessful required results still block merging. Source metadata comparisons preserve
-JSON types as well as values, so a hash update cannot also change a number into a boolean.
+or unsuccessful required results still block merging.
 
 The final GitHub merge request specifies the validated head SHA and uses the repository's
 supported merge-commit method. GitHub still enforces branch protections, strict up-to-date

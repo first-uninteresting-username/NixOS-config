@@ -52,10 +52,10 @@ mkModule {
       passthru = {
         inherit sources;
         updateScript = pkgs.nix-update-script {
-          attrPath = "orchard-cli";
           extraArgs = [
             "--flake"
             "--use-github-releases"
+            # Subpackage hashes belong to fetchurl, whose position is in Nixpkgs.
             "--override-filename"
             "modules/orchard-cli/default.nix"
             "--subpackage"
@@ -96,10 +96,10 @@ mkModule {
     Run `orchard --help` for commands.
     `passthru.updateScript` uses Nixpkgs’ `nix-update-script` for both Linux architectures.
     The scheduled package updater runs it on Mondays and Thursdays and opens an update PR.
-    Run it manually from the repository root with:
+    Run it manually from the repository with:
 
     ```sh
-    nix run --inputs-from . nixpkgs#nix-update -- --flake --use-update-script orchard-cli
+    nix run .#update-packages -- orchard-cli
     ```
 
     Configuration and credentials in `~/.orchard` persist when preservation is enabled.

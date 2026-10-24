@@ -43,36 +43,16 @@ jobs:
           authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
           installCommand: "nix profile add nixpkgs#cachix"
 
-      - name: List packages
-        id: list
-        env:
-          PACKAGE_FILTER: ${{ inputs.packages || '[]' }}
-        run: |
-          PKGS=$(nix eval .#packages \
-            --apply 'p:
-              let system = builtins.head (builtins.attrNames p);
-              in builtins.attrNames p.${system}
-            ' \
-            --json)
-
-          P_FILTER="$PACKAGE_FILTER"
-          if [ "$P_FILTER" != "[]" ] && [ -n "$P_FILTER" ]; then
-            PKGS=$(echo "$PKGS" | jq --argjson filter "$P_FILTER" \
-              '[.[] | select(. as $n | $filter | index($n))]')
-          fi
-
-          echo "packages=$PKGS" >> "$GITHUB_OUTPUT"
+      # The runner rolls back a failed package, so successful updates still reach the PR.
       - name: Update packages
+        id: update
+        continue-on-error: true
         env:
-          PACKAGES: ${{ steps.list.outputs.packages }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PACKAGES: ${{ inputs.packages || '[]' }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "$PACKAGES" | jq -r '.[]' | while read -r pkg; do
-            echo "::group::nix-update $pkg"
-            nix run github:Mic92/nix-update -- --flake --use-update-script "$pkg" \
-              || echo "::warning::nix-update failed for $pkg"
-            echo "::endgroup::"
-          done
+          mapfile -t selected < <(jq -r '.[]' <<< "$PACKAGES")
+          nix run .#update-packages -- "${selected[@]}"
 
       - name: Check for changes
         id: changes
@@ -89,7 +69,14 @@ jobs:
           commit-message: "deps: update packages"
           title: "chore(update): biweekly package update"
           body: |
-            Automated package updates via `nix-update`, using package update scripts when available.
+            Automated package updates from each package's `passthru.updateScript`.
+            See docs/package-updates.md.
           branch: "chore(update)/package-updates"
           delete-branch: true
           labels: dependencies
+
+      - name: Fail on unsuccessful updates
+        if: steps.update.outcome == 'failure'
+        run: |
+          echo "::error::Some package updates failed; see the Update packages step."
+          exit 1

@@ -74,6 +74,9 @@ the `rebuild` helper for validation; that helper boots remote `main`.
   Exports do not install themselves. Host-dependent construction stays in local lambdas.
 - [ ] `default` exports as the module name; other packages and checks export as
   `<module>-<name>`. Output names and consumers agree after renames.
+- [ ] Packages pinning an upstream release declare `passthru.updateScript` with
+  `nix-update-script` and `--flake`, keep `version` and hashes literal in Nix, and pass
+  `--override-filename` when updating per-system `fetchurl` subpackages.
 - [ ] Edited Nix files have the repository SPDX header and Alejandra formatting. Use explicit
   `lib.*` references and avoid a top-level `with lib;`. Flag line length and naming as minor
   issues unless they cause a concrete correctness problem.
