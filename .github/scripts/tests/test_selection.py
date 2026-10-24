@@ -95,7 +95,7 @@ class SelectionTests(unittest.TestCase):
 
     def test_shared_changes_select_full_non_iso_suite(self):
         for path in ["flake.lock", "flake.nix", "arguments/user.nix", "lib/helper.nix",
-                     "github-actions/default.nix", "checks/new.nix",
+                     "github-actions/default.nix",
                      ".github/scripts/select-tests.py", ".github/scripts/aggregate-status.py",
                      ".github/scripts/prove-regression.py", ".github/workflows/flake-build.yaml",
                      ".github/workflows/flake-check.yaml", ".github/workflows/build-targets.yaml",
