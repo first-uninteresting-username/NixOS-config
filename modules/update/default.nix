@@ -62,7 +62,7 @@ mkModule {
             Type = "oneshot";
             ExecStart = pkgs.writeShellScript "upgrade" ''
               set -e
-              ${pkgs.nixos-rebuild}/bin/nixos-rebuild boot \
+              ${lib.getExe pkgs.nixos-rebuild} boot \
                 --flake ${lib.escapeShellArg flakeRef} \
                 -L
             '';

@@ -20,17 +20,22 @@ mkModule {
     ];
   };
   module = _: {
-    nixos = {pkgs, ...}: {
+    nixos = {
+      lib,
+      pkgs,
+      ...
+    }: {
       config = {
         systemd = {
           tmpfiles.rules = [
-            "L+ /bin/bash - - - - ${pkgs.bash}/bin/bash"
+            "L+ /bin/bash - - - - ${lib.getExe pkgs.bash}"
           ];
         };
       };
     };
     home = {
       pkgs,
+      lib,
       inputs,
       ...
     }: {
@@ -213,8 +218,8 @@ mkModule {
             tb = "nc termbin.com 9999";
           };
           sessionVariables = {
-            PAGER = "${pkgs.bat}/bin/bat";
-            MANPAGER = "sh -c 'col --no-backspaces --spaces | ${pkgs.bat}/bin/bat --language man'";
+            PAGER = "${lib.getExe pkgs.bat}";
+            MANPAGER = "sh -c 'col --no-backspaces --spaces | ${lib.getExe pkgs.bat} --language man'";
           };
         };
       };
