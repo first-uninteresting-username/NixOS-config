@@ -22,7 +22,7 @@ mkModule {
       ];
     };
   };
-  module = _: {
+  module = {screenshotBinding ? "<Shift>Print"}: {
     nixos = {
       lib,
       pkgs,
@@ -349,7 +349,7 @@ mkModule {
             name = "File Manager";
           };
           "org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/gradia" = {
-            binding = "<Shift>Print";
+            binding = screenshotBinding;
             command = "${pkgs.gradia}/bin/gradia  --screenshot=INTERACTIVE";
             name = "Screenshot";
           };
