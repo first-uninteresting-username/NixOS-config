@@ -5,20 +5,16 @@
 mkModule {
   name = "solaar";
   ids = ["solaar"];
+  state = {
+    home.directories = [
+      ".config/solaar"
+    ];
+  };
   module = _: {
-    nixos = {
-      lib,
-      preservationEnable,
-      userName,
-      ...
-    }: {
+    nixos = _: {
       programs.solaar = {
         enable = true;
         userService.enable = true;
-      };
-
-      preservation.preserveAt = lib.mkIf preservationEnable {
-        "/persist".users.${userName}.directories = [".config/solaar"];
       };
     };
   };

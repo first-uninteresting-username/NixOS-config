@@ -5,21 +5,13 @@
 mkModule {
   name = "smart";
   ids = ["smart"];
+  state = {
+    nixos.directories = [
+      "/var/lib/smartmontools"
+    ];
+  };
   module = _: {
-    nixos = {
-      lib,
-      pkgs,
-      preservationEnable,
-      ...
-    }: {
-      preservation.preserveAt = lib.mkIf preservationEnable {
-        "/persist" = {
-          directories = [
-            "/var/lib/smartmontools"
-          ];
-        };
-      };
-
+    nixos = {pkgs, ...}: {
       environment.systemPackages = with pkgs; [smartmontools];
 
       services.smartd = {

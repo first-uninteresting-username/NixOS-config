@@ -5,33 +5,16 @@
 mkModule {
   name = "programs-desktop";
   ids = ["programs-desktop"];
+  state = {
+    nixos.directories = [
+      "/var/lib/kdeconnect"
+    ];
+    home.directories = [
+      ".config/kdeconnect"
+    ];
+  };
   module = _: {
-    nixos = {
-      lib,
-      pkgs,
-      userName,
-      preservationEnable,
-      ...
-    }: {
-      preservation.preserveAt = lib.mkIf preservationEnable {
-        "/persist" = {
-          directories = [
-            "/var/lib/kdeconnect"
-          ];
-          files = [
-            # System-level files to persist
-          ];
-          users.${userName} = {
-            directories = [
-              ".config/kdeconnect"
-            ];
-            files = [
-              # User-level files to persist (relative to $HOME)
-            ];
-          };
-        };
-      };
-
+    nixos = {pkgs, ...}: {
       programs = {
         kdeconnect.enable = true;
       };

@@ -5,32 +5,21 @@
 mkModule {
   name = "xdg";
   ids = ["xdg"];
+  state = {
+    home.directories = [
+      ".config"
+      ".local/share"
+      ".local/state"
+      "Downloads"
+      "Documents"
+      "Pictures"
+      "Templates"
+      "Videos"
+      "Projects"
+      "Games"
+    ];
+  };
   module = _: {
-    nixos = {
-      lib,
-      userName,
-      preservationEnable,
-      ...
-    }: {
-      preservation.preserveAt = lib.mkIf preservationEnable {
-        "/persist" = {
-          users.${userName} = {
-            directories = [
-              ".config"
-              ".local/share"
-              ".local/state"
-              "Downloads"
-              "Documents"
-              "Pictures"
-              "Templates"
-              "Videos"
-              "Projects"
-              "Games"
-            ];
-          };
-        };
-      };
-    };
     home = {
       config,
       userName,

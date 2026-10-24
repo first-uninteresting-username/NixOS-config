@@ -5,19 +5,13 @@
 mkModule {
   name = "sunshine";
   ids = ["sunshine"];
+  state = {
+    nixos.directories = [
+      "/var/lib/sunshine"
+    ];
+  };
   module = _: {
-    nixos = {
-      lib,
-      preservationEnable,
-      ...
-    }: {
-      preservation.preserveAt = lib.mkIf preservationEnable {
-        "/persist" = {
-          directories = [
-            "/var/lib/sunshine"
-          ];
-        };
-      };
+    nixos = _: {
       services.sunshine = {
         enable = true;
         autoStart = true;

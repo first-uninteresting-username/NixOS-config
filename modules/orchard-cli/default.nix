@@ -5,17 +5,12 @@
 mkModule {
   name = "orchard-cli";
   ids = ["orchard-cli"];
+  state = {
+    home.directories = [
+      ".orchard"
+    ];
+  };
   module = _: {
-    nixos = {
-      lib,
-      userName,
-      preservationEnable,
-      ...
-    }: {
-      preservation.preserveAt = lib.mkIf preservationEnable {
-        "/persist".users.${userName}.directories = [".orchard"];
-      };
-    };
     home = {packages, ...}: {
       home.packages = [packages.default];
     };

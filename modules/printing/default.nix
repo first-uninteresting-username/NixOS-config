@@ -5,20 +5,13 @@
 mkModule {
   name = "printing";
   ids = ["printing"];
+  state = {
+    nixos.directories = [
+      "/var/lib/cups"
+    ];
+  };
   module = _: {
-    nixos = {
-      lib,
-      preservationEnable,
-      ...
-    }: {
-      preservation.preserveAt = lib.mkIf preservationEnable {
-        "/persist" = {
-          directories = [
-            "/var/lib/cups"
-          ];
-        };
-      };
-
+    nixos = _: {
       users.groups.netdev = {};
       services.avahi = {
         enable = true;

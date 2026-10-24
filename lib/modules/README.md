@@ -44,6 +44,13 @@ moduleLib.mkModule {
     };
   };
 
+  state = {
+    nixos.directories = [ "/var/lib/example" ];
+    home = { lib, exampleCache ? true }: {
+      directories = lib.optional exampleCache ".cache/example";
+    };
+  };
+
   packages = { pkgs, ... }: {
     default = pkgs.writeText "example" "example content";
   };
@@ -92,6 +99,36 @@ Each module sees only its own package set. Installing exported packages is expli
 Host-dependent package construction stays in local lambdas inside `module` or its sections.
 Exporting a function instead of a package derivation fails.
 
+## State
+
+`state` declares the paths a module needs to survive a reboot. Its optional `nixos` and
+`home` fields each hold `directories` and `files` lists, or a function returning them.
+Other fields fail. Functions bind like sections: they request host arguments and the
+context of their scope explicitly. `home` binds in the Home Manager context, so its
+`config` is the home configuration, even on NixOS hosts.
+
+Entries use the upstream preservation format: a path string, or an attribute set with a
+`directory` or `file` path plus further settings such as `mode`. System paths are absolute;
+home paths are relative to the user's home directory. Invalid entries fail evaluation and
+name the host and module.
+
+The library collects state per module name; it persists nothing itself. Sections and
+`assertions` request the collected result through the `state` context:
+
+```nix
+{
+  nixos = { example = { directories = [ "/var/lib/example" ]; files = [ ]; }; };
+  home = { example = { directories = [ ".cache/example" ]; files = [ ]; }; };
+}
+```
+
+On NixOS hosts, `home` contains the embedded user's state. Standalone Home Manager hosts
+collect only `home`, which no backend consumes. State follows section applicability:
+unselected declarations and declarations inactive for the role contribute nothing, and
+`nixos` state imposes argument requirements only on NixOS hosts. Generated modules for
+direct consumers collect state the same way. In this repository, the `preservation`
+module maps the collected state to `/persist` when `preservationEnable` is true.
+
 ## Host documentation
 
 Every constructed host automatically installs its documentation package. `open-docs` opens
@@ -114,7 +151,8 @@ provides a theme toggle. The bundled NixOS snowflake supplies the favicon. Each 
 with content gets a page, and the site includes
 a combined imperative-steps page sorted by module name and the common-argument reference.
 Missing, null, empty, and whitespace-only content is omitted. Selection uses host IDs,
-including selected NixOS-only modules on standalone Home Manager hosts.
+including selected NixOS-only modules on standalone Home Manager hosts. A State page lists
+the host's collected state by module, read from the evaluated configuration.
 
 `docs` and `imperativeSteps` each accept Markdown text, null, or a function returning either.
 Functions request named host arguments and library context explicitly, using the same
@@ -198,7 +236,8 @@ inside sections rather than making their existence depend on a required host val
 `hostName` is derived from the host's name and cannot appear in `args`. Unknown names in
 `args` fail; names known to common declarations or any module but unused by the applicable
 selected sections warn. Required missing arguments identify the host, module, and argument.
-Context names such as `lib`, `pkgs`, and `config` are reserved rather than host settings.
+Context names such as `lib`, `pkgs`, `config`, and `state` are reserved rather than host
+settings.
 
 NixOS construction requires `userName`, explicitly or through a common default. Generated
 NixOS modules own Home Manager integration, share global/user packages, and embed their

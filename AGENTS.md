@@ -69,9 +69,13 @@ Read affected files and nearby examples before editing. Keep changes scoped to t
 mkModule {
   name = "example";
   ids = ["example"];
+  state = {
+    nixos.directories = ["/var/lib/example"];
+    home.directories = [".local/share/example"];
+  };
   module = _: {
-    nixos = {lib, preservationEnable, ...}: {
-      # System options and guarded /persist state.
+    nixos = {lib, ...}: {
+      # System options.
     };
     home = {pkgs, ...}: {
       home.packages = [pkgs.hello];
@@ -86,8 +90,10 @@ mkModule {
 - Host declarations contain only `name`, `role`, `system`, `ids`, and `args`. Hardware,
   disks, users, and state versions belong in selected declarations, not inline host imports.
 - Preserve existing `system.stateVersion` and `homeStateVersion` unless asked to migrate them.
-- Guard preservation with `lib.mkIf preservationEnable`. System paths go under `"/persist"`;
-  home-relative paths go under `users.${userName}`.
+- Declare persistent paths in the module's `state` field, never in `preservation` options.
+  System entries are absolute; home entries are relative to the home directory. A `home`
+  function binds in the Home Manager context. The `preservation` module applies the
+  collected state when `preservationEnable` is true.
 - Package and check names receive the declaring module's prefix; `default` exports as the
   module name. Package exports do not install themselves. Sections access only their own
   packages through the explicitly requested `packages` argument.

@@ -5,26 +5,17 @@
 mkModule {
   name = "browser";
   ids = ["browser"];
-  module = _: {
-    nixos = {
-      config,
-      lib,
-      userName,
-      preservationEnable,
-      ...
-    }: {
-      preservation.preserveAt = lib.mkIf preservationEnable {
-        "/persist" = {
-          users.${userName} = {
-            directories = [
-              ".mozilla"
-              config.home-manager.users.${userName}.programs.firefox.configPath
-              ".cache/mozilla"
-            ];
-          };
-        };
-      };
+  state = {
+    # The profile path follows the Home Manager Firefox configuration.
+    home = {config}: {
+      directories = [
+        ".mozilla"
+        config.programs.firefox.configPath
+        ".cache/mozilla"
+      ];
     };
+  };
+  module = _: {
     home = {
       pkgs,
       inputs,
