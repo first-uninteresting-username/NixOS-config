@@ -5,30 +5,21 @@
 mkModule {
   name = "virtualization-desktop";
   ids = ["virtualization-desktop"];
+  state = {
+    nixos.directories = [
+      "/var/lib/containers"
+    ];
+    home.directories = [
+      ".local/share/containers"
+      ".config/containers"
+      ".local/share/distrobox"
+      ".local/share/applications/"
+      ".lima"
+      ".cache/lima"
+    ];
+  };
   module = _: {
-    nixos = {
-      lib,
-      userName,
-      preservationEnable,
-      ...
-    }: {
-      preservation.preserveAt = lib.mkIf preservationEnable {
-        "/persist" = {
-          directories = [
-            "/var/lib/containers"
-          ];
-          users.${userName} = {
-            directories = [
-              ".local/share/containers"
-              ".config/containers"
-              ".local/share/distrobox"
-              ".local/share/applications/"
-              ".lima"
-              ".cache/lima"
-            ];
-          };
-        };
-      };
+    nixos = _: {
       virtualisation = {
         podman = {
           enable = true;

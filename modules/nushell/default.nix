@@ -5,26 +5,19 @@
 mkModule {
   name = "nushell";
   ids = ["nushell"];
+  state = {
+    home.directories = [
+      ".local/share/nushell"
+      ".cache/nushell"
+    ];
+  };
   module = _: {
     nixos = {
-      lib,
       pkgs,
       userName,
-      preservationEnable,
       ...
     }: {
       config = {
-        preservation.preserveAt = lib.mkIf preservationEnable {
-          "/persist" = {
-            users.${userName} = {
-              directories = [
-                ".local/share/nushell"
-                ".cache/nushell"
-              ];
-            };
-          };
-        };
-
         users.users.${userName}.shell = pkgs.nushell;
         environment.shells = [pkgs.nushell];
       };

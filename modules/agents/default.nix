@@ -15,28 +15,21 @@ mkModule {
     claude
     ```
   '';
-  module = _: {
-    nixos = {
-      lib,
-      userName,
-      preservationEnable,
-      ...
-    }: {
-      preservation.preserveAt = lib.mkIf preservationEnable {
-        "/persist" = {
-          users.${userName} = {
-            directories = [
-              ".config/opencode"
-              ".local/share/opencode"
-              ".config/kilocode"
-              ".config/Claude"
-              ".claude"
-            ];
-            files = [".claude.json"];
-          };
-        };
-      };
+  state = {
+    home = {
+      directories = [
+        ".config/opencode"
+        ".local/share/opencode"
+        ".config/kilocode"
+        ".config/Claude"
+        ".claude"
+      ];
+      files = [
+        ".claude.json"
+      ];
     };
+  };
+  module = _: {
     home = {
       inputs,
       pkgs,

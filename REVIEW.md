@@ -68,8 +68,8 @@ the `rebuild` helper for validation; that helper boots remote `main`.
   sections avoid requiring `osConfig`; direct consumers supply declared arguments through
   `specialArgs` or `extraSpecialArgs` as described in the library API.
 - [ ] Applicable assertions use the ordinary assertion/message shape and fail evaluation.
-- [ ] Preservation uses `lib.mkIf preservationEnable`. System paths belong under
-  `"/persist"`; home-relative paths belong under `users.${userName}`.
+- [ ] Modules declare persistent paths in `state`, not `preservation` options. System
+  entries are absolute; home entries are relative and bind in the Home Manager context.
 - [ ] Modules use only their own package exports through the requested `packages` context.
   Exports do not install themselves. Host-dependent construction stays in local lambdas.
 - [ ] `default` exports as the module name; other packages and checks export as

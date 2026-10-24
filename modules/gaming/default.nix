@@ -5,14 +5,26 @@
 mkModule {
   name = "gaming";
   ids = ["gaming"];
+  state = {
+    home.directories = [
+      ".config/lutris"
+      ".local/share/lutris"
+      ".cache/lutris"
+      ".local/share/PrismLauncher"
+      ".config/PrismLauncher"
+      ".config/heroic"
+      ".local/share/heroic"
+      ".local/share/keyrings"
+      ".cache/ProtonPlus"
+      ".luanti"
+      ".local/share/Steam"
+      ".config/SLSsteam"
+      ".config/CloudRedirect"
+      ".local/share/Lumen"
+    ];
+  };
   module = _: {
-    nixos = {
-      lib,
-      userName,
-      preservationEnable,
-      inputs,
-      ...
-    }: {
+    nixos = {inputs, ...}: {
       imports = [
         inputs.nix-crab.nixosModules.default
       ];
@@ -23,32 +35,6 @@ mkModule {
         # Both pinned and current nix-crab require this for Steam hook injection.
         cloudredirect.enable = true;
         cloudredirect.moon.enable = true;
-      };
-
-      preservation.preserveAt = lib.mkIf preservationEnable {
-        "/persist" = {
-          users.${userName} = {
-            directories = [
-              ".config/lutris"
-              ".local/share/lutris"
-              ".cache/lutris"
-              ".local/share/PrismLauncher"
-              ".config/PrismLauncher"
-              ".config/heroic"
-              ".local/share/heroic"
-              ".local/share/keyrings"
-              ".cache/ProtonPlus"
-              ".luanti"
-              ".local/share/Steam"
-              ".config/SLSsteam"
-              ".config/CloudRedirect"
-              ".local/share/Lumen"
-            ];
-            files = [
-              # User-level files to persist (relative to $HOME)
-            ];
-          };
-        };
       };
     };
     home = {

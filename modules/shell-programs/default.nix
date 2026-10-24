@@ -5,34 +5,23 @@
 mkModule {
   name = "shell-programs";
   ids = ["shell"];
+  state = {
+    home.directories = [
+      ".local/share/atuin"
+      ".local/share/zoxide"
+      ".cache/tealdeer"
+      ".local/share/nix-index"
+      ".local/share/yazi"
+      ".local/share/broot"
+      ".cache/yazi"
+      ".cache/carapace"
+      ".config/carapace"
+      ".local/share/direnv"
+    ];
+  };
   module = _: {
-    nixos = {
-      lib,
-      pkgs,
-      userName,
-      preservationEnable,
-      ...
-    }: {
+    nixos = {pkgs, ...}: {
       config = {
-        preservation.preserveAt = lib.mkIf preservationEnable {
-          "/persist" = {
-            users.${userName} = {
-              directories = [
-                ".local/share/atuin"
-                ".local/share/zoxide"
-                ".cache/tealdeer"
-                ".local/share/nix-index"
-                ".local/share/yazi"
-                ".local/share/broot"
-                ".cache/yazi"
-                ".cache/carapace"
-                ".config/carapace"
-                ".local/share/direnv"
-              ];
-            };
-          };
-        };
-
         systemd = {
           tmpfiles.rules = [
             "L+ /bin/bash - - - - ${pkgs.bash}/bin/bash"

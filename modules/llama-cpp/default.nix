@@ -5,24 +5,13 @@
 mkModule {
   name = "llama-cpp";
   ids = ["llama-cpp"];
+  state = {
+    home.directories = [
+      ".cache/llama.cpp"
+      ".cache/huggingface"
+    ];
+  };
   module = _: {
-    nixos = {
-      lib,
-      userName,
-      preservationEnable,
-      ...
-    }: {
-      preservation.preserveAt = lib.mkIf preservationEnable {
-        "/persist" = {
-          users.${userName} = {
-            directories = [
-              ".cache/llama.cpp"
-              ".cache/huggingface"
-            ];
-          };
-        };
-      };
-    };
     home = {pkgs, ...}: {
       home.packages = with pkgs; [
         llama-cpp-vulkan

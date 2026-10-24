@@ -5,23 +5,12 @@
 mkModule {
   name = "slick";
   ids = ["slick"];
+  state = {
+    home.directories = [
+      ".config/slick"
+    ];
+  };
   module = _: {
-    nixos = {
-      lib,
-      userName,
-      preservationEnable,
-      ...
-    }: {
-      preservation.preserveAt = lib.mkIf preservationEnable {
-        "/persist" = {
-          users.${userName} = {
-            directories = [
-              ".config/slick"
-            ];
-          };
-        };
-      };
-    };
     home = {
       pkgs,
       inputs,

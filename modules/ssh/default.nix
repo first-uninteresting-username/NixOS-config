@@ -5,6 +5,15 @@
 mkModule {
   name = "ssh";
   ids = ["ssh"];
+  state = {
+    nixos.directories = [{directory = "/etc/ssh";}];
+    home.directories = [
+      {
+        directory = ".ssh";
+        mode = "0700";
+      }
+    ];
+  };
   module = _: {
     nixos = {
       lib,
@@ -33,22 +42,6 @@ mkModule {
             "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFb1ByQK+SH7b7ZD+Epe5zYDyOUp2V0Sr/GcAfKy8J4y Laptop_key"
             "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPhyyqVG8KdfHL00jBin/8rJzaD1Str3lO7N+IeF8fPI Server_key"
           ];
-        };
-
-        preservation.preserveAt = lib.mkIf preservationEnable {
-          "/persist" = {
-            directories = [
-              {directory = "/etc/ssh";}
-            ];
-            users.${userName} = {
-              directories = [
-                {
-                  directory = ".ssh";
-                  mode = "0700";
-                }
-              ];
-            };
-          };
         };
       }
       // lib.optionalAttrs secretsEnable {
