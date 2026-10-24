@@ -11,6 +11,7 @@
     userEnable = true;
     secretsEnable = true;
     preservationEnable = true;
+    screenshotBinding = "<Shift>Page_Up";
     theme = {
       enable = true;
       base16Scheme = "gruvbox-dark";
