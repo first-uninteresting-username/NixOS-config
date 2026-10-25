@@ -39,8 +39,6 @@ mkModule {
           automatic = true;
           dates = "weekly";
         };
-        # Root and users cache remote flakes separately; never reuse a stale revision.
-        settings.tarball-ttl = 0;
       };
 
       systemd = {
