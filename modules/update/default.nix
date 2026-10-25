@@ -39,6 +39,8 @@ mkModule {
           automatic = true;
           dates = "weekly";
         };
+        # Root and users cache remote flakes separately; never reuse a stale revision.
+        settings.tarball-ttl = 0;
       };
 
       systemd = {
@@ -64,6 +66,7 @@ mkModule {
               set -e
               ${lib.getExe pkgs.nixos-rebuild} boot \
                 --flake ${lib.escapeShellArg flakeRef} \
+                --refresh \
                 -L
             '';
           };
@@ -89,7 +92,7 @@ mkModule {
         nh
       ];
       text = ''
-        nh os boot github:first-uninteresting-username/NixOS-config/main#"$HOSTNAME"
+        nh os boot --refresh github:first-uninteresting-username/NixOS-config/main#"$HOSTNAME"
       '';
     };
   };
