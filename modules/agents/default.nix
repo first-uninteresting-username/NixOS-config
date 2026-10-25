@@ -82,7 +82,7 @@ mkModule {
     in {
       programs = {
         opencode = {
-          package = withAgentsFallback llmAgents.opencode2 "opencode";
+          package = withAgentsFallback llmAgents.opencode2 "opencode2";
           enable = true;
         };
         claude-code = {
