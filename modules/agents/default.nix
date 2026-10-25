@@ -10,6 +10,7 @@ mkModule {
     Interactive Claude Code and OpenCode sessions started outside a directory tree containing
     an `AGENTS.md` open in `~/Agents` instead. Pass `--here` to either command to stay in the
     current directory; the wrapper removes the flag before starting the agent.
+    Both agents load the MCP servers that other modules declare in `programs.mcp.servers`.
   '';
   imperativeSteps = ''
     Open Claude Desktop and follow the sign-in prompts.
@@ -121,10 +122,12 @@ mkModule {
         opencode = {
           package = withAgentsFallback llmAgents.opencode2 "opencode2";
           enable = true;
+          enableMcpIntegration = true;
         };
         claude-code = {
           enable = true;
           package = withAgentsFallback llmAgents.claude-code "claude";
+          enableMcpIntegration = true;
         };
       };
 
