@@ -11,6 +11,10 @@ mkModule {
     an `AGENTS.md` open in `~/Agents` instead. Pass `--here` to either command to stay in the
     current directory; the wrapper removes the flag before starting the agent.
     Both agents load the MCP servers that other modules declare in `programs.mcp.servers`.
+    In `~/Agents` and its subdirectories, both agents run tools without permission prompts:
+    Claude Code starts in bypass permissions mode unless another permission mode is passed,
+    and OpenCode interactive and `run` sessions auto-approve permissions that are not
+    explicitly denied. Other directories keep the default permission behavior.
   '';
   imperativeSteps = ''
     Open Claude Desktop and follow the sign-in prompts.
@@ -83,13 +87,65 @@ mkModule {
         fi
       '';
 
-      withAgentsFallback = package: name:
+      inAgentsWorkspace = ''
+        agentsBypassApplies=0
+        case $PWD/ in
+          "$HOME/Agents/"*) agentsBypassApplies=1 ;;
+        esac
+      '';
+
+      # Claude Code ignores bypassPermissions in project settings, so the wrapper passes the
+      # mode when the session runs in ~/Agents. Root flags are also accepted before subcommands.
+      claudeBypass =
+        inAgentsWorkspace
+        + ''
+          for agentsBypassArg in "$@"; do
+            case $agentsBypassArg in
+              --permission-mode|--permission-mode=*|--dangerously-skip-permissions)
+                agentsBypassApplies=0
+                ;;
+            esac
+          done
+          if [ "$agentsBypassApplies" = 1 ]; then
+            set -- --permission-mode bypassPermissions "$@"
+          fi
+        '';
+
+      # OpenCode 2 accepts --auto on the root command and on run. Placing it before another
+      # subcommand breaks argument parsing, so other subcommands run unchanged.
+      opencodeAuto =
+        inAgentsWorkspace
+        + ''
+          agentsBypassCommand=
+          for agentsBypassArg in "$@"; do
+            case $agentsBypassArg in
+              --auto) agentsBypassApplies=0 ;;
+              -*) ;;
+              *)
+                if [ -z "$agentsBypassCommand" ]; then
+                  agentsBypassCommand=$agentsBypassArg
+                fi
+                ;;
+            esac
+          done
+          if [ "$agentsBypassApplies" = 1 ]; then
+            case $agentsBypassCommand in
+              run) set -- "$@" --auto ;;
+              upgrade|update|uninstall|acp|api|debug|auth|mcp|plugin|models|stats|mini) ;;
+              session|service|reload|pair|serve) ;;
+              *) set -- --auto "$@" ;;
+            esac
+          fi
+        '';
+
+      withAgentsFallback = package: name: extraRun:
         pkgs.symlinkJoin {
           inherit (package) name;
           paths = [package];
           nativeBuildInputs = [pkgs.makeWrapper];
           postBuild = ''
-            wrapProgram $out/bin/${name} --run ${lib.escapeShellArg agentsFallback}
+            wrapProgram $out/bin/${name} \
+              --run ${lib.escapeShellArg (agentsFallback + extraRun)}
           '';
           # Keeps passthru attributes, such as OpenCode's jsonschema, visible to Home Manager.
           passthru = package.passthru or {};
@@ -120,13 +176,13 @@ mkModule {
 
       programs = {
         opencode = {
-          package = withAgentsFallback llmAgents.opencode2 "opencode2";
+          package = withAgentsFallback llmAgents.opencode2 "opencode2" opencodeAuto;
           enable = true;
           enableMcpIntegration = true;
         };
         claude-code = {
           enable = true;
-          package = withAgentsFallback llmAgents.claude-code "claude";
+          package = withAgentsFallback llmAgents.claude-code "claude" claudeBypass;
           enableMcpIntegration = true;
         };
       };
