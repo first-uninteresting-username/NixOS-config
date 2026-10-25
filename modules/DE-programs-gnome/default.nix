@@ -60,7 +60,7 @@ mkModule {
       };
       dconf.settings."org/gnome/Ptyxis" = {
         default-profile-uuid = ptyxisUUID;
-        restore-session = true;
+        restore-session = false;
         restore-window-size = true;
         profile-uuids = [ptyxisUUID];
       };
