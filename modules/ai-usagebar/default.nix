@@ -55,12 +55,13 @@ mkModule {
   };
   checks = {
     pkgs,
+    lib,
     packages,
     ...
   }: {
     default = pkgs.runCommand "ai-usagebar-smoke" {} ''
       export HOME="$TMPDIR"
-      ${packages.default}/bin/ai-usagebar --version > version.txt
+      ${lib.getExe packages.default} --version > version.txt
       grep -F '${packages.default.version}' version.txt
       ${packages.default}/bin/ai-usagebar-tui --help > help.txt
       test -s help.txt

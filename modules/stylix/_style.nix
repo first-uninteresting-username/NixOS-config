@@ -31,7 +31,7 @@
     else pkgs.writeText "wallpaper.svg" defaultSvgContent;
 
   generatedImage = pkgs.runCommand "wallpaper.png" {} ''
-    ${pkgs.imagemagick}/bin/magick \
+    ${lib.getExe pkgs.imagemagick} \
       -density 96 \
       ${svgSource} \
       -resize ${cfg.image.width}x${cfg.image.height}! \

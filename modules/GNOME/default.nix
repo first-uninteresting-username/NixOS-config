@@ -234,8 +234,8 @@ mkModule {
             hide-forcequit = true;
             menu-button-icon-image = 23;
             menu-button-icon-size = 20;
-            menu-button-system-monitor = "${pkgs.mission-center}/bin/missioncenter";
-            menu-button-terminal = "${pkgs.ptyxis}/bin/ptyxis --new-window";
+            menu-button-system-monitor = lib.getExe pkgs.mission-center;
+            menu-button-terminal = "${lib.getExe pkgs.ptyxis} --new-window";
             show-activities-button = true;
             show-gamemode = true;
             show-lockscreen = true;
@@ -340,7 +340,7 @@ mkModule {
           };
           "org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/terminal" = {
             binding = "<Super>Return";
-            command = "${pkgs.ptyxis}/bin/ptyxis --new-window";
+            command = "${lib.getExe pkgs.ptyxis} --new-window";
             name = "Terminal";
           };
           "org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/files" = {
@@ -350,7 +350,7 @@ mkModule {
           };
           "org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/gradia" = {
             binding = screenshotBinding;
-            command = "${pkgs.gradia}/bin/gradia  --screenshot=INTERACTIVE";
+            command = "${lib.getExe pkgs.gradia} --screenshot=INTERACTIVE";
             name = "Screenshot";
           };
           "org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/hexecute" = {

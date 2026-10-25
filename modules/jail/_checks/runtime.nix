@@ -16,7 +16,7 @@
     } ''
       mkdir -p "$out/bin" "$out/share/applications" "$out/share/dbus-1/services"
       cat > "$out/bin/probe" <<'SCRIPT'
-      #!${pkgs.bash}/bin/bash
+      #!${pkgs.lib.getExe pkgs.bash}
       set -eu
       test "$(cat "$HOME/read only/input")" = visible
       ! test -e "$HOME/secret"
@@ -29,11 +29,11 @@
       readlink /proc/self/ns/net > "$HOME/app state/net"
       SCRIPT
       cat > "$out/bin/bus-probe" <<'SCRIPT'
-      #!${pkgs.bash}/bin/bash
+      #!${pkgs.lib.getExe pkgs.bash}
       exec ${pkgs.dbus}/bin/dbus-send --session --print-reply --dest="$1" / example.Test.Ping
       SCRIPT
       cat > "$out/bin/full-read-probe" <<'SCRIPT'
-      #!${pkgs.bash}/bin/bash
+      #!${pkgs.lib.getExe pkgs.bash}
       set -eu
       test -e "$HOME/secret"
       test -d "$HOME/.ssh"
@@ -58,7 +58,7 @@
       readlink /proc/self/ns/net > "$HOME/app state/broad-net"
       SCRIPT
       cat > "$out/bin/desktop-probe" <<'SCRIPT'
-      #!${pkgs.bash}/bin/bash
+      #!${pkgs.lib.getExe pkgs.bash}
       set -eu
       test -r /lib64/jail-loader
       test "$XDG_CONFIG_HOME" = "$HOME/.config"
@@ -68,7 +68,7 @@
       echo writable > "$XDG_RUNTIME_DIR/dconf/probe"
       SCRIPT
       cat > "$out/bin/device-probe" <<'SCRIPT'
-      #!${pkgs.bash}/bin/bash
+      #!${pkgs.lib.getExe pkgs.bash}
       test -r /dev/jail-device
       SCRIPT
       chmod +x "$out/bin/probe" "$out/bin/bus-probe" "$out/bin/full-read-probe" \
@@ -174,7 +174,7 @@
       for attempt in $(seq 1 50); do
         if ${pkgs.dbus}/bin/dbus-send --session --print-reply \
           --dest=org.freedesktop.DBus /org/freedesktop/DBus \
-          org.freedesktop.DBus.NameHasOwner string:"$name" | ${pkgs.gnugrep}/bin/grep -q true; then
+          org.freedesktop.DBus.NameHasOwner string:"$name" | ${pkgs.lib.getExe pkgs.gnugrep} -q true; then
           break
         fi
         sleep 0.1

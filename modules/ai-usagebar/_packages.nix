@@ -62,7 +62,7 @@ in {
       # The configured GNOME terminal is Ptyxis.
       substituteInPlace "$extensionDir/extension.js" \
         --replace-fail "['kgx', '--', tui]," \
-          "['${pkgs.ptyxis}/bin/ptyxis', '--new-window', '--', tui],"
+          "['${pkgs.lib.getExe pkgs.ptyxis}', '--new-window', '--', tui],"
       runHook postInstall
     '';
     passthru = {inherit extensionUuid;};

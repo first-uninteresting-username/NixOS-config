@@ -77,14 +77,15 @@ mkModule {
   };
   checks = {
     pkgs,
+    lib,
     packages,
     ...
   }: {
     default = pkgs.runCommand "orchard-cli-smoke" {} ''
       export HOME="$TMPDIR"
-      ${packages.default}/bin/orchard --version > version.txt
+      ${lib.getExe packages.default} --version > version.txt
       grep -F '${packages.default.version}' version.txt
-      ${packages.default}/bin/orchard --help > help.txt
+      ${lib.getExe packages.default} --help > help.txt
       test -s help.txt
       touch "$out"
     '';
