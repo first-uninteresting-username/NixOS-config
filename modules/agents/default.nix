@@ -8,7 +8,8 @@ mkModule {
   docs = ''
     Installs Claude Desktop and Claude Code and preserves their local configuration.
     Interactive Claude Code and OpenCode sessions started outside a directory tree containing
-    an `AGENTS.md` open in `~/Agents` instead.
+    an `AGENTS.md` open in `~/Agents` instead. Pass `--here` to either command to stay in the
+    current directory; the wrapper removes the flag before starting the agent.
   '';
   imperativeSteps = ''
     Open Claude Desktop and follow the sign-in prompts.
@@ -44,10 +45,22 @@ mkModule {
 
       # Starts interactive sessions in ~/Agents unless the current directory or one of its
       # parents contains AGENTS.md. Invocations with subcommands, prompts, paths, or
-      # print/help/version flags run unchanged.
+      # print/help/version flags run unchanged. The wrapper-only --here flag is removed from the
+      # arguments and keeps the current directory.
       agentsFallback = ''
+        agentsFallbackApplies=1
+        agentsFallbackCount=$#
+        while [ "$agentsFallbackCount" -gt 0 ]; do
+          agentsFallbackArg=$1
+          shift
+          if [ "$agentsFallbackArg" = --here ]; then
+            agentsFallbackApplies=0
+          else
+            set -- "$@" "$agentsFallbackArg"
+          fi
+          agentsFallbackCount=$((agentsFallbackCount - 1))
+        done
         if [ -t 0 ] && [ -t 1 ]; then
-          agentsFallbackApplies=1
           for agentsFallbackArg in "$@"; do
             case $agentsFallbackArg in
               -p|--print|-h|--help|-v|--version) agentsFallbackApplies=0 ;;
