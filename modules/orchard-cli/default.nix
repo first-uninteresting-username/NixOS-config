@@ -64,15 +64,20 @@ mkModule {
     in {
       home.packages = [orchard];
 
-      # Without secrets, Claude Code signs in to the MCP server through OAuth.
-      programs.claude-code.mcpServers.orchard =
-        {
-          type = "http";
-          url = orchardMcpUrl;
-        }
-        // lib.optionalAttrs secretsEnable {
-          headersHelper = "${mcpHeaders}";
-        };
+      # Without secrets, MCP clients sign in through OAuth. OpenCode substitutes the {file:}
+      # reference itself. Claude Code does not, and its headersHelper output replaces the
+      # static Authorization header.
+      programs.mcp = {
+        enable = true;
+        servers.orchard =
+          {
+            url = orchardMcpUrl;
+          }
+          // lib.optionalAttrs secretsEnable {
+            headers.Authorization = "Bearer {file:${orchardApiTokenPath}}";
+            headersHelper = "${mcpHeaders}";
+          };
+      };
     };
   };
   packages = {pkgs, ...}: let
@@ -167,10 +172,11 @@ mkModule {
     Homebrew and Go are not required.
 
     The wrapper points the CLI at `orchardApiUrl` through `ORCHARD_API_URL`. It also adds the
-    Orchard MCP server at `orchardMcpUrl` to Claude Code. With secrets enabled, sops-nix
-    decrypts `ORCHARD_API_TOKEN` to `orchardApiTokenPath`. The CLI then reads the token from
-    that file, and Claude Code sends it as a bearer token through a `headersHelper`. The token
-    stays out of the Nix store. Without secrets, Claude Code signs in through OAuth instead.
+    Orchard MCP server at `orchardMcpUrl` to the shared `programs.mcp.servers`. With secrets
+    enabled, sops-nix decrypts `ORCHARD_API_TOKEN` to `orchardApiTokenPath`. The CLI then reads
+    the token from that file, and MCP clients send it as a bearer token: OpenCode through a
+    `{file:}` reference, Claude Code through a `headersHelper`. The token stays out of the Nix
+    store. Without secrets, MCP clients sign in through OAuth instead.
   '';
   imperativeSteps = ''
     With secrets enabled, create an API token once and store it in sops. Orchard tokens expire
@@ -185,7 +191,7 @@ mkModule {
     Add the printed `orch_…` value as `ORCHARD_API_TOKEN`, then rebuild. After the rebuild,
     `orchard auth logout` removes the browser login, and the CLI uses the sops token.
 
-    Without secrets, run `orchard auth login`. Claude Code opens a browser to approve the MCP
+    Without secrets, run `orchard auth login`. MCP clients open a browser to approve the
     connection the first time it uses the Orchard tools.
   '';
 }
