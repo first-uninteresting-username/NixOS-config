@@ -10,9 +10,69 @@ mkModule {
       ".orchard"
     ];
   };
-  module = _: {
-    home = {packages, ...}: {
-      home.packages = [packages.default];
+  module = {
+    orchardApiUrl ? "https://orchard.iameasytoremember.com",
+    orchardMcpUrl ? "https://mcp.iameasytoremember.com/",
+    orchardApiTokenPath ? "/run/secrets/ORCHARD_API_TOKEN",
+  }: {
+    nixos = {
+      lib,
+      secretsEnable,
+      userName,
+      ...
+    }: {
+      config = lib.optionalAttrs secretsEnable {
+        sops.secrets."ORCHARD_API_TOKEN" = {
+          path = orchardApiTokenPath;
+          owner = userName;
+        };
+      };
+    };
+    home = {
+      lib,
+      pkgs,
+      packages,
+      secretsEnable,
+      ...
+    }: let
+      tokenFile = lib.escapeShellArg orchardApiTokenPath;
+
+      # An ORCHARD_API_TOKEN already in the environment wins over the sops file.
+      readToken = ''
+        if [ -z "''${ORCHARD_API_TOKEN-}" ] && [ -r ${tokenFile} ]; then
+          ORCHARD_API_TOKEN=$(cat ${tokenFile})
+          export ORCHARD_API_TOKEN
+        fi
+      '';
+
+      orchard = pkgs.symlinkJoin {
+        inherit (packages.default) name;
+        paths = [packages.default];
+        nativeBuildInputs = [pkgs.makeWrapper];
+        postBuild = ''
+          wrapProgram $out/bin/orchard \
+            --set-default ORCHARD_API_URL ${lib.escapeShellArg orchardApiUrl} \
+            ${lib.optionalString secretsEnable "--run ${lib.escapeShellArg readToken}"}
+        '';
+        meta = packages.default.meta or {};
+      };
+
+      # Prints the Authorization header at connect time so the token stays out of the store.
+      mcpHeaders = pkgs.writeShellScript "orchard-mcp-headers" ''
+        printf '{"Authorization":"Bearer %s"}' "$(cat ${tokenFile})"
+      '';
+    in {
+      home.packages = [orchard];
+
+      # Without secrets, Claude Code signs in to the MCP server through OAuth.
+      programs.claude-code.mcpServers.orchard =
+        {
+          type = "http";
+          url = orchardMcpUrl;
+        }
+        // lib.optionalAttrs secretsEnable {
+          headersHelper = "${mcpHeaders}";
+        };
     };
   };
   packages = {pkgs, ...}: let
@@ -105,8 +165,27 @@ mkModule {
 
     Configuration and credentials in `~/.orchard` persist when preservation is enabled.
     Homebrew and Go are not required.
+
+    The wrapper points the CLI at `orchardApiUrl` through `ORCHARD_API_URL`. It also adds the
+    Orchard MCP server at `orchardMcpUrl` to Claude Code. With secrets enabled, sops-nix
+    decrypts `ORCHARD_API_TOKEN` to `orchardApiTokenPath`. The CLI then reads the token from
+    that file, and Claude Code sends it as a bearer token through a `headersHelper`. The token
+    stays out of the Nix store. Without secrets, Claude Code signs in through OAuth instead.
   '';
   imperativeSteps = ''
-    Run `orchard auth login` to authenticate with Orchard after installing the configuration.
+    With secrets enabled, create an API token once and store it in sops. Orchard tokens expire
+    after at most 90 days, so repeat these steps to rotate the token:
+
+    ```bash
+    orchard auth login
+    orchard auth token create --name nixos-config --scope exec
+    sops-easy secrets/secrets.yaml
+    ```
+
+    Add the printed `orch_…` value as `ORCHARD_API_TOKEN`, then rebuild. After the rebuild,
+    `orchard auth logout` removes the browser login, and the CLI uses the sops token.
+
+    Without secrets, run `orchard auth login`. Claude Code opens a browser to approve the MCP
+    connection the first time it uses the Orchard tools.
   '';
 }
