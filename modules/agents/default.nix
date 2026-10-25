@@ -77,9 +77,33 @@ mkModule {
           postBuild = ''
             wrapProgram $out/bin/${name} --run ${lib.escapeShellArg agentsFallback}
           '';
+          # Keeps passthru attributes, such as OpenCode's jsonschema, visible to Home Manager.
+          passthru = package.passthru or {};
           meta = package.meta or {};
         };
+
+      agentsGuide = ''
+        # Agents workspace
+
+        You are working on a NixOS system managed declaratively from a Nix flake.
+
+        - Save files you are working on in this directory (`~/Agents`). It is your local workspace
+          and persists across reboots.
+        - Do not install software imperatively. System and user configuration changes belong in the
+          NixOS configuration.
+        - Create persistent skills in the NixOS configuration, not in `~/.claude` or
+          `~/.config/opencode`, so they are managed declaratively.
+        - The NixOS configuration lives in `./NixOS-config`. If it is missing, clone it:
+
+        ```bash
+        gh repo clone NixOS-config
+        ```
+
+        Read `NixOS-config/AGENTS.md` before changing the configuration.
+      '';
     in {
+      home.file."Agents/AGENTS.md".text = agentsGuide;
+
       programs = {
         opencode = {
           package = withAgentsFallback llmAgents.opencode2 "opencode";
