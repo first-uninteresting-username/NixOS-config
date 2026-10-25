@@ -76,7 +76,7 @@
         import shlex
 
         flake_ref = "${flakeRef}"
-        rebuild_arguments = ["boot", "--flake", flake_ref, "-L"]
+        rebuild_arguments = ["boot", "--flake", flake_ref, "--refresh", "-L"]
 
         def clear_recording():
             machine.succeed(
@@ -148,7 +148,7 @@
                 machine.succeed(f"echo {code} > /run/update-exit")
                 status, output = machine.execute("bash -lc rebuild")
                 assert status == code, (status, output)
-                assert_command("nh", ["os", "boot", flake_ref])
+                assert_command("nh", ["os", "boot", "--refresh", flake_ref])
                 assert machine.succeed("cat /run/update-flake").strip() == flake_ref
 
         with subtest("The timer actually invokes the production upgrade service"):
