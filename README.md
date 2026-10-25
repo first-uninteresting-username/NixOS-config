@@ -26,7 +26,7 @@ A comprehensive OS-as-a-code solution based on NixOS (Work in progress).
 - [Documentation on github pages](https://first-uninteresting-username.github.io/NixOS-config/)
 - Caching (thanks to [cachix](https://www.cachix.org/))
 - Module-owned configuration, packages, checks, and local documentation through the
-  [modules-v3 registry](docs/modules.md), with [flake-parts](https://flake.parts/) outputs
+  [modules-v3 registry](docs/modules.md), which also generates the flake outputs
 - All the usual nixos goodies
 - Everything you could expect from a polished linux desktop setup, but declarative :)
 
@@ -58,7 +58,7 @@ nix build github:first-uninteresting-username/NixOS-config#host-john
 If your only goal is to test the config, you can boot the ISO in a nix managed VM with:
 
 ```bash
-nix run github:first-uninteresting-username/NixOS-config#john
+nix run github:first-uninteresting-username/NixOS-config#nixosConfigurations.john.config.system.build.vm
 ```
 
 To use modules or packages from this flake in your own configuration, add it as an input:

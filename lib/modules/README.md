@@ -2,8 +2,9 @@
 
 This library implements the modules-v3 constructors and output-ownership metadata.
 The root flake discovers all production modules, hosts, and common arguments
-through it and generates local documentation for every host. Checks-v4 CI selects affected
-checks and packages from module ownership at the merge base and head revisions.
+through it, takes its flake outputs from the result, and generates local documentation for
+every host. Checks-v4 CI selects affected checks and packages from module ownership at the
+merge base and head revisions.
 
 ## Entry points
 
@@ -15,12 +16,18 @@ moduleLib = import ./lib/modules { inherit inputs self; };
 
 - `mkModule` declares a named module.
 - `mkRegistry { modules; commonArgs; }` validates names and provides `mkHost`,
-  `nixosModules`, `homeModules`, and a flake-parts-compatible `perSystem` function.
+  `nixosModules`, `homeModules`, and a `perSystem { system; pkgs; }` function returning
+  that system's `packages` and `checks`.
 - `mkHost { modules; commonArgs; name; role; system; ids; args; }` provides the same
   host constructor without first binding a registry. `commonArgs`, `ids`, and `args`
   default to empty values. `role` is `"nixos"` or `"home"`.
-- `discover { modulesDir; hostsDir; argumentsDir; }` creates a registry from three
-  explicit directory roots and adds `nixosConfigurations` and `homeConfigurations`.
+- `discover { modulesDir; hostsDir; argumentsDir; systems; }` creates a registry from three
+  explicit directory roots and adds `nixosConfigurations` and `homeConfigurations`. For each
+  listed system, it also adds `packages.<system>` and `checks.<system>`, built with that
+  system's default Nixpkgs. `systems` defaults to an empty list.
+
+The root flake uses the discovered registry's outputs directly and exposes only its `mkHost`
+and `commonArgs` as `lib.modules`, for checks and packages that need them.
 
 The registry's `mkHost` takes only `name`, `role`, `system`, optional `ids`, and optional
 `args`. It has no inline configuration or module-import field. It returns the upstream
