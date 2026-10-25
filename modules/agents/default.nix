@@ -20,7 +20,6 @@ mkModule {
       directories = [
         ".config/opencode"
         ".local/share/opencode"
-        ".config/kilocode"
         ".config/Claude"
         ".claude"
       ];
@@ -34,19 +33,23 @@ mkModule {
       inputs,
       pkgs,
       ...
-    }: {
+    }: let
+      llmAgents = inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system};
+    in {
       programs = {
         opencode = {
-          package = inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system}.opencode;
           enable = true;
+          package = llmAgents.opencode;
+        };
+        claude-code = {
+          enable = true;
+          package = llmAgents.claude-code;
         };
       };
 
-      home.packages = with inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system}; [
-        kilocode-cli
-        ccusage
-        claude-desktop
-        claude-code
+      home.packages = [
+        llmAgents.ccusage
+        llmAgents.claude-desktop
       ];
     };
   };
