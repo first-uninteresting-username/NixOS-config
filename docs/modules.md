@@ -12,9 +12,8 @@ A module is selected when the host contains every one of its IDs. Empty IDs matc
 hosts. IDs do not add dependencies automatically. The `GNOME` ID selects GNOME and its
 complete utility set. Select `nushell` or `zsh` for the login shell and `shell` for shared
 command-line tools. Hosts also explicitly select related IDs such as `wayland`, `stylix`,
-and `home-manager`. The `terminal-emulator` ID selects Ghostty; the GNOME desktop module
-also requires it, because GNOME uses Ghostty as its terminal. The `hack` ID selects Hack
-and its API-key integration. Stylix uses MoreWaita icons directly; desktop, shell, and icon choices need no host arguments.
+and `home-manager`. The `hack` ID selects Hack and its API-key integration. Stylix uses
+MoreWaita icons directly; desktop, shell, and icon choices need no host arguments.
 
 IDs need no matching empty module declaration. A module exists only when it contributes
 configuration, state, packages, checks, assertions, or documentation.
