@@ -2,12 +2,12 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 {pkgs, ...}: let
-  version = "1.41.0";
+  version = "1.44.0";
   src = pkgs.fetchFromGitHub {
     owner = "akitaonrails";
     repo = "ai-usagebar";
     tag = "v${version}";
-    hash = "sha256-mS5K/IntyuDEsFmsMWtKYhjsS3T3qeRAYsTqS1TsZxA=";
+    hash = "sha256-HGv2n5Ucdo9ySBz7hCItWNuk8Q0sX12rdoP4AM+Qw1s=";
   };
   extensionUuid = "ai-usagebar@akitaonrails.github.io";
   shellVersion = pkgs.lib.versions.major pkgs.gnome-shell.version;
@@ -15,7 +15,7 @@ in {
   default = pkgs.rustPlatform.buildRustPackage {
     pname = "ai-usagebar";
     inherit version src;
-    cargoHash = "sha256-VV7If1vQFufyFHK6C+K9LADLU90FsD7gOGcvSJ4U3wo=";
+    cargoHash = "sha256-4gfex5ZOu9yY0H8bbHtLk1qJl8u3T5gP83Xx2e9a47o=";
     # Updating this package also updates the extension, which shares its version and source.
     passthru.updateScript = pkgs.nix-update-script {extraArgs = ["--flake"];};
     nativeBuildInputs = [pkgs.makeWrapper] ++ pkgs.lib.optionals pkgs.stdenv.hostPlatform.isx86_64 [pkgs.nasm];
