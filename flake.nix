@@ -58,7 +58,8 @@
 
     preservation.url = "github:nix-community/preservation";
 
-    nix-cachyos-kernel.url = "github:xddxdd/nix-cachyos-kernel/release";
+    # No nixpkgs follows: the kernels must match Chaotic-Nyx builds to come from its cache
+    chaotic.url = "github:chaotic-cx/nyx/nyxpkgs-unstable";
 
     nix-index-database = {
       url = "github:nix-community/nix-index-database";
