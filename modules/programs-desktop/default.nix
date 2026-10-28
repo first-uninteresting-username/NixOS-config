@@ -59,7 +59,7 @@ mkModule {
     };
   };
   packages = {pkgs, ...}: let
-    version = "0.1.0-beta2";
+    version = "0.1.0-beta3";
     sources = pkgs.lib.mapAttrs (_: source:
       pkgs.fetchurl {
         url = "https://github.com/Flow-Tube/Flow-Desktop/releases/download/v${version}/Flow_${version}_linux_${source.arch}.deb";
@@ -67,11 +67,11 @@ mkModule {
       }) {
       x86_64-linux = {
         arch = "amd64";
-        hash = "sha256-5i+b4bg/B3xFhcd5si6ojXBFVYq+BEginRtfqyAlmfc=";
+        hash = "sha256-lZBpO4xIYqDlXsLXGlazaFuLJ/wsr8vSzueyxkZg38w=";
       };
       aarch64-linux = {
         arch = "arm64";
-        hash = "sha256-2fIooG6GRJ1vTaABXn07NnisuG000szNnGHfarMwDpw=";
+        hash = "sha256-i1CBK4tRAq7+BnDLBzHcRpXigj6SUoyzZ3jonKoFlWg=";
       };
     };
   in {
