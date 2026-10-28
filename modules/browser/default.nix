@@ -23,7 +23,8 @@ mkModule {
       config,
       ...
     }: let
-      # Firefox ships its pride logo only as a Windows icon inside omni.ja.
+      # Firefox ships its pride logo only as a Windows icon inside omni.ja. A distinct icon
+      # name keeps icon themes with their own firefox icon from overriding it.
       prideIcons =
         pkgs.runCommand "firefox-pride-icons" {
           nativeBuildInputs = [pkgs.imagemagick pkgs.unzip];
@@ -35,7 +36,7 @@ mkModule {
           for size in 16 32 48 64 128 256; do
             mkdir -p "$out/share/icons/hicolor/''${size}x$size/apps"
             magick chrome/browser/content/browser/icons/pride.ico -delete 0--2 \
-              -resize "''${size}x$size" "$out/share/icons/hicolor/''${size}x$size/apps/firefox.png"
+              -resize "''${size}x$size" "$out/share/icons/hicolor/''${size}x$size/apps/firefox-pride.png"
           done
         '';
       firefox = pkgs.firefox.overrideAttrs (old: {
@@ -44,6 +45,11 @@ mkModule {
           + ''
             rm -r "$out/share/icons"
             ln -s ${prideIcons}/share/icons "$out/share/icons"
+            for entry in "$out"/share/applications/*.desktop; do
+              sed 's/^Icon=firefox$/Icon=firefox-pride/' "$entry" > "$entry.tmp"
+              rm "$entry"
+              mv "$entry.tmp" "$entry"
+            done
           '';
       });
     in {
