@@ -71,12 +71,9 @@ mkModule {
       ];
 
       config = lib.mkIf preservationEnable {
-        boot = {
-          initrd.systemd.enable = true;
-          tmp = {
-            useTmpfs = true;
-            cleanOnBoot = true;
-          };
+        boot.tmp = {
+          useTmpfs = true;
+          cleanOnBoot = true;
         };
 
         systemd = {
