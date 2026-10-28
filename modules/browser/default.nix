@@ -22,7 +22,31 @@ mkModule {
       self,
       config,
       ...
-    }: {
+    }: let
+      # Firefox ships its pride logo only as a Windows icon inside omni.ja.
+      prideIcons =
+        pkgs.runCommand "firefox-pride-icons" {
+          nativeBuildInputs = [pkgs.imagemagick pkgs.unzip];
+        } ''
+          # omni.ja has a nonstandard zip layout that unzip reports as an error but extracts.
+          unzip -q ${pkgs.firefox-unwrapped}/lib/firefox/browser/omni.ja \
+            chrome/browser/content/browser/icons/pride.ico || true
+          test -f chrome/browser/content/browser/icons/pride.ico
+          for size in 16 32 48 64 128 256; do
+            mkdir -p "$out/share/icons/hicolor/''${size}x$size/apps"
+            magick chrome/browser/content/browser/icons/pride.ico -delete 0--2 \
+              -resize "''${size}x$size" "$out/share/icons/hicolor/''${size}x$size/apps/firefox.png"
+          done
+        '';
+      firefox = pkgs.firefox.overrideAttrs (old: {
+        buildCommand =
+          old.buildCommand
+          + ''
+            rm -r "$out/share/icons"
+            ln -s ${prideIcons}/share/icons "$out/share/icons"
+          '';
+      });
+    in {
       stylix.targets.firefox = {
         enable = false;
       };
@@ -56,7 +80,7 @@ mkModule {
           enable = true;
           package = self.lib.mkJail {
             inherit pkgs;
-            package = pkgs.firefox;
+            package = firefox;
             gui = true;
             network = true;
             readHostFiles = true;
@@ -185,6 +209,7 @@ mkModule {
   docs = ''
     Firefox runs in a sandbox with writable access to its Home Manager profile directory,
     legacy Mozilla directory, cache, and downloads. The profile directory is preserved
-    across reboots when preservation is enabled.
+    across reboots when preservation is enabled. Its desktop icon uses the pride logo
+    bundled with Firefox.
   '';
 }
