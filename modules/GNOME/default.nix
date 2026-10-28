@@ -260,6 +260,10 @@ mkModule {
             brightness = 0.6;
             sigma = 30;
           };
+          # Popup blur paints a square box behind rounded menus
+          "org/gnome/shell/extensions/blur-my-shell/popup" = {
+            blur = false;
+          };
           "org/gnome/shell/extensions/blur-my-shell/window-list" = {
             brightness = 0.6;
             sigma = 30;
