@@ -4,7 +4,7 @@
 {mkModule, ...}:
 mkModule {
   name = "GNOME";
-  ids = ["GNOME"];
+  ids = ["GNOME" "terminal-emulator"];
   state = {
     nixos.directories = [
       "/var/lib/gdm"
