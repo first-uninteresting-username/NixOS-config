@@ -128,6 +128,8 @@ Every new or edited Nix file starts with the repository's license header:
 - Use explicit `lib.*` references; do not introduce a top-level `with lib;`. Aim for lines under
   100 characters. Comments explain behavior or constraints, not the agent's reasoning process.
 - Update user documentation when changing options, host setup, or user-visible behavior.
+  Keep `docs/` general: describe concepts, workflows, and conventions, not individual modules,
+  IDs, or per-module relationships; those belong in the module's own documentation or code.
   Follow a local `CONVENTIONS.md` if present; use active voice, simple present tense, headings without
   trailing punctuation, and language-tagged code blocks.
 - `docs/module-reference.md` is generated from `arguments/`, not a hand-maintained module
