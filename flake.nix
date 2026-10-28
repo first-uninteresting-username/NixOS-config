@@ -39,7 +39,7 @@
     };
 
     stylix = {
-      url = "github:first-uninteresting-username/stylix";
+      url = "github:nix-community/stylix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 

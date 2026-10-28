@@ -26,7 +26,6 @@ mkModule {
           ]);
           dbusOwn = [appId "${appId}.*"];
         };
-      ptyxisUUID = "00000000-0000-0000-0000-000000000000";
     in {
       # GNOME hosts share the complete utility set; Impression needs x86-only syslinux.
       home.packages =
@@ -53,17 +52,6 @@ mkModule {
           gnome-clocks
         ])
         ++ lib.optionals pkgs.stdenv.hostPlatform.isx86_64 [pkgs.impression];
-      programs.ptyxis.enable = true;
-      stylix.targets.ptyxis = {
-        enable = true;
-        profileUUIDs = [ptyxisUUID];
-      };
-      dconf.settings."org/gnome/Ptyxis" = {
-        default-profile-uuid = ptyxisUUID;
-        restore-session = false;
-        restore-window-size = true;
-        profile-uuids = [ptyxisUUID];
-      };
     };
   };
 }

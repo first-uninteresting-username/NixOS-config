@@ -34,7 +34,7 @@ mkModule {
           dconf.enable = true;
           nautilus-open-any-terminal = {
             enable = true;
-            terminal = "ptyxis";
+            terminal = "ghostty";
           };
         };
 
@@ -225,7 +225,7 @@ mkModule {
           "org/gnome/shell" = {
             favorite-apps = [
               "firefox.desktop"
-              "org.gnome.Ptyxis.desktop"
+              "com.mitchellh.ghostty.desktop"
               "org.gnome.Nautilus.desktop"
               "dev.zed.Zed.desktop"
             ];
@@ -235,7 +235,7 @@ mkModule {
             menu-button-icon-image = 23;
             menu-button-icon-size = 20;
             menu-button-system-monitor = lib.getExe pkgs.mission-center;
-            menu-button-terminal = "${lib.getExe pkgs.ptyxis} --new-window";
+            menu-button-terminal = "${lib.getExe pkgs.ghostty} +new-window";
             show-activities-button = true;
             show-gamemode = true;
             show-lockscreen = true;
@@ -344,7 +344,7 @@ mkModule {
           };
           "org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/terminal" = {
             binding = "<Super>Return";
-            command = "${lib.getExe pkgs.ptyxis} --new-window";
+            command = "${lib.getExe pkgs.ghostty} +new-window";
             name = "Terminal";
           };
           "org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/files" = {
