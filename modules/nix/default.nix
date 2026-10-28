@@ -6,19 +6,17 @@ mkModule {
   name = "nix";
   ids = ["nix"];
   docs = ''
-    The Nix module and GitHub Actions use `https://cache.xinux.uz` for prebuilt CachyOS
-    kernels. Both trust the Xinux signing key:
+    The Nix module and GitHub Actions use `https://nyx-cache.chaotic.cx` for prebuilt
+    [Chaotic-Nyx](https://github.com/chaotic-cx/nyx) CachyOS kernels. Both trust the
+    Chaotic-Nyx signing key:
 
     ```text
-    cache.xinux.uz:BXCrtqejFjWzWEB9YuGB7X2MV4ttBur1N8BkwQRdH+0=
+    nyx-cache.chaotic.cx:dJxTrgMC3V3cFfyIiBQDQorG6k1LsqurH/srpMSq7qk=
     ```
 
-    This replaces the Lantian Attic cache and its signing key after the operator reports a
-    [server compromise](https://github.com/xddxdd/nix-cachyos-kernel/issues/110).
-    The kernel input, pinned overlay, and host kernel variants remain unchanged.
-    [Xinux runs a separate builder](https://github.com/xddxdd/nix-cachyos-kernel/issues/89).
-    Cache availability depends on the exact pinned kernel output; a missing output can still
-    require local compilation.
+    The `chaotic` input does not follow this flake's nixpkgs, so the kernels keep the
+    store paths that Chaotic-Nyx builds. Cache availability still depends on Chaotic-Nyx
+    having built the locked kernel output; a missing output requires local compilation.
   '';
   state = {
     home.directories = [
@@ -53,7 +51,7 @@ mkModule {
             "https://devenv.cachix.org"
             # The goat of caches
             "https://cache.numtide.com?priority=41"
-            "https://cache.xinux.uz"
+            "https://nyx-cache.chaotic.cx"
           ];
 
           trusted-public-keys = [
@@ -62,7 +60,7 @@ mkModule {
             "matrix.cachix.org-1:uZWavEIj0/oIRHPjh+OG586y4nXBlyI0xkYfZBfDx7w="
             "devenv.cachix.org-1:w1cLUi8dv3hnoSPGAuibQv+f9TZLr6cv/Hm9XgU50cw="
             "niks3.numtide.com-1:DTx8wZduET09hRmMtKdQDxNNthLQETkc/yaX7M4qK0g="
-            "cache.xinux.uz:BXCrtqejFjWzWEB9YuGB7X2MV4ttBur1N8BkwQRdH+0="
+            "nyx-cache.chaotic.cx:dJxTrgMC3V3cFfyIiBQDQorG6k1LsqurH/srpMSq7qk="
           ];
 
           max-jobs = "auto";

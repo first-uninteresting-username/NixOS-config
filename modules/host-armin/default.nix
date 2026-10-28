@@ -52,10 +52,8 @@ mkModule {
           "amd_pstate=active"
         ];
         # This is the only kernel with 300hz timer, which should marginally improve battery life
-        kernelPackages = pkgs.cachyosKernels.linuxPackages-cachyos-server;
+        kernelPackages = inputs.chaotic.legacyPackages.${pkgs.stdenv.hostPlatform.system}.linuxPackages_cachyos-server;
       };
-
-      nixpkgs.overlays = [inputs.nix-cachyos-kernel.overlays.pinned];
 
       systemd.services.set-default-power-profile = {
         description = "Set default power profile to power-saver";

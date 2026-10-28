@@ -40,10 +40,9 @@ mkModule {
           "amd_pstate=active"
           "mem_sleep_default=deep"
         ];
-        kernelPackages = pkgs.cachyosKernels.linuxPackages-cachyos-bore-lto;
+        # Clang LTO build tuned for the Ryzen 5 7500F (Zen 4)
+        kernelPackages = inputs.chaotic.legacyPackages.${pkgs.stdenv.hostPlatform.system}.linuxPackages_cachyos-lto-znver4;
       };
-
-      nixpkgs.overlays = [inputs.nix-cachyos-kernel.overlays.pinned];
 
       system.stateVersion = "26.11";
 
