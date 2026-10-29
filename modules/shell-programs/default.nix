@@ -17,6 +17,8 @@ mkModule {
       ".cache/carapace"
       ".config/carapace"
       ".local/share/direnv"
+      ".cache/blesh"
+      ".local/state/blesh"
     ];
     home.files = [".bash_history"];
   };
@@ -61,12 +63,21 @@ mkModule {
               "cdspell"
               "dirspell"
             ];
-            initExtra = ''
-              bind 'set completion-ignore-case on'
-              bind 'set show-all-if-ambiguous on'
-              bind 'set colored-stats on'
-              bind 'set mark-symlinked-directories on'
+            # Load ble.sh early without attaching; attach after all integrations, including zoxide.
+            bashrcExtra = ''
+              [[ $- == *i* ]] && source -- "${pkgs.blesh}/share/blesh/ble.sh" --attach=none
             '';
+            initExtra = lib.mkMerge [
+              ''
+                bind 'set completion-ignore-case on'
+                bind 'set show-all-if-ambiguous on'
+                bind 'set colored-stats on'
+                bind 'set mark-symlinked-directories on'
+              ''
+              (lib.mkOrder 2500 ''
+                [[ ! ''${BLE_VERSION-} ]] || ble-attach
+              '')
+            ];
           };
 
           nix-index-database.comma = {enable = true;};
@@ -117,6 +128,8 @@ mkModule {
           };
 
           fd = {enable = true;};
+
+          jq = {enable = true;};
 
           btop = {
             enable = true;
@@ -236,6 +249,8 @@ mkModule {
           packages = with pkgs; [
             ugrep
             trash-cli
+            duf
+            xh
           ];
           shellAliases = {
             cat = "bat --style=plain --pager=never";
