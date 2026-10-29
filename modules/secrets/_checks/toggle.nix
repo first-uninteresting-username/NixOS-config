@@ -38,8 +38,7 @@
               };
             };
             home = _: {
-              programs.zsh.enable = true;
-              programs.nushell.enable = true;
+              programs.fish.enable = true;
             };
           };
         })
@@ -83,8 +82,7 @@
   disabledHome = disabled.config.home-manager.users.fixture;
   enabledHome = enabled.config.home-manager.users.fixture;
   noTokenReads = home:
-    !(lib.hasInfix "/run/secrets/" home.programs.zsh.initContent)
-    && !(lib.hasInfix "/run/secrets/" home.programs.nushell.extraEnv);
+    !(lib.hasInfix "/run/secrets/" home.programs.fish.shellInit);
 in
   assert builtins.isString disabled.config.system.build.toplevel.drvPath;
   assert builtins.isString enabled.config.system.build.toplevel.drvPath;
@@ -96,8 +94,7 @@ in
   assert !(disabled.config.systemd.services ? nm-wifi-secret);
   assert noTokenReads disabledHome;
   assert noTokenReads standalone.config;
-  assert lib.hasInfix "/run/secrets/github_pat" enabledHome.programs.zsh.initContent;
-  assert lib.hasInfix "/run/secrets/github_pat" enabledHome.programs.nushell.extraEnv;
+  assert lib.hasInfix "/run/secrets/github_pat" enabledHome.programs.fish.shellInit;
     pkgs.runCommand "secrets-toggle" {} ''
       touch "$out"
     ''

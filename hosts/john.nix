@@ -5,7 +5,7 @@
   name = "john";
   role = "nixos";
   system = "x86_64-linux";
-  ids = ["GNOME" "audio" "browser" "home-manager" "host-john" "hostname" "input" "iso" "iso-graphical" "locale" "networking-minimal" "nix" "power" "preservation" "git" "secrets" "shell" "nushell" "ssh-debug" "stylix" "sudo" "terminal-emulator" "tty" "user" "wayland" "xdg"];
+  ids = ["GNOME" "audio" "browser" "home-manager" "host-john" "hostname" "input" "iso" "iso-graphical" "locale" "networking-minimal" "nix" "power" "preservation" "git" "secrets" "shell" "fish" "ssh-debug" "stylix" "sudo" "terminal-emulator" "tty" "user" "wayland" "xdg"];
   args = {
     userName = "nixos";
     userEnable = true;

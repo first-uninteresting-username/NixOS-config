@@ -10,7 +10,7 @@ packages, checks, documentation, and companion sources. See the
 Hosts declare `name`, `role` (`nixos` or `home`), `system`, `ids`, and `args`.
 A module is selected when the host contains every one of its IDs. Empty IDs match all
 hosts. IDs do not add dependencies automatically. The `GNOME` ID selects GNOME and its
-complete utility set. Select `nushell` or `zsh` for the login shell and `shell` for shared
+complete utility set. Select `fish` for the login shell and `shell` for shared
 command-line tools. Hosts also explicitly select related IDs such as `wayland`, `stylix`,
 and `home-manager`. The `hack` ID selects Hack and its API-key integration. Stylix uses
 MoreWaita icons directly; desktop, shell, and icon choices need no host arguments.

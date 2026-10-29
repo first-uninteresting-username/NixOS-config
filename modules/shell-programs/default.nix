@@ -17,7 +17,10 @@ mkModule {
       ".cache/carapace"
       ".config/carapace"
       ".local/share/direnv"
+      ".cache/blesh"
+      ".local/state/blesh"
     ];
+    home.files = [".bash_history"];
   };
   module = _: {
     nixos = {
@@ -44,6 +47,39 @@ mkModule {
       ];
       config = {
         programs = {
+          # Interactive Bash for scripts and fallback use; Fish stays the login shell.
+          bash = {
+            enable = true;
+            enableCompletion = true;
+            historyControl = ["erasedups" "ignoreboth"];
+            historySize = 10000;
+            historyFileSize = 100000;
+            shellOptions = [
+              "histappend"
+              "checkwinsize"
+              "extglob"
+              "globstar"
+              "autocd"
+              "cdspell"
+              "dirspell"
+            ];
+            # Load ble.sh early without attaching; attach after all integrations, including zoxide.
+            bashrcExtra = ''
+              [[ $- == *i* ]] && source -- "${pkgs.blesh}/share/blesh/ble.sh" --attach=none
+            '';
+            initExtra = lib.mkMerge [
+              ''
+                bind 'set completion-ignore-case on'
+                bind 'set show-all-if-ambiguous on'
+                bind 'set colored-stats on'
+                bind 'set mark-symlinked-directories on'
+              ''
+              (lib.mkOrder 2500 ''
+                [[ ! ''${BLE_VERSION-} ]] || ble-attach
+              '')
+            ];
+          };
+
           nix-index-database.comma = {enable = true;};
           nix-index = {
             enable = true;
@@ -66,6 +102,7 @@ mkModule {
 
           zoxide = {
             enable = true;
+            options = ["--cmd" "cd"];
           };
 
           tealdeer = {
@@ -90,6 +127,8 @@ mkModule {
           };
 
           fd = {enable = true;};
+
+          jq = {enable = true;};
 
           btop = {
             enable = true;
@@ -209,6 +248,8 @@ mkModule {
           packages = with pkgs; [
             ugrep
             trash-cli
+            duf
+            xh
           ];
           shellAliases = {
             cat = "bat --style=plain --pager=never";
@@ -231,36 +272,37 @@ mkModule {
     system,
     ...
   }: let
-    shellConfig = shell:
+    fishConfig =
       (mkHost {
-        name = "yazi-${shell}-fixture";
+        name = "yazi-fish-fixture";
         role = "home";
         inherit system;
-        ids = ["home-manager" "xdg" "shell" shell];
+        ids = ["home-manager" "xdg" "shell" "fish"];
         args = {
           userName = "fixture";
           homeStateVersion = "26.11";
         };
       }).config.programs;
-    zshConfig = shellConfig "zsh";
-    nuConfig = shellConfig "nushell";
   in {
     yazi-integration =
       pkgs.runCommand "yazi-shell-integration" {
-        nativeBuildInputs = [pkgs.python3 pkgs.zsh pkgs.nushell];
-        zshSource = pkgs.writeText "yazi-zsh-init" zshConfig.zsh.initContent;
-        nuSource = pkgs.writeText "yazi-nushell-init" nuConfig.nushell.extraConfig;
+        nativeBuildInputs = [pkgs.python3 pkgs.fish];
+        fishSource = pkgs.writeText "yazi-fish-init" ''
+          function yy
+          ${fishConfig.fish.functions.yy}
+          end
+        '';
       } ''
-        python3 ${./_checks/yazi-integration.py} "$zshSource" "$nuSource"
+        python3 ${./_checks/yazi-integration.py} "$fishSource"
         touch "$out"
       '';
   };
   docs = ''
-    Run `yy` in Zsh or Nushell to open Yazi. Browse to a directory and press `q`
+    Run `yy` in Fish or Bash to open Yazi. Browse to a directory and press `q`
     to change the parent shell's working directory to it. Paths with spaces work;
     for example, `yy "My Documents"` opens that directory.
 
     Run `yazi` directly when you want to keep the parent shell's working directory.
-    The `shell` host ID installs Yazi; select `zsh` or `nushell` for shell integration.
+    The `shell` host ID installs Yazi; select `fish` for shell integration.
   '';
 }
