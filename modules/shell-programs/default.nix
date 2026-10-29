@@ -18,6 +18,7 @@ mkModule {
       ".config/carapace"
       ".local/share/direnv"
     ];
+    home.files = [".bash_history"];
   };
   module = _: {
     nixos = {
@@ -44,6 +45,30 @@ mkModule {
       ];
       config = {
         programs = {
+          # Interactive Bash for scripts and fallback use; Fish stays the login shell.
+          bash = {
+            enable = true;
+            enableCompletion = true;
+            historyControl = ["erasedups" "ignoreboth"];
+            historySize = 10000;
+            historyFileSize = 100000;
+            shellOptions = [
+              "histappend"
+              "checkwinsize"
+              "extglob"
+              "globstar"
+              "autocd"
+              "cdspell"
+              "dirspell"
+            ];
+            initExtra = ''
+              bind 'set completion-ignore-case on'
+              bind 'set show-all-if-ambiguous on'
+              bind 'set colored-stats on'
+              bind 'set mark-symlinked-directories on'
+            '';
+          };
+
           nix-index-database.comma = {enable = true;};
           nix-index = {
             enable = true;
@@ -60,12 +85,14 @@ mkModule {
 
           eza = {
             enable = true;
+            enableBashIntegration = true;
             icons = "auto";
             git = true;
           };
 
           zoxide = {
             enable = true;
+            enableBashIntegration = true;
           };
 
           tealdeer = {
@@ -257,7 +284,7 @@ mkModule {
       '';
   };
   docs = ''
-    Run `yy` in Fish to open Yazi. Browse to a directory and press `q`
+    Run `yy` in Fish or Bash to open Yazi. Browse to a directory and press `q`
     to change the parent shell's working directory to it. Paths with spaces work;
     for example, `yy "My Documents"` opens that directory.
 
