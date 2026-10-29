@@ -11,11 +11,10 @@ import sys
 import tempfile
 
 
-def check(shell, source):
+def check(source):
     text = Path(source).read_text()
-    declaration = r"function yy\(\)" if shell == "zsh" else r"def --env yy \[\.\.\.args\]"
-    match = re.search(r"(?ms)^([ \t]*)" + declaration + r" \{.*?^\1\}", text)
-    assert match, f"{shell}: yy wrapper missing from generated configuration"
+    match = re.search(r"(?ms)^function yy$.*^end$", text)
+    assert match, "yy wrapper missing from generated configuration"
     with tempfile.TemporaryDirectory(prefix="yazi integration ") as directory:
         root = Path(directory)
         wrapper = root / "wrapper"
@@ -44,22 +43,16 @@ Path(cwd_file).write_text(os.environ["YAZI_TEST_DESTINATION"])
         for selected in (str(destination), str(root), ""):
             env = dict(os.environ, PATH=f"{bin_dir}:{os.environ['PATH']}",
                        TMPDIR=str(temp_dir), YAZI_TEST_DESTINATION=selected)
-            if shell == "zsh":
-                command = ["zsh", "-f", "-c",
-                           'source "$1"; yy "start with spaces"; printf "%s\\n" "$PWD"',
-                           "test", str(wrapper)]
-            else:
-                command = ["nu", "--no-config-file", "-c",
-                           f"source '{wrapper}'; yy 'start with spaces'; print $env.PWD"]
+            command = ["fish", "--no-config", "-c",
+                       'source $argv[1]; yy "start with spaces"; printf "%s\\n" $PWD',
+                       str(wrapper)]
             result = subprocess.run(command, cwd=root, env=env, text=True,
                                     capture_output=True, check=True)
             assert not result.stderr, result.stderr
             assert result.stdout.strip() == (selected or str(root)), result.stdout
             assert not list(temp_dir.iterdir()), "cwd temporary file leaked"
-        print(f"{shell}: directory changes, spaces, arguments, unchanged/empty cwd, cleanup passed")
+        print("fish: directory changes, spaces, arguments, unchanged/empty cwd, cleanup passed")
 
 
 if __name__ == "__main__":
-    shells = ("zsh", "nu") if len(sys.argv) == 3 else ("zsh",)
-    for shell, source in zip(shells, sys.argv[1:]):
-        check(shell, source)
+    check(sys.argv[1])

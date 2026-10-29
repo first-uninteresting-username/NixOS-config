@@ -71,11 +71,10 @@ common = f"""
 test "$(hostname)" = {shlex.quote(host_name)}
 systemctl is-active home-manager-nixos.service
 shell=$(getent passwd nixos | cut -d: -f7)
-test "${{shell##*/}}" = nu
-test -s /home/nixos/.config/nushell/config.nu
+test "${{shell##*/}}" = fish
+test -s /home/nixos/.config/fish/config.fish
 cd /home/nixos
-runuser -u nixos -- "$shell" --login \\
-  --config /home/nixos/.config/nushell/config.nu -c 'print checks-v2-iso-shell'
+runuser -u nixos -- "$shell" --login -c 'echo checks-v2-iso-shell'
 """
 
 smoke = common

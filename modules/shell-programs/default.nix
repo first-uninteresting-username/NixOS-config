@@ -231,36 +231,37 @@ mkModule {
     system,
     ...
   }: let
-    shellConfig = shell:
+    fishConfig =
       (mkHost {
-        name = "yazi-${shell}-fixture";
+        name = "yazi-fish-fixture";
         role = "home";
         inherit system;
-        ids = ["home-manager" "xdg" "shell" shell];
+        ids = ["home-manager" "xdg" "shell" "fish"];
         args = {
           userName = "fixture";
           homeStateVersion = "26.11";
         };
       }).config.programs;
-    zshConfig = shellConfig "zsh";
-    nuConfig = shellConfig "nushell";
   in {
     yazi-integration =
       pkgs.runCommand "yazi-shell-integration" {
-        nativeBuildInputs = [pkgs.python3 pkgs.zsh pkgs.nushell];
-        zshSource = pkgs.writeText "yazi-zsh-init" zshConfig.zsh.initContent;
-        nuSource = pkgs.writeText "yazi-nushell-init" nuConfig.nushell.extraConfig;
+        nativeBuildInputs = [pkgs.python3 pkgs.fish];
+        fishSource = pkgs.writeText "yazi-fish-init" ''
+          function yy
+          ${fishConfig.fish.functions.yy}
+          end
+        '';
       } ''
-        python3 ${./_checks/yazi-integration.py} "$zshSource" "$nuSource"
+        python3 ${./_checks/yazi-integration.py} "$fishSource"
         touch "$out"
       '';
   };
   docs = ''
-    Run `yy` in Zsh or Nushell to open Yazi. Browse to a directory and press `q`
+    Run `yy` in Fish to open Yazi. Browse to a directory and press `q`
     to change the parent shell's working directory to it. Paths with spaces work;
     for example, `yy "My Documents"` opens that directory.
 
     Run `yazi` directly when you want to keep the parent shell's working directory.
-    The `shell` host ID installs Yazi; select `zsh` or `nushell` for shell integration.
+    The `shell` host ID installs Yazi; select `fish` for shell integration.
   '';
 }

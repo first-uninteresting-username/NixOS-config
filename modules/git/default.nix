@@ -76,11 +76,8 @@ mkModule {
             prompt = "enabled";
           };
         };
-        zsh.initContent = lib.mkIf (secretsEnable && config.programs.zsh.enable) ''
-          export GH_TOKEN="$(cat ${githubTokenPath})"
-        '';
-        nushell.extraEnv = lib.mkIf (secretsEnable && config.programs.nushell.enable) ''
-          $env.GH_TOKEN = (open ${githubTokenPath} | str trim)
+        fish.shellInit = lib.mkIf (secretsEnable && config.programs.fish.enable) ''
+          set -gx GH_TOKEN (string trim < ${githubTokenPath})
         '';
       };
     };

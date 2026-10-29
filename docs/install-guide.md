@@ -47,10 +47,6 @@ nix run github:nix-community/nixos-anywhere -- \
   --target-host "root@IP"
 ```
 
-```nushell
-^nix run github:nix-community/nixos-anywhere -- --flake 'github:first-uninteresting-username/NixOS-config#HOST-NAME' --extra-files ./tmp --target-host 'root@IP'
-```
-
 ## Post installation
 
 Log in to password manager, matrix etc

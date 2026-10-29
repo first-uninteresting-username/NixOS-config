@@ -87,8 +87,8 @@ lists targets, systems, reasons, and removed outputs. Base/head snapshots and se
 matrices remain workflow artifacts.
 
 VM tests run on x86_64-linux. Module-library fixtures run on both supported systems.
-The library evaluation check also evaluates production GNOME/Nushell
-and Zsh standalone Home Manager activation derivations without building their application
+The library evaluation check also evaluates the production GNOME/Fish
+standalone Home Manager activation derivation without building its application
 dependencies. Packages follow their per-system export availability.
 The `iso-` checks and explicit ISO packages remain in the separate ISO tier, including after
 lock-file changes. Scheduled/manual full runs still build every ordinary package and check,
@@ -120,15 +120,15 @@ architecture; the exports check does not repeat the evaluation assertions.
 | `jail` | File and network isolation, writable state, argument and alias preservation, package overrides, desktop/D-Bus launcher rewriting, filtered session-bus calls, and reference GUI/device access through `lib.mkJail`. |
 | `update` | The production timer is enabled and targets the upgrade service. A delayed network target blocks rebuilding. The service calls `nixos-rebuild boot --refresh` for the correct flake/host, preserves failures, and recovers on a later run. The installed `rebuild` helper invokes `nh os boot --refresh` for that host and preserves failures. An accelerated timer triggers the real service. |
 | `preservation-persistence` | A reboot with tmpfs root retains user/system state declared through `state`, user write access, machine ID, and an SSH host key while unpreserved control files disappear. |
-| `iso-john`, `iso-wall-e` | The actual exported installation images boot, expose their configured SSH interface, activate Home Manager, and execute their configured Nushell. John also contains the repository's gesture seed. These probes do not establish a working graphical session or installation. |
+| `iso-john`, `iso-wall-e` | The actual exported installation images boot, expose their configured SSH interface, activate Home Manager, and execute their configured Fish. John also contains the repository's gesture seed. These probes do not establish a working graphical session or installation. |
 | `module-library-exports`, `module-library-evaluation` | Synthetic declarations exercise the custom registry's discovery, selection, argument binding, assertions, state collection, ownership, and exports. Production standalone homes are evaluated, not built. |
 
 The persistence fixture checks this repository's selected paths and production integration.
 At the pinned revisions, upstream preservation's [basic test][preservation-basic] covers generic
 ownership, permissions, and symlinks, while its [first-boot test][preservation-firstboot] covers
 machine-ID setup and persistence. This suite does not repeat that feature matrix. The ISO shell
-probe loads this repository's generated Nushell configuration, beyond upstream's
-[generic shell/plugin tests][nushell-tests].
+probe loads this repository's generated Fish configuration, beyond upstream's
+[generic shell tests][fish-tests].
 
 Fixtures use disposable public credentials and local rebuild recorders. They never deploy a
 system or use production credentials. Documentation generation remains available through
@@ -262,4 +262,4 @@ summary. This does not require enabling GitHub's separate auto-merge repository 
 
 [preservation-basic]: https://github.com/nix-community/preservation/blob/93416f4614ad2dfed5b0dcf12f27e57d27a5ab11/tests/basic.nix
 [preservation-firstboot]: https://github.com/nix-community/preservation/blob/93416f4614ad2dfed5b0dcf12f27e57d27a5ab11/tests/firstboot.nix
-[nushell-tests]: https://github.com/NixOS/nixpkgs/blob/7fd4004d0511991fff3a0524856a9be09e28c5f0/nixos/tests/nushell.nix
+[fish-tests]: https://github.com/NixOS/nixpkgs/blob/7fd4004d0511991fff3a0524856a9be09e28c5f0/nixos/tests/fish.nix
