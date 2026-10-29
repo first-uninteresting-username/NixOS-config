@@ -96,14 +96,13 @@ mkModule {
 
           eza = {
             enable = true;
-            enableBashIntegration = true;
             icons = "auto";
             git = true;
           };
 
           zoxide = {
             enable = true;
-            enableBashIntegration = true;
+            options = ["--cmd" "cd"];
           };
 
           tealdeer = {

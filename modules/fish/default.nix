@@ -42,9 +42,7 @@ mkModule {
           '';
         };
 
-        nix-index = {enableFishIntegration = true;};
         starship = {
-          enableFishIntegration = true;
           enableTransience = true;
           settings = {
             add_newline = false;
@@ -54,18 +52,6 @@ mkModule {
             };
           };
         };
-        atuin = {enableFishIntegration = true;};
-        eza = {enableFishIntegration = true;};
-        zoxide = {enableFishIntegration = true;};
-        television = {enableFishIntegration = true;};
-        pay-respects = {enableFishIntegration = true;};
-        yazi = {enableFishIntegration = true;};
-        nix-your-shell = {enableFishIntegration = true;};
-        broot = {enableFishIntegration = true;};
-        fzf = {enableFishIntegration = true;};
-        carapace = {enableFishIntegration = true;};
-        devenv = {enableFishIntegration = true;};
-        direnv = {enableFishIntegration = true;};
       };
     };
   };
