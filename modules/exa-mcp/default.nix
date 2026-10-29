@@ -4,7 +4,7 @@
 {mkModule, ...}:
 mkModule {
   name = "exa-mcp";
-  ids = ["exa-mcp"];
+  ids = ["agents"];
   module = {
     exaMcpUrl ? "https://mcp.exa.ai/mcp",
     exaMcpTools ? [
@@ -55,8 +55,9 @@ mkModule {
     };
   };
   docs = ''
-    Adds Exa's hosted search MCP server at `exaMcpUrl` to the shared `programs.mcp.servers`,
-    so Claude Code and OpenCode can use Exa search alongside their built-in web search.
+    The `agents` host ID enables this module. It adds Exa's hosted search MCP server at
+    `exaMcpUrl` to the shared `programs.mcp.servers`, so Claude Code and OpenCode can use Exa
+    search alongside their built-in web search.
     `exaMcpTools` lists the enabled Exa tools. An explicit list replaces Exa's defaults.
 
     With secrets enabled, sops-nix decrypts `EXA_API_KEY` to `exaApiKeyPath`, and MCP clients
