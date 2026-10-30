@@ -108,6 +108,7 @@ mkModule {
 
           userSettings = {
             restore_on_startup = "last_session";
+            semantic_tokens = "combined";
 
             vim_mode = false;
             disable_ai = false;
