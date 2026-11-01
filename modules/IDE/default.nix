@@ -229,6 +229,8 @@ mkModule {
           nil
           alejandra
           wakatime-cli
+          android-tools
+          scrcpy
         ];
 
         sessionVariables = {
