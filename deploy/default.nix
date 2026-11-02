@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2026 first-uninteresting-username
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
-# deploy-rs nodes and a `rebuild-<node>` app for each. Deploy with `nix run .#rebuild-<node>`.
+# deploy-rs nodes and a `rebuild-<node>` app for each. Deploy with `nix run config#rebuild-<node>`.
 {
   lib,
   inputs,

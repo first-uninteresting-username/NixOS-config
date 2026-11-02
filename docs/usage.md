@@ -57,15 +57,18 @@ The regular flake update keeps this release pinned until you change its URL.
 ### Remote deployments
 
 Hosts listed in `deploy/default.nix` are deployed with [deploy-rs](https://github.com/serokell/deploy-rs).
-Each node gets a `rebuild-<node>` app that deploys the checkout you run it from:
+Hosts that select the `rebuild-nisha` module (victim and armin) deploy `main` to nisha with:
 
 ```bash
-nix run .#rebuild-nisha
+rebuild-nisha
 ```
+
+Without the module, `nix run config#rebuild-nisha` does the same. To test a branch before merging, run
+`nix run .#rebuild-nisha` from its checkout.
 
 nisha builds its own closure, because the x86_64 hosts cannot build aarch64-linux. deploy-rs then asks for
 your sudo password on nisha. If the new generation breaks SSH, deploy-rs rolls back to the previous one.
-Extra arguments go to deploy-rs, for example `nix run .#rebuild-nisha -- --dry-activate`.
+Extra arguments go to deploy-rs, for example `rebuild-nisha --dry-activate`.
 
 ### Zed with ChatGPT Plus
 
