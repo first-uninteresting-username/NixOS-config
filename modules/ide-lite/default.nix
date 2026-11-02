@@ -1,12 +1,37 @@
 # SPDX-FileCopyrightText: 2026 first-uninteresting-username
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
-# Kate configured to match `ide-proper` (Zed) as closely as Kate allows. Kate renders on the CPU,
-# so it stays usable on hosts without a GPU, such as xrdp sessions.
 {mkModule, ...}:
 mkModule {
   name = "ide-lite";
   ids = ["IDE" "ide-lite"];
+  docs = ''
+    Installs Kate configured to match `ide-proper` (Zed) where Kate allows. Kate renders on
+    the CPU, so it stays responsive on hosts without a GPU, such as xrdp sessions.
+    It requires the `IDE` host ID.
+
+    - Language servers: `nil` for Nix, with Alejandra formatting, and Marksman for Markdown.
+      Both are pre-approved, so Kate starts them without a prompt. Semantic highlighting,
+      inlay hints, hover, and signature help are on.
+    - Formatting on save: Alejandra for Nix through the format plugin, and Prettier for
+      Markdown through a before-save external tool.
+    - Coding time: the packaged [kate-wakatime](https://github.com/Tatsh/kate-wakatime) plugin
+      sends heartbeats through `wakatime-cli` on edits and saves, using the `IDE` module's
+      Hackatime configuration.
+    - Interface: last-session restore, minimap, breadcrumbs, indent guides, trailing-space
+      markers, and a hidden menu bar. The project, file tree, search, terminal, git blame,
+      build, snippets, color picker, and Markdown preview plugins are enabled.
+
+    `VISUAL` is `kate --block`, and the **NixOS Config** launcher opens this repository in Kate.
+
+    Kate rewrites its configuration files at runtime, so activation merges the managed keys
+    into `katerc` and enables the plugins in every saved session. Settings changed in Kate's
+    dialog persist until the next activation resets a managed key.
+
+    Kate has no inline AI edit predictions or agent panel; run an agent CLI in the terminal
+    panel instead. Kate runs one language server per language, so `nixd` does not run
+    beside `nil`.
+  '';
   state = {
     home.directories = [
       ".local/share/kate"
@@ -19,11 +44,47 @@ mkModule {
       ".config/kate-externaltoolspluginrc"
     ];
   };
+  packages = {pkgs, ...}: {
+    kate-wakatime = pkgs.stdenv.mkDerivation (finalAttrs: {
+      pname = "kate-wakatime";
+      version = "1.5.5";
+      src = pkgs.fetchFromGitHub {
+        owner = "Tatsh";
+        repo = "kate-wakatime";
+        tag = "v${finalAttrs.version}";
+        hash = "sha256-uQOyzUEUxaIuNAJ+VzFY8h9lcukY47dPasffoBGQ3J4=";
+      };
+      nativeBuildInputs = [pkgs.cmake pkgs.kdePackages.extra-cmake-modules];
+      buildInputs = with pkgs.kdePackages; [qtbase ki18n kcoreaddons ktexteditor];
+      cmakeFlags = ["-DBUILD_TESTING=OFF"];
+      # A KTextEditor plugin loaded by Kate's own wrapped binary.
+      dontWrapQtApps = true;
+      passthru.updateScript = pkgs.nix-update-script {extraArgs = ["--flake"];};
+      meta = {
+        description = "WakaTime heartbeats from Kate and other KTextEditor apps";
+        homepage = "https://github.com/Tatsh/kate-wakatime";
+        license = pkgs.lib.licenses.mit;
+        platforms = pkgs.lib.platforms.linux;
+      };
+    });
+  };
+  checks = {
+    pkgs,
+    packages,
+    ...
+  }: {
+    # Kate discovers KTextEditor plugins only in this namespace; upstream has moved it before.
+    kate-wakatime-plugin-path = pkgs.runCommand "kate-wakatime-plugin-path" {} ''
+      test -f ${packages.kate-wakatime}/lib/qt-6/plugins/kf6/ktexteditor/ktexteditor_wakatime.so
+      touch "$out"
+    '';
+  };
   module = _: {
     home = {
       lib,
       pkgs,
       config,
+      packages,
       ...
     }: let
       kde = pkgs.kdePackages;
@@ -33,14 +94,20 @@ mkModule {
       prettier = "${pkgs.prettier}/bin/prettier";
 
       # Kate loads the terminal panel and Markdown preview as KParts from QT_PLUGIN_PATH.
+      # The WakaTime plugin finds wakatime-cli through PATH.
       katePackage = pkgs.symlinkJoin {
         name = "kate-ide-lite";
         paths = [kde.kate];
         nativeBuildInputs = [pkgs.makeWrapper];
         postBuild = ''
           for bin in kate kwrite; do
-            wrapProgram $out/bin/$bin --prefix QT_PLUGIN_PATH : ${lib.makeSearchPath
-            "lib/qt-6/plugins" [kde.konsole kde.markdownpart]}
+            wrapProgram $out/bin/$bin \
+              --prefix QT_PLUGIN_PATH : ${lib.makeSearchPath "lib/qt-6/plugins" [
+            kde.konsole
+            kde.markdownpart
+            packages.kate-wakatime
+          ]} \
+              --prefix PATH : ${lib.makeBinPath [pkgs.wakatime-cli]}
           done
         '';
       };
@@ -62,57 +129,7 @@ mkModule {
       };
       allowedServers = lib.mapAttrsToList (_: s: lib.concatStringsSep " " s.command) servers;
 
-      # Save-triggered tools fire only for listed MIME types; Kate matches them exactly.
-      codeMimeTypes = [
-        "text/plain"
-        "text/x-nix"
-        "text/markdown"
-        "text/x-python"
-        "text/x-python3"
-        "text/x-shellscript"
-        "application/x-shellscript"
-        "application/x-fishscript"
-        "application/toml"
-        "application/yaml"
-        "application/json"
-        "text/rust"
-        "text/x-go"
-        "text/javascript"
-        "application/javascript"
-        "application/x-typescript"
-        "text/x-csrc"
-        "text/x-chdr"
-        "text/x-c++src"
-        "text/x-c++hdr"
-        "text/x-kotlin"
-        "text/x-java"
-        "text/x-lua"
-        "text/css"
-        "text/html"
-        "text/x-cmake"
-        "text/x-qml"
-        "application/vnd.dart"
-      ];
-
       externalTools = {
-        # Zed's hackatime extension sends a heartbeat per edit; Kate can only hook saves, which
-        # auto-save on focus loss makes frequent.
-        wakatime = {
-          name = "WakaTime heartbeat";
-          category = "WakaTime";
-          executable = "${pkgs.wakatime-cli}/bin/wakatime-cli";
-          arguments = lib.concatStringsSep " " [
-            "--entity %{Document:FilePath}"
-            "--write"
-            "--plugin \"kate/${kde.kate.version} kate-ide-lite/1.0\""
-          ];
-          workingDir = "%{Document:Path}";
-          mimetypes = lib.concatStringsSep ";" codeMimeTypes;
-          output = "Ignore";
-          save = "None";
-          trigger = "AfterSave";
-          reload = false;
-        };
         # Kate's formatter plugin has no Markdown formatter; Zed runs Prettier on save.
         prettier-markdown = {
           name = "Prettier (Markdown)";
@@ -138,22 +155,6 @@ mkModule {
           "Open New Tab To The Right Of Current" = true;
           "Show Menu Bar" = false;
         };
-        "Kate Plugins" = lib.genAttrs [
-          "lspclientplugin"
-          "formatplugin"
-          "kateprojectplugin"
-          "katefiletreeplugin"
-          "katesearchplugin"
-          "katekonsoleplugin"
-          "kategitblameplugin"
-          "katebuildplugin"
-          "katesnippetsplugin"
-          "katecolorpickerplugin"
-          "ktexteditorpreviewplugin"
-          "externaltoolsplugin"
-          "tabswitcherplugin"
-          "openlinkplugin"
-        ] (_: true);
         lspclient = {
           AllowedServerCommandLines = lib.concatStringsSep "," allowedServers;
           SemanticHighlighting = true;
@@ -187,10 +188,32 @@ mkModule {
         };
       };
 
+      # Kate keeps plugin selection per session, not in katerc.
+      kateSessionSettings = {
+        "Kate Plugins" = lib.genAttrs [
+          "lspclientplugin"
+          "formatplugin"
+          "kateprojectplugin"
+          "katefiletreeplugin"
+          "katesearchplugin"
+          "katekonsoleplugin"
+          "kategitblameplugin"
+          "katebuildplugin"
+          "katesnippetsplugin"
+          "katecolorpickerplugin"
+          "ktexteditorpreviewplugin"
+          "externaltoolsplugin"
+          "tabswitcherplugin"
+          "openlinkplugin"
+          "ktexteditor_wakatime"
+        ] (_: true);
+      };
+
+      # `file` is a shell word, so callers can pass a loop variable.
       writeKateConfig = file: groups:
         lib.concatStrings (lib.flatten (lib.mapAttrsToList (group: entries:
           lib.mapAttrsToList (key: value: ''
-            run ${kde.kconfig}/bin/kwriteconfig6 --file ${lib.escapeShellArg file} \
+            run ${kde.kconfig}/bin/kwriteconfig6 --file ${file} \
               --group ${lib.escapeShellArg group} --key ${lib.escapeShellArg key} \
               ${lib.optionalString (lib.isBool value) "--type bool"} \
               ${lib.escapeShellArg (
@@ -212,11 +235,19 @@ mkModule {
 
         # Kate rewrites katerc at runtime, so merge managed keys instead of linking the file.
         activation.kateSettings = lib.hm.dag.entryAfter ["writeBoundary"] (
-          writeKateConfig "${config.xdg.configHome}/katerc" kateSettings
+          writeKateConfig (lib.escapeShellArg "${config.xdg.configHome}/katerc") kateSettings
           # Skip seeding Kate's example tools, which would hide the managed ones on first start.
-          + writeKateConfig "${config.xdg.configHome}/kate-externaltoolspluginrc" {
+          + writeKateConfig (lib.escapeShellArg "${config.xdg.configHome}/kate-externaltoolspluginrc") {
             Global.firststart = false;
           }
+          + ''
+            kateData=${lib.escapeShellArg "${config.xdg.dataHome}/kate"}
+            run mkdir -p "$kateData/sessions"
+            for kateSession in "$kateData/anonymous.katesession" "$kateData"/sessions/*.katesession; do
+              [ -e "$kateSession" ] || [ "$kateSession" = "$kateData/anonymous.katesession" ] || continue
+              ${writeKateConfig "\"$kateSession\"" kateSessionSettings}
+            done
+          ''
         );
       };
 

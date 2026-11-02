@@ -1,11 +1,20 @@
 # SPDX-FileCopyrightText: 2026 first-uninteresting-username
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
-# Zed, which renders with the GPU. Hosts without one use `ide-lite` instead.
 {mkModule, ...}:
 mkModule {
   name = "ide-proper";
   ids = ["IDE" "ide-proper"];
+  docs = ''
+    Installs Zed, which renders with the GPU. Hosts without a GPU select `ide-lite` instead.
+    It requires the `IDE` host ID.
+
+    Zed uses `nil` for Nix with Alejandra formatting, Marksman and Prettier for Markdown, and
+    the Hackatime extension for coding time. With secrets enabled, the wrapper exports the sops
+    `MISTRAL_API_KEY` as `CODESTRAL_API_KEY` for Codestral edit predictions. The Agent panel
+    and its status bar button are enabled. `VISUAL` is `zeditor --wait`, and the
+    **NixOS Config** launcher opens this repository in Zed.
+  '';
   state = {
     home.directories = [
       ".config/zed"

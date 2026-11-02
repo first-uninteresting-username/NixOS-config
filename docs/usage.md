@@ -70,9 +70,28 @@ nisha builds its own closure, because the x86_64 hosts cannot build aarch64-linu
 your sudo password on nisha. If the new generation breaks SSH, deploy-rs rolls back to the previous one.
 Extra arguments go to deploy-rs, for example `rebuild-nisha --dry-activate`.
 
+### Editors
+
+The `IDE` host ID installs the editor-independent tools: `micro` as `EDITOR`, `nil`, Alejandra,
+the Android tools, and the Hackatime configuration. Add one editor ID next to it:
+
+| Host ID | Editor | Use it when |
+| --- | --- | --- |
+| `ide-proper` | Zed | The host has a GPU. |
+| `ide-lite` | Kate | The host renders on the CPU, for example over xrdp. |
+
+```nix
+ids = ["IDE" "ide-lite" ...];
+```
+
+Kate is configured to match Zed where Kate allows: the same language servers and formatters,
+format on save, Hackatime heartbeats, and a similar layout. It has no inline AI edit
+predictions or agent panel; use an agent CLI in its terminal panel instead.
+Each module's own documentation lists the details.
+
 ### Zed with ChatGPT Plus
 
-The `IDE` module enables Zed's Agent panel and its status bar button.
+The `ide-proper` module enables Zed's Agent panel and its status bar button.
 Zed's ChatGPT Subscription provider supports ChatGPT Plus and Pro accounts.
 
 1. Rebuild your system with the updated configuration and restart Zed.

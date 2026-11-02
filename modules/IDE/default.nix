@@ -1,12 +1,20 @@
 # SPDX-FileCopyrightText: 2026 first-uninteresting-username
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
-# Editor-independent development tooling. Pair with `ide-proper` (Zed, needs a GPU) or
-# `ide-lite` (Kate, CPU rendering).
 {mkModule, ...}:
 mkModule {
   name = "IDE";
   ids = ["IDE"];
+  docs = ''
+    Provides the editor-independent development tools. Select it together with one editor:
+    `ide-proper` installs Zed, which needs a GPU, and `ide-lite` installs Kate, which renders
+    on the CPU and suits remote desktops such as xrdp.
+
+    `micro` is the terminal `EDITOR`. `nil`, Alejandra, `wakatime-cli`, `adb`, and `scrcpy` are
+    installed for every editor. With secrets enabled, sops writes `~/.wakatime.cfg` with the
+    Hackatime API URL and key, so both editors report coding time to Hackatime.
+    Run `canistopcoding` to print today's total.
+  '';
   state = {
     home.directories = [
       ".wakatime"
