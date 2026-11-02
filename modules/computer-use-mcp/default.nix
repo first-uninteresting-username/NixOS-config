@@ -33,9 +33,15 @@ mkModule {
   docs = ''
     Hosts with both the `agents` and `XFCE` IDs get a computer-use MCP server named `computer`
     in the shared `programs.mcp.servers`, so Claude Code and OpenCode can control the X11
-    desktop they run on. It takes screenshots with maim and drives the pointer and keyboard
-    with xdotool. Screenshots are downscaled to 1280 pixels wide, or
-    `COMPUTER_USE_MAX_WIDTH`, and all tool coordinates use screenshot pixels.
+    desktop they run on. It takes screenshots with maim and drives the pointer, keyboard and
+    windows with xdotool.
+
+    Screenshots are scaled to Claude's image limits: at most 1568 pixels on the long edge and
+    1.15 million pixels, set by `COMPUTER_USE_MAX_EDGE` and `COMPUTER_USE_MAX_PIXELS`. All tool
+    coordinates use screenshot pixels. `zoom` captures a region at full resolution, `windows`
+    and `focus_window` list and focus windows, and `actions` runs several steps in one call and
+    returns a screenshot afterwards. Clicks, drags and scrolls accept held modifier keys.
+
     When the agent starts without `DISPLAY`, such as over SSH, the server uses the newest X
     server socket the user owns, for example an open xrdp session.
   '';
