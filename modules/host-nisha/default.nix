@@ -38,6 +38,18 @@ mkModule {
         enable = true;
         defaultWindowManager = "startxfce4";
         openFirewall = false;
+        # xrdp reloads the keymap on every connect, discarding options the session set.
+        # It reads options only from a section matching the client's keyboard type.
+        extraConfDirCommands = ''
+          cat >> $out/xrdp_keyboard.ini <<'EOF'
+
+          [rdp_keyboard_capsswap]
+          keyboard_type=4
+          rdp_layouts=default_rdp_layouts
+          layouts_map=default_layouts_map
+          options=caps:swapescape
+          EOF
+        '';
       };
 
       system.stateVersion = "26.11";
