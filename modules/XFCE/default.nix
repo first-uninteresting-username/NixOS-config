@@ -157,16 +157,16 @@ mkModule {
           "Default/XkbOptions/Group" = "caps:swapescape";
         };
 
-        # Bindings follow the GNOME hosts with Ctrl in place of Super; the Super variants
-        # are reset so earlier generations do not leave them behind.
+        # Bindings follow the GNOME hosts with Ctrl+Shift in place of Super, and Alt in place
+        # of the extra Shift. Earlier Super and Ctrl variants are reset so they do not linger.
         xfce4-keyboard-shortcuts = let
-          bindings = mod:
+          bindings = mod: extra:
             {
               "commands/custom/${mod}Return" = "xfce4-terminal";
               "commands/custom/${mod}e" = "thunar";
               "commands/custom/${mod}space" = "${lib.getExe config.programs.rofi.finalPackage} -show drun";
               "xfwm4/custom/${mod}Tab" = "cycle_windows_key";
-              "xfwm4/custom/<Shift>${mod}Tab" = "cycle_reverse_windows_key";
+              "xfwm4/custom/${extra}Tab" = "cycle_reverse_windows_key";
               "xfwm4/custom/${mod}q" = "close_window_key";
               "xfwm4/custom/${mod}d" = "show_desktop_key";
               "xfwm4/custom/${mod}f" = "maximize_window_key";
@@ -175,12 +175,13 @@ mkModule {
             }
             // lib.listToAttrs (lib.concatMap (n: [
                 (lib.nameValuePair "xfwm4/custom/${mod}${toString n}" "workspace_${toString n}_key")
-                (lib.nameValuePair "xfwm4/custom/<Shift>${mod}${toString n}"
+                (lib.nameValuePair "xfwm4/custom/${extra}${toString n}"
                   "move_window_workspace_${toString n}_key")
               ])
               workspaces);
         in
-          lib.mapAttrs (_: _: null) (bindings "<Super>") // bindings "<Primary>";
+          lib.mapAttrs (_: _: null) (bindings "<Super>" "<Shift><Super>" // bindings "<Primary>" "<Shift><Primary>")
+          // bindings "<Primary><Shift>" "<Primary><Shift><Alt>";
       };
     };
   };
