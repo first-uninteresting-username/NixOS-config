@@ -60,9 +60,9 @@ in {
       mkdir -p "$extensionDir"
       cp -r gnome-extension/. "$extensionDir/"
       # The configured GNOME terminal is Ghostty.
-      substituteInPlace "$extensionDir/extension.js" \
-        --replace-fail "['kgx', '--', tui]," \
-          "['${pkgs.lib.getExe pkgs.ghostty}', '-e', tui],"
+      substituteInPlace "$extensionDir/terminal.js" \
+        --replace-fail "['ptyxis', '--', 'bash', '-lc', command]," \
+          "['${pkgs.lib.getExe pkgs.ghostty}', '-e', 'bash', '-lc', command],"
       runHook postInstall
     '';
     passthru = {inherit extensionUuid;};
