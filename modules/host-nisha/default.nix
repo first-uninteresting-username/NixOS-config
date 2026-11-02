@@ -9,6 +9,7 @@ mkModule {
     nixos = {
       inputs,
       modulesPath,
+      userName,
       ...
     }: {
       imports = [
@@ -32,6 +33,11 @@ mkModule {
       };
 
       zramSwap.enable = true;
+
+      # Dedicated key from the portable USB connection kit; revoke it here if the stick is lost.
+      users.users.${userName}.openssh.authorizedKeys.keys = [
+        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBwrQNIOTZaInBX4JXE9NKhv2WLyAnpuvwP2Ku9yX3H4 nisha_usb_key"
+      ];
 
       # Reach the desktop through an SSH tunnel; the RDP port stays closed.
       services.xrdp = {
