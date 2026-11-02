@@ -38,6 +38,23 @@ mkModule {
         enable = true;
         defaultWindowManager = "startxfce4";
         openFirewall = false;
+        # xrdp reloads the keymap on every connect, discarding options the session set.
+        # It reads options only from a section matching the client's keyboard type.
+        # US and Polish clients get the Polish layout; other layouts fall back to us.
+        extraConfDirCommands = ''
+          cat >> $out/xrdp_keyboard.ini <<'EOF'
+
+          [rdp_keyboard_nisha]
+          keyboard_type=4
+          rdp_layouts=default_rdp_layouts
+          layouts_map=rdp_layouts_map_pl
+          options=caps:swapescape
+
+          [rdp_layouts_map_pl]
+          rdp_layout_us=pl
+          rdp_layout_pl=pl
+          EOF
+        '';
       };
 
       system.stateVersion = "26.11";
