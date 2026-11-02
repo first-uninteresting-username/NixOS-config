@@ -66,7 +66,10 @@ mkModule {
           "general/workspace_count" = lib.length workspaces;
         };
 
-        xfce4-desktop = lib.optionalAttrs (stylix != null && stylix.image != null) backdrops;
+        xfce4-desktop =
+          # 0 hides desktop icons.
+          {"desktop-icons/style" = 0;}
+          // lib.optionalAttrs (stylix != null && stylix.image != null) backdrops;
 
         # Stylix has no xfce4-terminal target; this follows its base16 terminal mapping.
         xfce4-terminal = lib.optionalAttrs (stylix != null) {
