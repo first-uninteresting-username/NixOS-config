@@ -87,7 +87,7 @@ jobs:
             nix eval --json '.#githubActions.hosts' > ci-matrices/hosts.json
             nix eval --json '.#githubActions.isos' > ci-matrices/isos.json
             nix eval --json '.#githubActions.isoTests' > ci-matrices/iso-tests.json
-            jq -e '.include | length == 4' ci-matrices/hosts.json > /dev/null
+            jq -e '.include | length == 5' ci-matrices/hosts.json > /dev/null
             jq -e '.include | length == 2' ci-matrices/isos.json > /dev/null
             jq -e '.include | length == 2' ci-matrices/iso-tests.json > /dev/null
             echo "hostsMatrix=$(cat ci-matrices/hosts.json)" >> "$GITHUB_OUTPUT"
