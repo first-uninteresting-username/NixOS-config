@@ -26,12 +26,10 @@ mkModule {
       };
 
       environment = {
-        systemPackages =
-          [
-            packages.rebuild
-          ]
-          # nisha deploys itself from the other hosts; see deploy/.
-          ++ lib.optional (hostName != "nisha") packages.rebuild-nisha;
+        systemPackages = [
+          packages.rebuild
+          packages.rebuild-nisha
+        ];
         variables = {
           NH_OS_FLAKE = flakeRef;
         };
