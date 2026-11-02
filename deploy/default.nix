@@ -1,9 +1,14 @@
 # SPDX-FileCopyrightText: 2026 first-uninteresting-username
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
-# deploy-rs nodes. Deploy with `nix run github:serokell/deploy-rs -- .#<node>`.
-{inputs}: let
-  inherit (inputs) self nixpkgs deploy-rs;
+# deploy-rs nodes and a `rebuild-<node>` app for each. Deploy with `nix run .#rebuild-<node>`.
+{
+  lib,
+  inputs,
+  self,
+  ...
+}: let
+  inherit (inputs) nixpkgs deploy-rs;
 
   # Use the cached deploy-rs from nixpkgs instead of building the flake's own copy.
   deployLib = system:
@@ -32,7 +37,7 @@
     profiles.system.path = (deployLib system).activate.nixos self.nixosConfigurations.${hostName};
   };
 in {
-  nodes = {
+  flake.deploy.nodes = {
     nisha =
       nixosNode {
         hostName = "nisha";
@@ -45,5 +50,21 @@ in {
         remoteBuild = true;
         interactiveSudo = true;
       };
+  };
+
+  perSystem = {pkgs, ...}: {
+    apps = lib.mapAttrs' (name: _:
+      lib.nameValuePair "rebuild-${name}" {
+        program = lib.getExe (pkgs.writeShellApplication {
+          name = "rebuild-${name}";
+          runtimeInputs = [pkgs.deploy-rs];
+          # Extra arguments go to deploy-rs, for example `--dry-activate`.
+          text = ''
+            deploy ${lib.escapeShellArg "${self}#${name}"} "$@"
+          '';
+        });
+        meta.description = "Build ${name} on the target and activate it with deploy-rs";
+      })
+    self.deploy.nodes;
   };
 }

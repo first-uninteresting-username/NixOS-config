@@ -139,12 +139,12 @@
       imports = [
         (inputs.import-tree ./checks)
         (inputs.import-tree ./github-actions)
+        (inputs.import-tree ./deploy)
       ];
       flake = {
         inherit (registry) nixosModules homeModules nixosConfigurations homeConfigurations;
         lib.modules = registry;
         lib.mkJail = import ./lib/mk-jail.nix {inherit inputs;};
-        deploy = import ./lib/deploy.nix {inherit inputs;};
       };
       perSystem = {
         pkgs,
