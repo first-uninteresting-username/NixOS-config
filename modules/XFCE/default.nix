@@ -4,29 +4,14 @@
 {mkModule, ...}:
 mkModule {
   name = "XFCE";
-  ids = ["XFCE" "terminal-emulator"];
+  ids = ["XFCE"];
   module = _: {
-    nixos = {
-      lib,
-      pkgs,
-      ...
-    }: {
+    nixos = {pkgs, ...}: {
       services.xserver = {
         enable = true;
         excludePackages = [pkgs.xterm];
         desktopManager.xfce.enable = true;
       };
-
-      # GNOME applications and Ghostty replace the bundled Xfce applications.
-      environment.xfce.excludePackages = with pkgs; [
-        mousepad
-        parole
-        ristretto
-        xfce4-appfinder
-        xfce4-taskmanager
-        xfce4-terminal
-      ];
-      programs.thunar.enable = lib.mkForce false;
 
       programs.dconf.enable = true;
 
@@ -39,66 +24,26 @@ mkModule {
       pkgs,
       ...
     }: let
-      ghostty = "${lib.getExe pkgs.ghostty} +new-window";
-      launcher = "${lib.getExe config.programs.rofi.finalPackage} -show drun";
-      workspaces = lib.range 1 4;
-      wallpaper =
+      stylix =
         if config ? stylix && config.stylix.enable
-        then config.stylix.image
+        then config.stylix
         else null;
+      colors = config.lib.stylix.colors.withHashtag;
+      workspaces = lib.range 1 4;
       # xrdp names its outputs rdp0, rdp1 and so on.
       backdrops = lib.listToAttrs (lib.concatMap (monitor:
         lib.concatMap (workspace: let
           prefix = "backdrop/screen0/monitor${monitor}/workspace${toString workspace}";
         in [
-          (lib.nameValuePair "${prefix}/last-image" "${wallpaper}")
+          (lib.nameValuePair "${prefix}/last-image" "${stylix.image}")
           # 5 zooms the image to fill the monitor.
           (lib.nameValuePair "${prefix}/image-style" 5)
         ]) (lib.range 0 3)) ["rdp0" "rdp1"]);
     in {
-      home.packages = with pkgs; [
-        file-roller
-        gnome-calculator
-        gnome-text-editor
-        loupe
-        mission-center
-        nautilus
-        papers
-        showtime
-      ];
-
+      # Rofi renders on the CPU, unlike most themed launchers.
       programs.rofi.enable = true;
 
       stylix.targets.xfce.enable = true;
-
-      xdg.configFile."xfce4/helpers.rc".text = ''
-        TerminalEmulator=ghostty
-        FileManager=nautilus
-        WebBrowser=firefox
-      '';
-      xdg.dataFile."xfce4/helpers/ghostty.desktop".text = ''
-        [Desktop Entry]
-        NoDisplay=true
-        Version=1.0
-        Type=X-XFCE-Helper
-        X-XFCE-Category=TerminalEmulator
-        X-XFCE-Commands=${lib.getExe pkgs.ghostty}
-        X-XFCE-CommandsWithParameter=${lib.getExe pkgs.ghostty} -e "%s"
-        Icon=com.mitchellh.ghostty
-        Name=Ghostty
-      '';
-
-      xdg.mimeApps = {
-        enable = true;
-        defaultApplications = {
-          "inode/directory" = "org.gnome.Nautilus.desktop";
-          "text/plain" = "org.gnome.TextEditor.desktop";
-          "application/pdf" = "org.gnome.Papers.desktop";
-          "image/png" = "org.gnome.Loupe.desktop";
-          "image/jpeg" = "org.gnome.Loupe.desktop";
-          "image/svg+xml" = "org.gnome.Loupe.desktop";
-        };
-      };
 
       xfconf.settings = {
         # Xfce's settings daemon overrides GTK settings files, so mirror the Stylix choices.
@@ -121,7 +66,39 @@ mkModule {
           "general/workspace_count" = lib.length workspaces;
         };
 
-        xfce4-desktop = lib.optionalAttrs (wallpaper != null) backdrops;
+        xfce4-desktop = lib.optionalAttrs (stylix != null && stylix.image != null) backdrops;
+
+        # Stylix has no xfce4-terminal target; this follows its base16 terminal mapping.
+        xfce4-terminal = lib.optionalAttrs (stylix != null) {
+          color-use-theme = false;
+          color-foreground = colors.base05;
+          color-background = colors.base00;
+          color-cursor-use-default = false;
+          color-cursor = colors.base05;
+          color-cursor-foreground = colors.base00;
+          color-bold-use-default = true;
+          color-palette = lib.concatStringsSep ";" (map (name: colors.${name}) [
+            "base00"
+            "base08"
+            "base0B"
+            "base0A"
+            "base0D"
+            "base0E"
+            "base0C"
+            "base05"
+            "base03"
+            "base08"
+            "base0B"
+            "base0A"
+            "base0D"
+            "base0E"
+            "base0C"
+            "base07"
+          ]);
+          font-use-system = false;
+          font-name = "${stylix.fonts.monospace.name} ${toString stylix.fonts.sizes.terminal}";
+          misc-menubar-default = false;
+        };
 
         keyboard-layout = {
           "Default/XkbDisable" = false;
@@ -133,10 +110,9 @@ mkModule {
         # Bindings follow the GNOME hosts.
         xfce4-keyboard-shortcuts =
           {
-            "commands/custom/<Super>Return" = ghostty;
-            "commands/custom/<Super>e" = "${lib.getExe pkgs.nautilus} --new-window";
-            "commands/custom/<Super>space" = launcher;
-            "commands/custom/<Super>r" = launcher;
+            "commands/custom/<Super>Return" = "xfce4-terminal";
+            "commands/custom/<Super>e" = "thunar";
+            "commands/custom/<Super>space" = "${lib.getExe config.programs.rofi.finalPackage} -show drun";
             "xfwm4/custom/<Super>Tab" = "cycle_windows_key";
             "xfwm4/custom/<Shift><Super>Tab" = "cycle_reverse_windows_key";
             "xfwm4/custom/<Super>q" = "close_window_key";
