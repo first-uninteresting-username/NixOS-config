@@ -35,6 +35,7 @@ A comprehensive OS-as-a-code solution based on NixOS (Work in progress).
 | Hostname | Motherboard / Laptop Model | CPU         | GPU               | RAM  | Primary Purpose  |
 | -------- | -------------------------- | ----------- | ----------------- | ---- | ---------------- |
 | armin    | Framework 13               | Ryzen 7640U | Radeon 760M       | 16GB | Desktop (GNOME)  |
+| nisha    | Oracle Cloud A1 VM         | 2 OCPU A1   | N/A               | 12GB | Desktop (XFCE)   |
 | john     | N/A                        | N/A         | N/A               | N/A  | Installation ISO |
 | wall-e   | N/A                        | N/A         | N/A               | N/A  | Installation ISO |
 | victim   | Gigabyte Eagle B650 AX     | Ryzen 7500F | Radeon RX 7800 XT | 32GB | Desktop (GNOME)  |
