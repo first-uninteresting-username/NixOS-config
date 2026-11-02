@@ -39,7 +39,42 @@ mkModule {
           # 5 zooms the image to fill the monitor.
           (lib.nameValuePair "${prefix}/image-style" 5)
         ]) (lib.range 0 3)) ["rdp0" "rdp1"]);
+      # The dock matches the GNOME favorites: browser, terminal and file manager.
+      browserEntry =
+        if config.programs.firefox.enable
+        then "${config.programs.firefox.finalPackage}/share/applications/firefox.desktop"
+        else
+          pkgs.writeText "web-browser.desktop" ''
+            [Desktop Entry]
+            Type=Application
+            Name=Web Browser
+            Exec=exo-open --launch WebBrowser %u
+            Icon=org.xfce.webbrowser
+          '';
+      dockLaunchers = [
+        {
+          id = 19;
+          name = "browser.desktop";
+          source = browserEntry;
+        }
+        {
+          id = 20;
+          name = "terminal.desktop";
+          source = "${pkgs.xfce4-terminal}/share/applications/xfce4-terminal.desktop";
+        }
+        {
+          id = 21;
+          name = "files.desktop";
+          source = "${pkgs.thunar}/share/applications/thunar.desktop";
+        }
+      ];
     in {
+      xdg.configFile = lib.listToAttrs (map (launcher:
+        lib.nameValuePair "xfce4/panel/launcher-${toString launcher.id}/${launcher.name}" {
+          inherit (launcher) source;
+        })
+      dockLaunchers);
+
       # Rofi renders on the CPU, unlike most themed launchers.
       programs.rofi.enable = true;
 
@@ -59,6 +94,18 @@ mkModule {
             "Gtk/CursorThemeName" = config.home.pointerCursor.name;
             "Gtk/CursorThemeSize" = config.home.pointerCursor.size;
           };
+
+        xfce4-panel =
+          {
+            "panels/panel-2/plugin-ids" = map (launcher: launcher.id) dockLaunchers;
+          }
+          // lib.listToAttrs (lib.concatMap (launcher: let
+              plugin = "plugins/plugin-${toString launcher.id}";
+            in [
+              (lib.nameValuePair plugin "launcher")
+              (lib.nameValuePair "${plugin}/items" [launcher.name])
+            ])
+            dockLaunchers);
 
         xfwm4 = {
           "general/button_layout" = "O|HMC";
