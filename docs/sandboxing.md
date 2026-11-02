@@ -2,7 +2,7 @@
 
 `self.lib.mkJail` wraps a package with [jail.nix][jail-nix] and Bubblewrap.
 The shared helper follows the per-application permission model and shared GUI permissions in
-[csd4ni3l's configuration][reference], with broader file reads for Firefox.
+[csd4ni3l's configuration][reference].
 Application modules apply their policies directly, including in standalone Home Manager.
 No extra host ID enables sandboxing.
 
@@ -25,7 +25,7 @@ Request `self` explicitly in the module section using the helper. `package` and 
 are required. All other fields default to `false`, empty lists, or an empty permission
 function. The wrapper preserves package metadata, version, extra outputs, and passthru
 attributes. Its `override` method rewraps the customized package, so Home Manager's
-Firefox policies remain inside the jail. `unjailed` exposes the original package for
+package overrides remain inside the jail. `unjailed` exposes the original package for
 inspection; use `override` before wrapping for other package customizations.
 
 Every executable in `bin`, including aliases and hidden executables, receives a wrapper.
@@ -74,34 +74,28 @@ paths; this mode does not provide confidentiality for the user's files.
 
 | Applications | Network | Readable files | Writable user data |
 | --- | --- | --- | --- |
-| Firefox | Yes | Host filesystem | Mozilla profile/cache and Downloads. |
 | Flow Desktop | Yes | Explicit mounts and shared desktop paths | Flow Beta settings/data/cache and Downloads. |
 | Inkscape | No | Explicit mounts and shared desktop paths | Inkscape settings/cache, Documents, Downloads, and Pictures. |
 | Papers, File Roller, Gradia, Text Editor, Loupe, Rnote | No | Explicit mounts and shared desktop paths | Each app's settings/data/cache, Documents, Downloads, Pictures, and Videos. |
 
-Firefox can read arbitrary project folders, dotfiles, and mounted data without
-a portal chooser. Its ordinary filesystem writes are limited to the listed application
-state and Downloads, plus temporary/runtime storage. Firefox also has full `/dev` access,
-matching the reference's framework16 desktop setting, including devices such as cameras
-and FIDO tokens when the user's device permissions permit them. It may own its Firefox
-MPRIS names for media controls and talk to `org.mozilla.*`.
-
-All nine existing sandboxes use the reference's shared D-Bus allowlist:
+All eight existing sandboxes use the reference's shared D-Bus allowlist:
 `org.freedesktop.DBus`, `org.gtk.vfs`, `org.gtk.vfs.*`, `org.freedesktop.portal.*`,
 `org.freedesktop.Notifications`, `org.a11y.Bus`, and `ca.desrt.dconf`. Runtime dconf and
 document-portal directories are writable, as in the reference. `/lib64` is available for
 foreign binaries. GUI data and cursor paths retain the session's paths and add the
 reference's Adwaita icon and shared MIME data fallbacks; Electron's Ozone hint is `auto`.
-The existing nine applications stay sandboxed; this alignment adds no applications.
-The other eight sandboxes retain their existing file mounts; portal file choosers can
+The existing eight applications stay sandboxed; this alignment adds no applications.
+They retain their existing file mounts; portal file choosers can
 grant additional file access when supported.
 
 This is the first rollout for [issue #570][issue], not complete coverage of the desktop.
 Steam/nix-crab, game launchers, development tools and agents, remote desktop, hardware
-utilities, Slick, and remaining GNOME apps still run with their existing permissions. Their
+utilities, Firefox, Slick, and remaining GNOME apps still run with their existing permissions. Their
 integration needs separate policies for game saves, project tools, credentials, devices,
 and host services. Adding a jail around an agent while granting all of home and its
-sockets would provide little useful file isolation.
+sockets would provide little useful file isolation. Firefox runs unjailed because the
+jail's private IPC namespace breaks X11 shared memory, so its windows stay blank on X11
+sessions such as xrdp.
 
 ## Boundaries and verification
 

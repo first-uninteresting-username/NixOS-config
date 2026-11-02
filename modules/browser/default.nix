@@ -19,8 +19,6 @@ mkModule {
     home = {
       pkgs,
       inputs,
-      self,
-      config,
       ...
     }: let
       # Firefox ships its pride logo only as a Windows icon inside omni.ja. A distinct icon
@@ -84,27 +82,7 @@ mkModule {
       programs = {
         firefox = {
           enable = true;
-          package = self.lib.mkJail {
-            inherit pkgs;
-            package = firefox;
-            gui = true;
-            network = true;
-            readHostFiles = true;
-            homeDirs = [
-              ".mozilla"
-              config.programs.firefox.configPath
-              ".cache/mozilla"
-            ];
-            readWrite = [config.xdg.userDirs.download];
-            dbusOwn = [
-              "org.mozilla.firefox.*"
-              "org.mpris.MediaPlayer2.firefox"
-              "org.mpris.MediaPlayer2.firefox.*"
-            ];
-            dbusTalk = ["org.mozilla.*"];
-            # Match the reference desktop's full-device Firefox policy.
-            permissions = c: [(c.unsafe-add-raw-args "--dev-bind /dev /dev")];
-          };
+          package = firefox;
 
           languagePacks = [
             "en-US"
