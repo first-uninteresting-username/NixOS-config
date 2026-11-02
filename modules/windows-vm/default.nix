@@ -77,6 +77,21 @@ mkModule {
       users.users.${userName}.extraGroups = ["libvirtd"];
       environment.systemPackages = [install];
 
+      # An interrupted first run leaves an empty key that blocks libvirtd from starting.
+      # Removing it lets virt-secret-init-encryption generate a new one.
+      systemd.services.libvirt-drop-empty-secrets-key = {
+        description = "Remove an empty libvirt secrets encryption key";
+        wantedBy = ["virt-secret-init-encryption.service"];
+        before = ["virt-secret-init-encryption.service"];
+        serviceConfig.Type = "oneshot";
+        script = ''
+          key=/var/lib/libvirt/secrets/secrets-encryption-key
+          if [ -f "$key" ] && [ ! -s "$key" ]; then
+            rm "$key"
+          fi
+        '';
+      };
+
       systemd.services.windows-vm = {
         description = "Define the Windows libvirt domain";
         wantedBy = ["multi-user.target"];
