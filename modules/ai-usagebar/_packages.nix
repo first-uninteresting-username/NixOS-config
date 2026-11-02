@@ -2,12 +2,12 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 {pkgs, ...}: let
-  version = "1.45.0";
+  version = "1.47.0";
   src = pkgs.fetchFromGitHub {
     owner = "akitaonrails";
     repo = "ai-usagebar";
     tag = "v${version}";
-    hash = "sha256-Gmk9cwUlvt4aOZQuRValGIfB2nN7d1oJ20ZUCW88FkI=";
+    hash = "sha256-sXLRjN0xZaDLvJ21IRruShcHM/44CnNJvV5lB6ospKo=";
   };
   extensionUuid = "ai-usagebar@akitaonrails.github.io";
   shellVersion = pkgs.lib.versions.major pkgs.gnome-shell.version;
@@ -15,7 +15,7 @@ in {
   default = pkgs.rustPlatform.buildRustPackage {
     pname = "ai-usagebar";
     inherit version src;
-    cargoHash = "sha256-D6qnkUFegfRkAIxrc7huw+9e2sCgwiu10Fi4LWcBuBg=";
+    cargoHash = "sha256-ftZPiho44qw9CLiUH5bDERJ3KzVcNMOYOtksxXopEB0=";
     # Updating this package also updates the extension, which shares its version and source.
     passthru.updateScript = pkgs.nix-update-script {extraArgs = ["--flake"];};
     nativeBuildInputs = [pkgs.makeWrapper] ++ pkgs.lib.optionals pkgs.stdenv.hostPlatform.isx86_64 [pkgs.nasm];
@@ -60,9 +60,9 @@ in {
       mkdir -p "$extensionDir"
       cp -r gnome-extension/. "$extensionDir/"
       # The configured GNOME terminal is Ghostty.
-      substituteInPlace "$extensionDir/extension.js" \
-        --replace-fail "['kgx', '--', tui]," \
-          "['${pkgs.lib.getExe pkgs.ghostty}', '-e', tui],"
+      substituteInPlace "$extensionDir/terminal.js" \
+        --replace-fail "['ptyxis', '--', 'bash', '-lc', command]," \
+          "['${pkgs.lib.getExe pkgs.ghostty}', '-e', 'bash', '-lc', command],"
       runHook postInstall
     '';
     passthru = {inherit extensionUuid;};
