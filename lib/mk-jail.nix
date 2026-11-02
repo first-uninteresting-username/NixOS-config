@@ -73,6 +73,17 @@
       (c.unsafe-add-raw-args ''--dev-bind-try /dev/dri /dev/dri'')
       (c.unsafe-add-raw-args
         ''--ro-bind-try "$XDG_RUNTIME_DIR/''${WAYLAND_DISPLAY:-wayland-0}" "$XDG_RUNTIME_DIR/''${WAYLAND_DISPLAY:-wayland-0}"'')
+      # X11 sessions, such as xrdp, have no Wayland socket. Wayland sessions keep X11 closed.
+      (c.add-runtime ''
+        if [ -z "''${WAYLAND_DISPLAY-}" ] && [ -n "''${DISPLAY-}" ]; then
+          RUNTIME_ARGS+=(--ro-bind-try /tmp/.X11-unix /tmp/.X11-unix --setenv DISPLAY "$DISPLAY")
+          jailXauthority=''${XAUTHORITY:-$HOME/.Xauthority}
+          if [ -f "$jailXauthority" ]; then
+            RUNTIME_ARGS+=(--ro-bind "$jailXauthority" "$jailXauthority")
+            RUNTIME_ARGS+=(--setenv XAUTHORITY "$jailXauthority")
+          fi
+        fi
+      '')
       (c.unsafe-add-raw-args
         ''--bind-try "$XDG_RUNTIME_DIR/doc" "$XDG_RUNTIME_DIR/doc"'')
       (c.unsafe-add-raw-args
