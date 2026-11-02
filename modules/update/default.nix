@@ -28,6 +28,7 @@ mkModule {
       environment = {
         systemPackages = [
           packages.rebuild
+          packages.rebuild-nisha
         ];
         variables = {
           NH_OS_FLAKE = flakeRef;
@@ -91,6 +92,13 @@ mkModule {
       ];
       text = ''
         nh os boot --refresh github:first-uninteresting-username/NixOS-config/main#"$HOSTNAME"
+      '';
+    };
+    # Deploys main through the flake's deploy-rs app, so the node settings live only in deploy/.
+    rebuild-nisha = pkgs.writeShellApplication {
+      name = "rebuild-nisha";
+      text = ''
+        nix run --refresh github:first-uninteresting-username/NixOS-config/main#rebuild-nisha -- "$@"
       '';
     };
   };

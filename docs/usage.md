@@ -54,6 +54,22 @@ nix flake check --no-build
 
 The regular flake update keeps this release pinned until you change its URL.
 
+### Remote deployments
+
+Hosts listed in `deploy/default.nix` are deployed with [deploy-rs](https://github.com/serokell/deploy-rs).
+Hosts that select the `update` module get `rebuild-nisha` next to `rebuild`. It deploys `main` to nisha:
+
+```bash
+rebuild-nisha
+```
+
+Elsewhere, `nix run config#rebuild-nisha` does the same. To test a branch before merging, run
+`nix run .#rebuild-nisha` from its checkout.
+
+nisha builds its own closure, because the x86_64 hosts cannot build aarch64-linux. deploy-rs then asks for
+your sudo password on nisha. If the new generation breaks SSH, deploy-rs rolls back to the previous one.
+Extra arguments go to deploy-rs, for example `rebuild-nisha --dry-activate`.
+
 ### Zed with ChatGPT Plus
 
 The `IDE` module enables Zed's Agent panel and its status bar button.

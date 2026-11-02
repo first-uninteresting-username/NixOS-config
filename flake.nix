@@ -107,6 +107,11 @@
 
     jail-nix.url = "sourcehut:~alexdavid/jail.nix";
 
+    deploy-rs = {
+      url = "github:serokell/deploy-rs";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     slick = {
       url = "github:3kh0/slick";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -134,6 +139,7 @@
       imports = [
         (inputs.import-tree ./checks)
         (inputs.import-tree ./github-actions)
+        (inputs.import-tree ./deploy)
       ];
       flake = {
         inherit (registry) nixosModules homeModules nixosConfigurations homeConfigurations;
