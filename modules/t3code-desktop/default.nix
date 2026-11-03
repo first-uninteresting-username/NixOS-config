@@ -14,10 +14,17 @@ mkModule {
       inputs,
       pkgs,
       ...
-    }: {
-      home.packages = [
-        inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system}.t3code-desktop
-      ];
+    }: let
+      # The upstream wrapper puts its own Codex, Claude Code, Cursor, Grok, and OpenCode first
+      # in PATH. Drop them so T3 Code drives the agents the user already has installed.
+      t3code = inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system}.t3code.override {
+        providerPackages = [
+          # T3 Code runs `opencode`, but the agents module installs OpenCode 2 as `opencode2`.
+          (pkgs.writeShellScriptBin "opencode" ''exec opencode2 "$@"'')
+        ];
+      };
+    in {
+      home.packages = [t3code.desktop];
     };
   };
   docs = ''
