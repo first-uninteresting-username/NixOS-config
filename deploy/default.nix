@@ -5,9 +5,9 @@
 {
   lib,
   inputs,
-  self,
-  ...
+  systems,
 }: let
+  inherit (inputs) self;
   inherit (inputs) nixpkgs deploy-rs;
 
   # Use the cached deploy-rs from nixpkgs instead of building the flake's own copy.
@@ -37,7 +37,7 @@
     profiles.system.path = (deployLib system).activate.nixos self.nixosConfigurations.${hostName};
   };
 in {
-  flake.deploy.nodes = {
+  deploy.nodes = {
     nisha =
       nixosNode {
         hostName = "nisha";
@@ -52,9 +52,12 @@ in {
       };
   };
 
-  perSystem = {pkgs, ...}: {
-    apps = lib.mapAttrs' (name: _:
+  apps = lib.genAttrs systems (system: let
+    pkgs = nixpkgs.legacyPackages.${system};
+  in
+    lib.mapAttrs' (name: _:
       lib.nameValuePair "rebuild-${name}" {
+        type = "app";
         program = lib.getExe (pkgs.writeShellApplication {
           name = "rebuild-${name}";
           runtimeInputs = [pkgs.deploy-rs];
@@ -65,6 +68,5 @@ in {
         });
         meta.description = "Build ${name} on the target and activate it with deploy-rs";
       })
-    self.deploy.nodes;
-  };
+    self.deploy.nodes);
 }

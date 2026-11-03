@@ -264,7 +264,7 @@ class EligibilityTests(unittest.TestCase):
     def test_package_sources_and_other_files_block(self):
         # Package updates edit Nix sources, which always need a manual review.
         for path in ["flake.nix", "modules/change.nix", ".github/workflows/flake-build.yaml",
-                     "modules/orchard-cli/default.nix", "modules/ai-usagebar/_packages.nix",
+                     "modules/orchard-cli/default.nix", "modules/claude-pace/_packages.nix",
                      "modules/programs-desktop/_flow-desktop/release.json"]:
             with self.subTest(path=path):
                 self.assertFalse(merge.eligible([self.change(path=path)])[0])

@@ -11,6 +11,7 @@
   modulesDir,
   hostsDir,
   argumentsDir,
+  systems ? [],
 }: let
   # Sorted traversal skips companion sources and intentionally invalid fixture trees.
   files = directory:
@@ -73,10 +74,18 @@
     lib.mapAttrs (_: host:
       registry.mkHost (builtins.removeAttrs host ["source" "directory"]))
     (lib.filterAttrs (_: host: host.role == role) hostSet);
+  # Flake exports use each system's default Nixpkgs, independent of host selection.
+  exports = lib.genAttrs systems (system:
+    registry.perSystem {
+      inherit system;
+      pkgs = inputs.nixpkgs.legacyPackages.${system};
+    });
 in
   registry
   // {
     inherit hosts;
     nixosConfigurations = buildHosts "nixos";
     homeConfigurations = buildHosts "home";
+    packages = lib.mapAttrs (_: outputs: outputs.packages) exports;
+    checks = lib.mapAttrs (_: outputs: outputs.checks) exports;
   }
