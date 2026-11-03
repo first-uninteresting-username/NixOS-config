@@ -5,7 +5,7 @@
   name = "nisha";
   role = "nixos";
   system = "aarch64-linux";
-  ids = ["IDE" "agents" "audio" "browser" "desktop-password" "fish" "git" "home-manager" "host-nisha" "hostname" "ide-lite" "languages" "locale" "networking-minimal" "nix" "orchard-cli" "secrets" "shell" "ssh" "ssh-server" "stylix" "sudo" "t3code" "update" "user" "xdg" "XFCE"];
+  ids = ["IDE" "agents" "audio" "browser" "desktop-password" "fish" "git" "home-manager" "host-nisha" "hostname" "ide-lite" "languages" "locale" "networking-minimal" "nix" "orchard-cli" "secrets" "shell" "ssh" "ssh-server" "stylix" "sudo" "t3code" "t3code-tunnel" "update" "user" "xdg" "XFCE"];
   args = {
     userName = "nixi";
     userEnable = true;
