@@ -6,11 +6,15 @@ mkModule {
   name = "agents";
   ids = ["agents"];
   docs = ''
-    Installs Claude Desktop and Claude Code and preserves their local configuration.
+    Installs Claude Desktop, Claude Code, OpenCode, and other terminal coding agents (Codex,
+    Grok, Gemini CLI, GitHub Copilot CLI, Cursor Agent, Crush, Amp, Qwen Code, Goose, and
+    Droid) and preserves their local configuration.
     Interactive Claude Code and OpenCode sessions started outside a directory tree containing
     an `AGENTS.md` open in `~/Agents` instead. Pass `--here` to either command to stay in the
     current directory; the wrapper removes the flag before starting the agent.
-    Both agents load the MCP servers that other modules declare in `programs.mcp.servers`.
+    The other terminal agents also open in `~/Agents` and accept `--here` the same way.
+    Claude Code, OpenCode, Codex, Copilot CLI, and Crush load the MCP servers that other modules
+    declare in `programs.mcp.servers`.
     In `~/Agents` and its subdirectories, both agents run tools without permission prompts:
     Claude Code starts in bypass permissions mode unless another permission mode is passed,
     and OpenCode interactive and `run` sessions auto-approve permissions that are not
@@ -24,6 +28,9 @@ mkModule {
     ```bash
     claude
     ```
+
+    Sign in to the other agents the same way when you first use them, for example
+    `codex login`, `grok`, `gemini`, `copilot`, `cursor-agent login`, `amp`, or `droid`.
   '';
   state = {
     home = {
@@ -32,6 +39,21 @@ mkModule {
         ".local/share/opencode"
         ".config/Claude"
         ".claude"
+        ".codex"
+        ".grok"
+        ".gemini"
+        ".copilot"
+        ".cursor"
+        ".config/cursor"
+        ".config/crush"
+        ".local/share/crush"
+        ".config/amp"
+        ".local/share/amp"
+        ".qwen"
+        ".config/goose"
+        ".local/share/goose"
+        ".local/state/goose"
+        ".factory"
         "Agents"
       ];
       files = [
@@ -185,12 +207,62 @@ mkModule {
           package = withAgentsFallback llmAgents.claude-code "claude" claudeBypass;
           enableMcpIntegration = true;
         };
+        # Codex and Copilot save trust and model choices to their settings files, so Home
+        # Manager merges into writable files instead of linking them from the store.
+        codex = {
+          enable = true;
+          package = withAgentsFallback llmAgents.codex "codex" "";
+          enableMcpIntegration = true;
+          mutableSettings = true;
+        };
+        github-copilot-cli = {
+          enable = true;
+          package = withAgentsFallback llmAgents.copilot-cli "copilot" "";
+          enableMcpIntegration = true;
+          mutableSettings = true;
+        };
+        crush = {
+          enable = true;
+          package = withAgentsFallback llmAgents.crush "crush" "";
+          enableMcpIntegration = true;
+        };
       };
 
-      home.packages = [
-        llmAgents.ccusage
-        llmAgents.claude-desktop
-      ];
+      home.packages =
+        [
+          llmAgents.ccusage
+          llmAgents.claude-desktop
+        ]
+        ++ map (agent: withAgentsFallback llmAgents.${agent.package} agent.bin "") [
+          {
+            package = "grok";
+            bin = "grok";
+          }
+          {
+            package = "gemini-cli";
+            bin = "gemini";
+          }
+          {
+            package = "cursor-agent";
+            bin = "cursor-agent";
+          }
+          {
+            package = "amp";
+            bin = "amp";
+          }
+          {
+            package = "qwen-code";
+            bin = "qwen";
+          }
+          {
+            package = "goose-cli";
+            bin = "goose";
+          }
+          {
+            package = "droid";
+            bin = "droid";
+          }
+        ];
     };
   };
 }
