@@ -21,7 +21,14 @@ mkModule {
       pkgs,
       ...
     }: let
-      t3code = inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system}.t3code;
+      # The upstream wrapper puts its own Codex, Claude Code, Cursor, Grok, and OpenCode first
+      # in PATH. Drop them so T3 Code drives the agents the user already has installed.
+      t3code = inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system}.t3code.override {
+        providerPackages = [
+          # T3 Code runs `opencode`, but the agents module installs OpenCode 2 as `opencode2`.
+          (pkgs.writeShellScriptBin "opencode" ''exec opencode2 "$@"'')
+        ];
+      };
     in {
       # The `t3` CLI mints pairing tokens for the running server.
       home.packages = [t3code];
@@ -47,7 +54,8 @@ mkModule {
   docs = ''
     Runs the T3 Code server, a web GUI for coding agents, as a user service on
     `127.0.0.1:3773`. The `agents` and `t3code` IDs together enable it; the server drives the
-    agent CLIs that the `agents` module installs. User lingering starts the service at boot.
+    agent CLIs that the `agents` module installs, not copies bundled with T3 Code; `opencode`
+    runs the installed `opencode2`. User lingering starts the service at boot.
     Data in `~/.t3` persists when preservation is enabled.
   '';
   imperativeSteps = ''
