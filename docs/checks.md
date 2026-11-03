@@ -49,9 +49,8 @@ Basic validation checks formatting and lints without rewriting the PR. Statix's
 `repeated_keys` style warning is disabled in `statix.toml` to allow the established
 independent flake exports; other lint checks remain enabled. Host and module templates are
 omitted from dead-code/lint validation where intentional placeholders require it. Start new
-behavioral checks from a nearby module-owned `_checks/` fixture and declare them in that module
-instead of adding flake-parts check declarations under `checks/`.
-The remaining `checks/default.nix` only declares the opt-in `regressionChecks` output type.
+behavioral checks from a nearby module-owned `_checks/` fixture and declare them in that module.
+Only the opt-in `regressionChecks` are wired separately, in `github-actions/regression-checks.nix`.
 
 ## Ownership selection
 
@@ -77,7 +76,7 @@ Older merge-base metadata remains readable, but its watched files do not affect 
 See [Output ownership][output-ownership] for the declaration format.
 
 Core infrastructure selects all non-ISO checks and packages: `flake.nix`, `flake.lock`, `lib/`,
-`arguments/`, `github-actions/`, `checks/`, shared user/Home Manager composition, `.github/nix.conf`,
+`arguments/`, `github-actions/`, shared user/Home Manager composition, `.github/nix.conf`,
 the selection/aggregate/regression-proof scripts, and the flake-check, flake-build, build-targets,
 regression-checks, and iso-build workflows. The selector contains this explicit list. Host declarations,
 development tools, other workflows/scripts, documentation, and unknown Nix files do not fan out to
