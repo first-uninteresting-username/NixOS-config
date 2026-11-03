@@ -45,7 +45,7 @@ in {
         sshPort = 6767;
       }
       // {
-        hostname = "130.61.87.165";
+        hostname = "130.61.117.91";
         # The x86_64 hosts cannot build aarch64-linux, so build on the target.
         remoteBuild = true;
         interactiveSudo = true;

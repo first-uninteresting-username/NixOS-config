@@ -29,7 +29,7 @@ mkModule {
           sound = "local";
           ssh_tunnel_enabled = 1;
           ssh_tunnel_loopback = 1;
-          ssh_tunnel_server = "130.61.87.165:6767";
+          ssh_tunnel_server = "130.61.117.91:6767";
           ssh_tunnel_username = userName;
           # 1 = public key file.
           ssh_tunnel_auth = 1;
