@@ -69,14 +69,13 @@ mkModule {
         }
       ];
     in {
+      imports = [./_rofi.nix];
+
       xdg.configFile = lib.listToAttrs (map (launcher:
         lib.nameValuePair "xfce4/panel/launcher-${toString launcher.id}/${launcher.name}" {
           inherit (launcher) source;
         })
       dockLaunchers);
-
-      # Rofi renders on the CPU, unlike most themed launchers.
-      programs.rofi.enable = true;
 
       stylix.targets.xfce.enable = true;
 
@@ -164,7 +163,9 @@ mkModule {
             {
               "commands/custom/${mod}Return" = "xfce4-terminal";
               "commands/custom/${mod}e" = "thunar";
-              "commands/custom/${mod}space" = "${lib.getExe config.programs.rofi.finalPackage} -show drun";
+              "commands/custom/${mod}space" = "rofi-show drun";
+              "commands/custom/${mod}period" = "rofi-show emoji";
+              "commands/custom/${extra}v" = "rofi-show clipboard";
               "xfwm4/custom/${mod}Tab" = "cycle_windows_key";
               "xfwm4/custom/${extra}Tab" = "cycle_reverse_windows_key";
               "xfwm4/custom/${mod}q" = "close_window_key";

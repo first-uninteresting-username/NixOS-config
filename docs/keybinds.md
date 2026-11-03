@@ -30,3 +30,18 @@
 
 - Caps Lock is swapped with Escape
 - Natural scrolling is used for both mouse and touchpad
+
+## XFCE
+
+XFCE hosts use the same bindings with Ctrl + Shift in place of Super, and Alt in place of
+the extra Shift. The launcher is rofi:
+
+| Keybind                | Action                 |
+| ---------------------- | ---------------------- |
+| Ctrl + Shift + Space   | Rofi launcher (apps)   |
+| Ctrl + Shift + .       | Rofi emoji picker      |
+| Ctrl + Shift + Alt + v | Rofi clipboard history |
+
+Inside rofi, Tab and Shift + Tab switch between the Apps, Windows, Files, Calc, Emoji,
+Clipboard, and Session tabs. Up/Down or Ctrl + j/k move through results. Enter in Calc
+copies the result, and Session asks for confirmation before logging out or rebooting.
