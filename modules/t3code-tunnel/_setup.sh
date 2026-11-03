@@ -1,5 +1,5 @@
 # Usage: t3code-tunnel-setup <hostname> <tunnel-host-name>
-# Run from the repository root. Reads the API token and the allowed email from the terminal.
+# Run from the repository root. Reads the API token from the terminal.
 set -euo pipefail
 
 if [ $# -ne 2 ]; then
@@ -19,9 +19,8 @@ fi
 
 read -rsp "Cloudflare API token: " apiToken
 echo
-read -rp "Email address Cloudflare Access allows: " email
-[ -n "$apiToken" ] && [ -n "$email" ] || {
-  echo "Both values are required." >&2
+[ -n "$apiToken" ] || {
+  echo "The API token is required." >&2
   exit 1
 }
 # Ask for the sudo password now rather than after the tunnel exists.
@@ -67,20 +66,6 @@ cf PUT "/accounts/$accountId/cfd_tunnel/$tunnelId/configurations" "$(
     '{config: {ingress: [{hostname: $h, service: $o}, {service: "http_status:404"}]}}'
 )" >/dev/null
 echo "Routed $hostname to $origin."
-
-# Gate the hostname with Access before DNS points at the tunnel.
-accessApp=$(jq -nc --arg h "$hostname" --arg e "$email" '{
-  name: "T3 Code", domain: $h, type: "self_hosted", session_duration: "24h",
-  policies: [{name: "Owner", decision: "allow", include: [{email: {email: $e}}]}]
-}')
-appId=$(cf GET "/accounts/$accountId/access/apps" |
-  jq -r --arg h "$hostname" 'map(select(.domain == $h)) | .[0].id // empty')
-if [ -n "$appId" ]; then
-  cf PUT "/accounts/$accountId/access/apps/$appId" "$accessApp" >/dev/null
-else
-  cf POST "/accounts/$accountId/access/apps" "$accessApp" >/dev/null
-fi
-echo "Cloudflare Access allows only $email on $hostname."
 
 record=$(jq -nc --arg h "$hostname" --arg c "$tunnelId.cfargotunnel.com" \
   '{type: "CNAME", name: $h, content: $c, proxied: true, comment: "T3 Code tunnel"}')
