@@ -2,14 +2,16 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 {
-  self,
   inputs,
   lib,
-  withSystem,
-  ...
-}: {
-  flake.regressionChecks.x86_64-linux = withSystem "x86_64-linux" ({pkgs, ...}: {
-    persistence-without-user-state = (import ../modules/preservation/_checks/persistence.nix {inherit self inputs lib pkgs;}).regression;
-    upgrade = (import ../modules/update/_checks/default.nix {inherit self inputs lib pkgs;}).regression;
-  });
+}: let
+  inherit (inputs) self;
+  pkgs = inputs.nixpkgs.legacyPackages.x86_64-linux;
+  fixture = path: import path {inherit self inputs lib pkgs;};
+in {
+  x86_64-linux = {
+    persistence-without-user-state =
+      (fixture ../modules/preservation/_checks/persistence.nix).regression;
+    upgrade = (fixture ../modules/update/_checks/default.nix).regression;
+  };
 }
