@@ -70,10 +70,9 @@ in {
 - Omit `attrPath`. The runner supplies the export name through `UPDATE_NIX_ATTR_PATH`.
 - nix-update also refreshes dependency hashes such as `cargoHash`, `vendorHash`, and
   `npmDepsHash`.
-- When packages share a source, declare the script on one of them. The `ai-usagebar`
-  GNOME extension updates with its CLI.
+- When packages share a source, declare the script on one of them so they update together.
 - Validate upstream changes that an update can break during the build or in a module check.
-  For example, the `ai-usagebar` extension build fails when upstream drops support for the
+  For example, a GNOME extension build can fail when upstream drops support for the
   configured GNOME Shell version.
 
 ### Prebuilt binaries
