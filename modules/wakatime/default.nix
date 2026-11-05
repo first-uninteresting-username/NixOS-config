@@ -23,19 +23,30 @@ mkModule {
   packages = {pkgs, ...}: {default = import ./_package.nix pkgs;};
   checks = {
     pkgs,
+    lib,
     packages,
+    system,
     ...
-  }: {
-    # `exclude_ai` is silently ignored before 2.27.1.
-    exclude-ai-support = pkgs.runCommand "wakatime-exclude-ai-support" {} ''
-      export HOME=$TMPDIR
-      version=$(${pkgs.lib.getExe packages.default} --version)
-      version=''${version#v}
-      echo "wakatime-cli $version"
-      [ "$(printf '%s\n' 2.27.1 "$version" | sort -V | head -n1)" = 2.27.1 ]
-      touch "$out"
-    '';
-  };
+  }:
+    {
+      # `exclude_ai` is silently ignored before 2.27.1.
+      exclude-ai-support = pkgs.runCommand "wakatime-exclude-ai-support" {} ''
+        export HOME=$TMPDIR
+        version=$(${pkgs.lib.getExe packages.default} --version)
+        version=''${version#v}
+        echo "wakatime-cli $version"
+        [ "$(printf '%s\n' 2.27.1 "$version" | sort -V | head -n1)" = 2.27.1 ]
+        touch "$out"
+      '';
+    }
+    # The VM check needs KVM, which CI only provides on x86_64-linux.
+    // lib.optionalAttrs (system == "x86_64-linux") {
+      exclude-ai-sessions =
+        (import ./_checks/exclude-ai.nix {
+          inherit pkgs;
+          package = packages.default;
+        }).check;
+    };
   state = {
     home.directories = [".wakatime"];
   };

@@ -14,6 +14,8 @@ import subprocess
 CASES = {
     "persistence-without-user-state": ("preservation-persistence", "AssertionError", "persistence-user-state"),
     "upgrade": ("update", "AssertionError", "upgrade-failure-propagation"),
+    "wakatime-exclude-ai-sessions": ("wakatime-exclude-ai-sessions", "AssertionError",
+                                     "wakatime-exclude-ai-session"),
 }
 
 
