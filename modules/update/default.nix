@@ -28,6 +28,7 @@ mkModule {
       environment = {
         systemPackages = [
           packages.rebuild
+          packages.rebuild-switch
           packages.rebuild-nisha
         ];
         variables = {
@@ -92,6 +93,15 @@ mkModule {
       ];
       text = ''
         nh os boot --refresh github:first-uninteresting-username/NixOS-config/main#"$HOSTNAME"
+      '';
+    };
+    rebuild-switch = pkgs.writeShellApplication {
+      name = "rebuild-switch";
+      runtimeInputs = with pkgs; [
+        nh
+      ];
+      text = ''
+        nh os switch --refresh github:first-uninteresting-username/NixOS-config/main#"$HOSTNAME"
       '';
     };
     # Deploys main through the flake's deploy-rs app, so the node settings live only in deploy/.
