@@ -16,6 +16,23 @@ mkModule {
     everywhere. AI session heartbeats without a file path cannot be excluded. `exclude_ai`
     needs wakatime-cli 2.27.1 or later, so the module overlays a newer release than nixpkgs.
   '';
+  # Exported so CI builds the overlaid release (and runs its tests) whenever this module changes.
+  packages = {pkgs, ...}: {default = import ./_package.nix pkgs;};
+  checks = {
+    pkgs,
+    packages,
+    ...
+  }: {
+    # `exclude_ai` is silently ignored before 2.27.1.
+    exclude-ai-support = pkgs.runCommand "wakatime-exclude-ai-support" {} ''
+      export HOME=$TMPDIR
+      version=$(${pkgs.lib.getExe packages.default} --version)
+      version=''${version#v}
+      echo "wakatime-cli $version"
+      [ "$(printf '%s\n' 2.27.1 "$version" | sort -V | head -n1)" = 2.27.1 ]
+      touch "$out"
+    '';
+  };
   state = {
     home.directories = [".wakatime"];
   };
@@ -29,23 +46,7 @@ mkModule {
       home = config.users.users.${userName}.home;
     in
       {
-        # nixpkgs ships 2.26.15, which ignores `exclude_ai`; 2.28.0 needs Go 1.27.3.
-        nixpkgs.overlays = [
-          (_: prev: {
-            wakatime-cli =
-              (prev.wakatime-cli.override {buildGoModule = prev.buildGo127Module;}).overrideAttrs
-              (finalAttrs: _: {
-                version = "2.28.0";
-                src = prev.fetchFromGitHub {
-                  owner = "wakatime";
-                  repo = "wakatime-cli";
-                  tag = "v${finalAttrs.version}";
-                  hash = "sha256-GWZLCL+u4tQQ0k5cQaYOPc/pZbjfrP73/SEooNusrRc=";
-                };
-                vendorHash = "sha256-ElSlITp0zD77nn2afNeAn/Dn17je+hyKD+mCLevBZGE=";
-              });
-          })
-        ];
+        nixpkgs.overlays = [(_: prev: {wakatime-cli = import ./_package.nix prev;})];
       }
       // lib.optionalAttrs secretsEnable {
         sops = {
