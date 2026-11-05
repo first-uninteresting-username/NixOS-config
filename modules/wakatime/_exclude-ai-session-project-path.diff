@@ -1,0 +1,59 @@
+diff --git a/pkg/ai/ai.go b/pkg/ai/ai.go
+index f768017..127719d 100644
+--- a/pkg/ai/ai.go
++++ b/pkg/ai/ai.go
+@@ -1595,7 +1595,24 @@ func newEntityExclusions(config Config) *entityExclusions {
+ 
+ func (f *entityExclusions) excludes(ctx context.Context, h heartbeat.Heartbeat) (bool, error) {
+ 	if h.EntityType != heartbeat.FileType || h.Entity == "" {
+-		return f.config.SyncDisabled, nil
++		// Session heartbeats (e.g. "Claude <id>") carry no file path, only the
++		// session's working directory; match exclude_ai against that instead.
++		if f.config.SyncDisabled {
++			return true, nil
++		}
++
++		projectPath := firstNonEmptyString(h.ProjectPathOverride, h.ProjectPath)
++		if projectPath == "" {
++			return false, nil
++		}
++
++		for _, pattern := range f.config.Exclude {
++			if pattern.MatchString(ctx, projectPath) {
++				return true, nil
++			}
++		}
++
++		return false, nil
+ 	}
+ 
+ 	key := exclusionEntity{entity: h.Entity, unsaved: h.IsUnsavedEntity}
+diff --git a/pkg/ai/ai_test.go b/pkg/ai/ai_test.go
+index 5a5a4d2..4ec3ed4 100644
+--- a/pkg/ai/ai_test.go
++++ b/pkg/ai/ai_test.go
+@@ -1394,6 +1394,24 @@ func TestWithAIFiltering_ExcludesOnlyAIFilePaths(t *testing.T) {
+ 	require.NoError(t, err)
+ }
+ 
++func TestWithAIFiltering_ExcludesSessionHeartbeatsByProjectPath(t *testing.T) {
++	excluded := heartbeat.Heartbeat{
++		Entity: "Claude 1", EntityType: heartbeat.AppType, Category: "ai coding",
++		ProjectPathOverride: "/home/u/Projects/app",
++	}
++	allowed := heartbeat.Heartbeat{
++		Entity: "Claude 2", EntityType: heartbeat.AppType, Category: "ai coding",
++		ProjectPathOverride: "/home/u/Agents/app",
++	}
++	noPath := heartbeat.Heartbeat{Entity: "Claude 3", EntityType: heartbeat.AppType, Category: "ai coding"}
++	cfg := ai.Config{Exclude: []regex.Regex{regex.MustCompile(`^(?!/home/u/Agents(/|$))`)}}
++	_, err := ai.WithFiltering(cfg)(func(_ context.Context, got []heartbeat.Heartbeat) ([]heartbeat.Result, error) {
++		assert.Equal(t, []heartbeat.Heartbeat{allowed, noPath}, got)
++		return nil, nil
++	})(t.Context(), []heartbeat.Heartbeat{excluded, allowed, noPath})
++	require.NoError(t, err)
++}
++
+ func TestWithAIFiltering_ProjectConfigPrecedence(t *testing.T) {
+ 	for _, test := range []struct {
+ 		name     string

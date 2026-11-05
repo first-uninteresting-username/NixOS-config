@@ -13,7 +13,8 @@ mkModule {
 
     AI coding detection (`sync_ai_disabled = false`) is on only inside `~/Agents`: `exclude_ai`
     skips AI heartbeats for every other file path, while human activity is still logged
-    everywhere. AI session heartbeats without a file path cannot be excluded. `exclude_ai`
+    everywhere. The overlay patches `exclude_ai` to also match the working directory of AI
+    session heartbeats (such as `Claude <session>`), which have no file path. `exclude_ai`
     needs wakatime-cli 2.27.1 or later, so the module overlays a newer release than nixpkgs and
     exports it as the `wakatime` package. `nix run .#update-packages` keeps that release current.
     Evaluation fails once nixpkgs ships 2.27.1 or later; then remove the overlay and export.
