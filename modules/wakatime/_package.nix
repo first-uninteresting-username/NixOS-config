@@ -25,6 +25,9 @@ in
           hash = "sha256-GWZLCL+u4tQQ0k5cQaYOPc/pZbjfrP73/SEooNusrRc=";
         };
         vendorHash = "sha256-ElSlITp0zD77nn2afNeAn/Dn17je+hyKD+mCLevBZGE=";
+        # Upstream applies `exclude_ai` only to file heartbeats, so per-prompt session heartbeats
+        # ("Claude <id>") still log AI time for any project. Match their working directory too.
+        patches = (previous.patches or []) ++ [./_exclude-ai-session-project-path.diff];
         passthru =
           previous.passthru
           // {
