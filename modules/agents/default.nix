@@ -111,6 +111,12 @@ mkModule {
           fi
         '';
 
+      # The WakaTime Claude Code plugin runs its hooks with NODE_BIN when set; without it, each
+      # hook falls back to `nix run nixpkgs#nodejs`.
+      claudeNode = ''
+        export NODE_BIN="''${NODE_BIN:-${lib.getExe pkgs.nodejs}}"
+      '';
+
       # OpenCode 2 accepts --auto on the root command and on run. Placing it before another
       # subcommand breaks argument parsing, so other subcommands run unchanged.
       opencodeAuto =
@@ -182,7 +188,7 @@ mkModule {
         };
         claude-code = {
           enable = true;
-          package = withAgentsFallback llmAgents.claude-code "claude" claudeBypass;
+          package = withAgentsFallback llmAgents.claude-code "claude" (claudeBypass + claudeNode);
           enableMcpIntegration = true;
         };
       };
