@@ -73,7 +73,8 @@ Extra arguments go to deploy-rs, for example `rebuild-nisha --dry-activate`.
 ### Editors
 
 The `IDE` host ID installs the editor-independent tools: `micro` as `EDITOR`, `nil`, Alejandra,
-the Android tools, and the Hackatime configuration. Add one editor ID next to it:
+the Android tools, and the `wakatime` module's Hackatime configuration. AI coding activity is
+reported only for files under `~/Agents`. Add one editor ID next to it:
 
 | Host ID | Editor | Use it when |
 | --- | --- | --- |
