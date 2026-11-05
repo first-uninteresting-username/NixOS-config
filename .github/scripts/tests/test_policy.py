@@ -192,7 +192,8 @@ class RegressionProofTests(unittest.TestCase):
         return run, calls
 
     def test_retained_cases_require_baseline_and_specific_negative_failure(self):
-        self.assertEqual(set(regression.CASES), {"persistence-without-user-state", "upgrade"})
+        self.assertEqual(set(regression.CASES), {"persistence-without-user-state", "upgrade",
+                                                  "wakatime-exclude-ai-sessions"})
         for case, (normal, exception, marker) in regression.CASES.items():
             with self.subTest(case=case):
                 run, calls = self.runner([regression.BuildResult(0, "normal succeeds\n"),

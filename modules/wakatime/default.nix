@@ -13,7 +13,8 @@ mkModule {
 
     AI coding detection (`sync_ai_disabled = false`) is on only inside `~/Agents`: `exclude_ai`
     skips AI heartbeats for every other file path, while human activity is still logged
-    everywhere. AI session heartbeats without a file path cannot be excluded. `exclude_ai`
+    everywhere. The overlay patches `exclude_ai` to also match the working directory of AI
+    session heartbeats (such as `Claude <session>`), which have no file path. `exclude_ai`
     needs wakatime-cli 2.27.1 or later, so the module overlays a newer release than nixpkgs and
     exports it as the `wakatime` package. `nix run .#update-packages` keeps that release current.
     Evaluation fails once nixpkgs ships 2.27.1 or later; then remove the overlay and export.
@@ -22,19 +23,30 @@ mkModule {
   packages = {pkgs, ...}: {default = import ./_package.nix pkgs;};
   checks = {
     pkgs,
+    lib,
     packages,
+    system,
     ...
-  }: {
-    # `exclude_ai` is silently ignored before 2.27.1.
-    exclude-ai-support = pkgs.runCommand "wakatime-exclude-ai-support" {} ''
-      export HOME=$TMPDIR
-      version=$(${pkgs.lib.getExe packages.default} --version)
-      version=''${version#v}
-      echo "wakatime-cli $version"
-      [ "$(printf '%s\n' 2.27.1 "$version" | sort -V | head -n1)" = 2.27.1 ]
-      touch "$out"
-    '';
-  };
+  }:
+    {
+      # `exclude_ai` is silently ignored before 2.27.1.
+      exclude-ai-support = pkgs.runCommand "wakatime-exclude-ai-support" {} ''
+        export HOME=$TMPDIR
+        version=$(${pkgs.lib.getExe packages.default} --version)
+        version=''${version#v}
+        echo "wakatime-cli $version"
+        [ "$(printf '%s\n' 2.27.1 "$version" | sort -V | head -n1)" = 2.27.1 ]
+        touch "$out"
+      '';
+    }
+    # The VM check needs KVM, which CI only provides on x86_64-linux.
+    // lib.optionalAttrs (system == "x86_64-linux") {
+      exclude-ai-sessions =
+        (import ./_checks/exclude-ai.nix {
+          inherit pkgs;
+          package = packages.default;
+        }).check;
+    };
   state = {
     home.directories = [".wakatime"];
   };
