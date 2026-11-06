@@ -83,8 +83,7 @@
   standalone = fixture "home" false false;
   disabledHome = disabled.config.home-manager.users.fixture;
   enabledHome = enabled.config.home-manager.users.fixture;
-  noTokenReads = home:
-    !(lib.hasInfix "/run/secrets/" home.programs.fish.shellInit);
+  noTokenReads = home: !(home.programs.gh.package ? tokenPath);
 in
   assert builtins.isString disabled.config.system.build.toplevel.drvPath;
   assert builtins.isString enabled.config.system.build.toplevel.drvPath;
@@ -96,7 +95,7 @@ in
   assert !(disabled.config.systemd.services ? nm-wifi-secret);
   assert noTokenReads disabledHome;
   assert noTokenReads standalone.config;
-  assert lib.hasInfix "/run/secrets/github_pat" enabledHome.programs.fish.shellInit;
+  assert enabledHome.programs.gh.package.tokenPath == "/run/secrets/github_pat";
     pkgs.runCommand "secrets-toggle" {} ''
       touch "$out"
     ''
