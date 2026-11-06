@@ -261,6 +261,7 @@ mkModule {
           sessionVariables = {
             PAGER = "${lib.getExe pkgs.bat}";
             MANPAGER = "sh -c 'col --no-backspaces --spaces | ${lib.getExe pkgs.bat} --language man'";
+            MANROFFOPT = "-c"; # grotty: overstrike instead of SGR, so col strips it
           };
         };
       };
