@@ -191,9 +191,7 @@ mkModule {
     };
   };
   docs = ''
-    Firefox runs in a sandbox with writable access to its Home Manager profile directory,
-    legacy Mozilla directory, cache, and downloads. The profile directory is preserved
-    across reboots when preservation is enabled. Its desktop icon uses the pride logo
-    bundled with Firefox.
+    The Firefox profile directory is preserved across reboots when preservation is
+    enabled. Its desktop icon uses the pride logo bundled with Firefox.
   '';
 }

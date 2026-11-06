@@ -497,21 +497,6 @@
         "type": "github"
       }
     },
-    "jail-nix": {
-      "locked": {
-        "lastModified": 1788928033,
-        "narHash": "sha256-UQRytK4SsshV1CeX6aKF+P855Sbcqg9aA731eYTakNg=",
-        "owner": "~alexdavid",
-        "repo": "jail.nix",
-        "rev": "7cd53acef3ad51b9c775be759f5643f8d3bcf6eb",
-        "type": "sourcehut"
-      },
-      "original": {
-        "owner": "~alexdavid",
-        "repo": "jail.nix",
-        "type": "sourcehut"
-      }
-    },
     "llm-agents": {
       "inputs": {
         "bun2nix": "bun2nix",
@@ -907,7 +892,6 @@
         "hackastats": "hackastats",
         "hexecute-gnome": "hexecute-gnome",
         "home-manager": "home-manager_2",
-        "jail-nix": "jail-nix",
         "llm-agents": "llm-agents",
         "nix-crab": "nix-crab",
         "nix-github-actions": "nix-github-actions",

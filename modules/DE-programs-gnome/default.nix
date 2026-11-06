@@ -9,35 +9,19 @@ mkModule {
     home = {
       lib,
       pkgs,
-      self,
-      config,
       ...
-    }: let
-      sandbox = package: appId:
-        self.lib.mkJail {
-          inherit pkgs package;
-          gui = true;
-          homeDirs = [".config/${appId}" ".local/share/${appId}" ".cache/${appId}"];
-          readWrite = builtins.filter (path: path != null) (with config.xdg.userDirs; [
-            documents
-            download
-            pictures
-            videos
-          ]);
-          dbusOwn = [appId "${appId}.*"];
-        };
-    in {
+    }: {
       # GNOME hosts share the complete utility set; Impression needs x86-only syslinux.
       home.packages =
         (with pkgs; [
           nautilus
-          (sandbox papers "org.gnome.Papers")
-          (sandbox file-roller "org.gnome.FileRoller")
+          papers
+          file-roller
           kooha
-          (sandbox gradia "be.alexandervanhee.gradia")
+          gradia
           mission-center
-          (sandbox gnome-text-editor "org.gnome.TextEditor")
-          (sandbox loupe "org.gnome.Loupe")
+          gnome-text-editor
+          loupe
           pinta
           gnome-calculator
           gnome-characters
@@ -48,7 +32,7 @@ mkModule {
           gnome-calendar
           gnome-chess
           gnuchess
-          (sandbox rnote "com.github.flxzt.rnote")
+          rnote
           gnome-clocks
         ])
         ++ lib.optionals pkgs.stdenv.hostPlatform.isx86_64 [pkgs.impression];
