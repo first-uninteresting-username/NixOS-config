@@ -9,11 +9,12 @@ concrete failure scenario, and suggested correction. Separate verified facts fro
 
 Run checks appropriate to the changed files and state exactly what passed, failed, or could
 not run. For Markdown-only changes, review content and paths and run `git diff --check`.
-For Nix changes, format affected files and evaluate both supported systems:
+For Nix changes, format affected files and evaluate the flake on the local system. Do not run
+`nix flake check --no-build --all-systems`; CI evaluates both supported systems.
 
 ```bash
 alejandra --check <changed-nix-files>
-nix flake check --no-build --all-systems
+nix flake check --no-build
 git diff --check
 ```
 
