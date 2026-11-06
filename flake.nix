@@ -96,8 +96,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    jail-nix.url = "sourcehut:~alexdavid/jail.nix";
-
     deploy-rs = {
       url = "github:serokell/deploy-rs";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -150,7 +148,6 @@
     lib = {
       # Checks and packages use these through self; the registry itself stays internal.
       modules = {inherit (registry) mkHost commonArgs;};
-      mkJail = import ./lib/mk-jail.nix {inherit inputs;};
     };
   };
 }
