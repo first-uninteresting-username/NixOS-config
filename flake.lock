@@ -876,6 +876,26 @@
         "type": "github"
       }
     },
+    "r-sent": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1793960799,
+        "narHash": "sha256-zX0EgTBP2+exQCzSsQXPB70aOXdo27hRI2O+B30vB08=",
+        "owner": "first-uninteresting-username",
+        "repo": "r-sent",
+        "rev": "6557ed66b8c74b7ba03ca128a28d8348bf103e62",
+        "type": "github"
+      },
+      "original": {
+        "owner": "first-uninteresting-username",
+        "repo": "r-sent",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "chaotic": "chaotic",
@@ -896,6 +916,7 @@
         "nixos-hardware": "nixos-hardware",
         "nixpkgs": "nixpkgs_5",
         "preservation": "preservation",
+        "r-sent": "r-sent",
         "slick": "slick",
         "sops-nix": "sops-nix",
         "stylix": "stylix"
