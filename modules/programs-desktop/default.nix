@@ -54,6 +54,8 @@ mkModule {
             ".cache/io.github.aedev.flow.desktop.beta"
           ];
           readWrite = [config.xdg.userDirs.download];
+          # WebKitGTK exports playback over MPRIS for media keys and scrobblers.
+          dbusOwn = ["org.mpris.MediaPlayer2.*"];
         })
       ];
     };
