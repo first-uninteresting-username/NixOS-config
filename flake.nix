@@ -107,6 +107,11 @@
       url = "github:3kh0/slick";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    r-sent = {
+      url = "github:first-uninteresting-username/r-sent";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = inputs: let
