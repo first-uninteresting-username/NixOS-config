@@ -42,8 +42,12 @@ mkModule {
   docs = ''
     Add `scrobbler` to a host's `ids` to scrobble tracks from any MPRIS player with
     mpris-scrobbler, a user service that supports libre.fm, ListenBrainz, and Last.fm.
-
-    Sign in once per host, then restart the service:
+    Credentials live in `~/.local/share/mpris-scrobbler/credentials`, which persists across
+    reboots when preservation is enabled.
+  '';
+  imperativeSteps = ''
+    Sign in to libre.fm once per host. The first command opens the authorization page in a
+    browser; approve it before running the rest:
 
     ```bash
     mpris-scrobbler-signon token librefm
@@ -51,9 +55,5 @@ mkModule {
     mpris-scrobbler-signon enable librefm
     systemctl --user restart mpris-scrobbler
     ```
-
-    The first command opens the libre.fm authorization page in a browser; approve it before
-    running the second. Credentials live in `~/.local/share/mpris-scrobbler/credentials`, which
-    persists across reboots when preservation is enabled.
   '';
 }
