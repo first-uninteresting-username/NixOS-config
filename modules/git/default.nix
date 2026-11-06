@@ -14,7 +14,27 @@ mkModule {
   module = {
     secretsEnable,
     githubTokenPath ? "/run/secrets/github_pat",
-  }: {
+  }: let
+    # gh reads the token file itself, so services and desktop sessions that never start a
+    # shell are authenticated too. An explicit GH_TOKEN or GITHUB_TOKEN still takes precedence.
+    mkGh = pkgs:
+      if !secretsEnable
+      then pkgs.gh
+      else
+        pkgs.symlinkJoin {
+          name = "gh-${pkgs.gh.version}";
+          inherit (pkgs.gh) version meta;
+          paths = [pkgs.gh];
+          nativeBuildInputs = [pkgs.makeWrapper];
+          postBuild = ''
+            wrapProgram "$out/bin/gh" --run '
+              if [ -z "''${GH_TOKEN-}''${GITHUB_TOKEN-}" ] && [ -r ${githubTokenPath} ]; then
+                export GH_TOKEN="$(< ${githubTokenPath})"
+              fi'
+          '';
+          passthru.tokenPath = githubTokenPath;
+        };
+  in {
     nixos = {
       pkgs,
       lib,
@@ -24,10 +44,7 @@ mkModule {
       {
         programs.git.enable = lib.mkForce false;
 
-        environment.systemPackages = with pkgs; [
-          git
-          gh
-        ];
+        environment.systemPackages = [pkgs.git (mkGh pkgs)];
       }
       // lib.optionalAttrs secretsEnable {
         sops.secrets = {
@@ -37,12 +54,7 @@ mkModule {
           };
         };
       };
-    home = {
-      pkgs,
-      config,
-      lib,
-      ...
-    }: {
+    home = {pkgs, ...}: {
       home.packages = with pkgs; [onefetch meld];
       programs = {
         git = {
@@ -71,14 +83,12 @@ mkModule {
         };
         gh = {
           enable = true;
+          package = mkGh pkgs;
           settings = {
             git_protocol = "https";
             prompt = "enabled";
           };
         };
-        fish.shellInit = lib.mkIf (secretsEnable && config.programs.fish.enable) ''
-          set -gx GH_TOKEN (string trim < ${githubTokenPath})
-        '';
       };
     };
   };
