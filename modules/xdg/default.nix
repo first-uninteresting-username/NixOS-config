@@ -12,6 +12,7 @@ mkModule {
       ".local/state"
       "Downloads"
       "Documents"
+      "Music"
       "Pictures"
       "Templates"
       "Videos"
@@ -39,13 +40,13 @@ mkModule {
           download = "${homeBase}/Downloads";
           documents = "${homeBase}/Documents";
           pictures = "${homeBase}/Pictures";
-          music = null;
+          music = "${homeBase}/Music";
           publicShare = null;
           templates = "${homeBase}/Templates";
           videos = "${homeBase}/Videos";
           projects = "${homeBase}/Projects";
           extraConfig = {
-            XDG_GAMES_DIR = "${homeBase}/Games";
+            GAMES = "${homeBase}/Games";
           };
         };
       };
