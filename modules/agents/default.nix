@@ -24,6 +24,14 @@ mkModule {
     ```bash
     claude
     ```
+
+    Turn off OpenCode 2 session tabs by adding this to `~/.config/opencode/cli.json`:
+
+    ```json
+    "tabs": {
+      "mode": "off"
+    }
+    ```
   '';
   state = {
     home = {
