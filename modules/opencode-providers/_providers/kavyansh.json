@@ -40,6 +40,11 @@
     "openai/gpt-oss-120b": {},
     "openai/gpt-oss-20b": {},
     "openai/gpt-oss-safeguard-20b": {},
-    "qwen/qwen3.8-27b": {}
+    "qwen/qwen3.8-27b": {
+      "limit": {
+        "context": 131072,
+        "output": 16384
+      }
+    }
   }
 }
