@@ -7,12 +7,12 @@
 in {
   default = pkgs.stdenvNoCC.mkDerivation (finalAttrs: {
     pname = "gnome-shell-extension-claude-pace";
-    version = "0.1.0";
+    version = "0.1.1";
     src = pkgs.fetchFromGitHub {
       owner = "first-uninteresting-username";
       repo = "claude-pace";
       tag = "v${finalAttrs.version}";
-      hash = "sha256-gIImmos5cLcDmxzRQB5ivKlsJarsXBPKMIuHaoqcx6g=";
+      hash = "sha256-VGAMmYdaVwpaKw8wDERAys3EpOLo1k9v2TsXB73MXxc=";
     };
     passthru = {
       inherit extensionUuid;
