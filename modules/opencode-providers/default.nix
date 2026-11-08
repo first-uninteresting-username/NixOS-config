@@ -86,12 +86,10 @@ in
       decrypts it to `opencodeProviderSecretDir/<secret>`, and OpenCode reads it through a
       `{file:}` reference in `settings.apiKey`. The key stays out of the Nix store.
 
-      To add a provider, create its JSON file, add its key to sops, and rebuild. To refresh a
-      model list from an OpenAI-compatible `/models` endpoint, run:
+      To add a provider, create its JSON file, add its key to sops, and rebuild.
 
-      ```bash
-      nix run .#opencode-providers-sync-models -- modules/opencode-providers/_providers/<id>.json
-      ```
+      A model entry can set `limit.context` and `limit.output`. Set `limit.output` when the
+      provider caps output tokens below OpenCode's default; otherwise every request fails.
     '';
     imperativeSteps = ''
       With secrets enabled, store each provider's API key in sops under the name given by its
@@ -99,6 +97,14 @@ in
 
       ```bash
       sops-easy secrets/secrets.yaml
+      ```
+
+      To refresh a provider's model list from its OpenAI-compatible `/models` endpoint, run
+      this from the repository root, then commit the changed file. It keeps existing per-model
+      settings such as `limit` and removes models the endpoint no longer lists:
+
+      ```bash
+      nix run .#opencode-providers-sync-models -- modules/opencode-providers/_providers/<id>.json
       ```
     '';
   }
