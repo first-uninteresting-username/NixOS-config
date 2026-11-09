@@ -9,7 +9,9 @@ mkModule {
     Installs Claude Desktop and Claude Code and preserves their local configuration.
     Interactive Claude Code and OpenCode sessions started outside a directory tree containing
     an `AGENTS.md` open in `~/Agents` instead. Pass `--here` to either command to stay in the
-    current directory; the wrapper removes the flag before starting the agent.
+    current directory, or `--agents` to open in `~/Agents` even when an `AGENTS.md` is present or
+    the invocation would otherwise run unchanged. The wrapper removes these flags before starting
+    the agent; when both are given, the last one wins.
     Both agents load the MCP servers that other modules declare in `programs.mcp.servers`.
     In `~/Agents` and its subdirectories, both agents run tools without permission prompts:
     Claude Code starts in bypass permissions mode unless another permission mode is passed,
@@ -58,22 +60,30 @@ mkModule {
 
       # Starts interactive sessions in ~/Agents unless the current directory or one of its
       # parents contains AGENTS.md. Invocations with subcommands, prompts, paths, or
-      # print/help/version flags run unchanged. The wrapper-only --here flag is removed from the
-      # arguments and keeps the current directory.
+      # print/help/version flags run unchanged. The wrapper-only flags are removed from the
+      # arguments: --here keeps the current directory and --agents always switches to ~/Agents.
       agentsFallback = ''
         agentsFallbackApplies=1
+        agentsFallbackForce=0
         agentsFallbackCount=$#
         while [ "$agentsFallbackCount" -gt 0 ]; do
           agentsFallbackArg=$1
           shift
           if [ "$agentsFallbackArg" = --here ]; then
             agentsFallbackApplies=0
+            agentsFallbackForce=0
+          elif [ "$agentsFallbackArg" = --agents ]; then
+            agentsFallbackApplies=1
+            agentsFallbackForce=1
           else
             set -- "$@" "$agentsFallbackArg"
           fi
           agentsFallbackCount=$((agentsFallbackCount - 1))
         done
-        if [ -t 0 ] && [ -t 1 ]; then
+        if [ "$agentsFallbackForce" = 1 ]; then
+          mkdir -p "$HOME/Agents"
+          cd "$HOME/Agents"
+        elif [ -t 0 ] && [ -t 1 ]; then
           for agentsFallbackArg in "$@"; do
             case $agentsFallbackArg in
               -p|--print|-h|--help|-v|--version) agentsFallbackApplies=0 ;;
