@@ -10,7 +10,8 @@ mkModule {
     GPU select `ide-lite` instead. It requires the `IDE` host ID.
 
     Gram uses its built-in Nix support with `nil` and Alejandra formatting, Marksman and
-    Prettier for Markdown, and the Hackatime extension for coding time. Gram never downloads
+    Prettier for Markdown, basedpyright and Ruff for Python, and the Hackatime extension for
+    coding time. Gram never downloads
     language servers: global ones come from Nix, and project-specific ones (such as
     rust-analyzer) come from the project's devenv, which Gram loads through direnv and prefers
     over the global ones. Extensions come from
@@ -68,6 +69,8 @@ mkModule {
           nixd
           alejandra
           marksman
+          basedpyright
+          ruff
           wakatime-cli
           zed-wakatime-ls
         ];
