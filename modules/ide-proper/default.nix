@@ -124,6 +124,9 @@ mkModule {
           autoscroll_on_clicks = true;
           middle_click_paste = false;
           show_whitespaces = "selection";
+          # Gram's Linux text system defaults to grayscale antialiasing; Zed
+          # defaults to subpixel, which renders the same fonts noticeably crisper.
+          text_rendering_mode = "subpixel";
 
           title_bar = {
             show_menus = false;
