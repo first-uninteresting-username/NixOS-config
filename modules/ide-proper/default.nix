@@ -10,8 +10,10 @@ mkModule {
     GPU select `ide-lite` instead. It requires the `IDE` host ID.
 
     Gram uses its built-in Nix support with `nil` and Alejandra formatting, Marksman and
-    Prettier for Markdown, rust-analyzer for Rust, and the Hackatime extension for coding
-    time. Gram never downloads language servers, so they come from Nix. Extensions come from
+    Prettier for Markdown, and the Hackatime extension for coding time. Gram never downloads
+    language servers: global ones come from Nix, and project-specific ones (such as
+    rust-analyzer) come from the project's devenv, which Gram loads through direnv and prefers
+    over the global ones. Extensions come from
     `nix-zed-extensions`, are built by Nix, and load from `GRAM_SYSTEM_EXTENSIONS_DIR`.
     `VISUAL` is `gram --wait`, and the **NixOS Config** launcher opens this repository in Gram.
 
@@ -66,7 +68,6 @@ mkModule {
           nixd
           alejandra
           marksman
-          rust-analyzer
           wakatime-cli
           zed-wakatime-ls
         ];
