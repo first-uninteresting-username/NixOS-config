@@ -11,9 +11,9 @@ mkModule {
     enabled, sops writes `~/.wakatime.cfg` with the Hackatime API URL and key.
     Run `canistopcoding` to print today's total.
 
-    AI coding detection (`sync_ai_disabled = false`) is on only inside `~/Agents`: `exclude_ai`
-    skips AI heartbeats for every other file path, while human activity is still logged
-    everywhere. The overlay patches `exclude_ai` to also match the working directory of AI
+    AI coding sync is off (`sync_ai_disabled = true`), so only human activity is logged. The
+    `exclude_ai` rule stays configured so that re-enabling it reports AI heartbeats only inside
+    `~/Agents`. The overlay patches `exclude_ai` to also match the working directory of AI
     session heartbeats (such as `Claude <session>`), which have no file path. `exclude_ai`
     needs wakatime-cli 2.27.1 or later, so the module overlays a newer release than nixpkgs and
     exports it as the `wakatime` package. `nix run .#update-packages` keeps that release current.
@@ -72,7 +72,7 @@ mkModule {
               api_url = https://hackatime.hackclub.com/api/hackatime/v1
               api_key = ${config.sops.placeholder.wakatime_api_key}
               heartbeat_rate_limit_seconds = 1
-              sync_ai_disabled = false
+              sync_ai_disabled = true
               exclude_ai = ^(?!${lib.escapeRegex "${home}/Agents"}(/|$))
             '';
             path = "${home}/.wakatime.cfg";
