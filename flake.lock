@@ -903,7 +903,29 @@
         "r-sent": "r-sent",
         "slick": "slick",
         "sops-nix": "sops-nix",
-        "stylix": "stylix"
+        "stylix": "stylix",
+        "zed-extensions": "zed-extensions"
+      }
+    },
+    "rust-overlay": {
+      "inputs": {
+        "nixpkgs": [
+          "zed-extensions",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1788077403,
+        "narHash": "sha256-c20YZQKzQ27qC6Wh729fWRTpI7oV4+7Ur4icKssD4Wc=",
+        "owner": "oxalica",
+        "repo": "rust-overlay",
+        "rev": "89e26eeaafa88a2ede4778734acc794ff0299beb",
+        "type": "github"
+      },
+      "original": {
+        "owner": "oxalica",
+        "repo": "rust-overlay",
+        "type": "github"
       }
     },
     "slick": {
@@ -1222,6 +1244,27 @@
       "original": {
         "owner": "Maroka-chan",
         "repo": "VPN-Confinement",
+        "type": "github"
+      }
+    },
+    "zed-extensions": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ],
+        "rust-overlay": "rust-overlay"
+      },
+      "locked": {
+        "lastModified": 1794044409,
+        "narHash": "sha256-as6J13DzggtZW48Nz7rV5evVO6L4aTPzKf7hx2z2zO8=",
+        "owner": "SwornSystems",
+        "repo": "nix-zed-extensions",
+        "rev": "64db72f20d9c2e3d0ea83c5aba94701a4c905884",
+        "type": "github"
+      },
+      "original": {
+        "owner": "SwornSystems",
+        "repo": "nix-zed-extensions",
         "type": "github"
       }
     }

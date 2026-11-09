@@ -78,33 +78,16 @@ reported only for files under `~/Agents`. Add one editor ID next to it:
 
 | Host ID | Editor | Use it when |
 | --- | --- | --- |
-| `ide-proper` | Zed | The host has a GPU. |
+| `ide-proper` | Gram | The host has a GPU. |
 | `ide-lite` | Kate | The host renders on the CPU, for example over xrdp. |
 
 ```nix
 ids = ["IDE" "ide-lite" ...];
 ```
 
-Kate is configured to match Zed where Kate allows: the same language servers and formatters,
-format on save, Hackatime heartbeats, and a similar layout. It has no inline AI edit
-predictions or agent panel; use an agent CLI in its terminal panel instead.
+Kate is configured to match Gram where Kate allows: the same language servers and formatters,
+format on save, Hackatime heartbeats, and a similar layout.
 Each module's own documentation lists the details.
-
-### Zed with ChatGPT Plus
-
-The `ide-proper` module enables Zed's Agent panel and its status bar button.
-Zed's ChatGPT Subscription provider supports ChatGPT Plus and Pro accounts.
-
-1. Rebuild your system with the updated configuration and restart Zed.
-2. Open **Settings > AI > LLM Providers** and select **ChatGPT Subscription**.
-3. Click **Sign In** and complete the browser login with your ChatGPT Plus account.
-4. Open the Agent panel with its status bar button and select a model from
-   **ChatGPT Subscription** in the model picker.
-
-No separate OpenAI API key is required. OpenAI API billing is separate from your
-ChatGPT subscription. Zed stores the login credentials in your system keychain.
-
-See Zed's [existing subscription guide](https://zed.dev/docs/ai/use-an-existing-subscription#chatgpt).
 
 ## External
 

@@ -6,7 +6,7 @@ mkModule {
   name = "ide-lite";
   ids = ["IDE" "ide-lite"];
   docs = ''
-    Installs Kate configured to match `ide-proper` (Zed) where Kate allows. Kate renders on
+    Installs Kate configured to match `ide-proper` (Gram) where Kate allows. Kate renders on
     the CPU, so it stays responsive on hosts without a GPU, such as xrdp sessions.
     It requires the `IDE` host ID.
 
@@ -28,9 +28,7 @@ mkModule {
     into `katerc` and enables the plugins in every saved session. Settings changed in Kate's
     dialog persist until the next activation resets a managed key.
 
-    Kate has no inline AI edit predictions or agent panel; run an agent CLI in the terminal
-    panel instead. Kate runs one language server per language, so `nixd` does not run
-    beside `nil`.
+    Kate runs one language server per language, so `nixd` does not run beside `nil`.
   '';
   state = {
     home.directories = [
@@ -130,7 +128,7 @@ mkModule {
       allowedServers = lib.mapAttrsToList (_: s: lib.concatStringsSep " " s.command) servers;
 
       externalTools = {
-        # Kate's formatter plugin has no Markdown formatter; Zed runs Prettier on save.
+        # Kate's formatter plugin has no Markdown formatter; Gram runs Prettier on save.
         prettier-markdown = {
           name = "Prettier (Markdown)";
           category = "Format";
@@ -183,7 +181,7 @@ mkModule {
         };
         "KTextEditor Document" = {
           "Auto Save On Focus Out" = true;
-          # 1 = trailing whitespace only, the closest match to Zed's "selection".
+          # 1 = trailing whitespace only, the closest match to Gram's "selection".
           "Show Spaces" = 1;
         };
       };
@@ -256,7 +254,7 @@ mkModule {
           "kate/lspclient/settings.json".text = builtins.toJSON {inherit servers;};
           "kate/formatting/settings.json".text = builtins.toJSON {
             formatOnSave = true;
-            # Kate formats Nix through its `nixfmt` entry; point it at Alejandra like Zed.
+            # Kate formats Nix through its `nixfmt` entry; point it at Alejandra like Gram.
             nixfmt.command = alejandra;
             prettier.command = [prettier];
           };
