@@ -30,7 +30,8 @@
     };
 
     stylix = {
-      url = "github:nix-community/stylix";
+      # Fork branch adds a Gram target.
+      url = "github:first-uninteresting-username/stylix/gram";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
