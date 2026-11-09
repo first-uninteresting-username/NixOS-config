@@ -14,13 +14,14 @@ mkModule {
     ...
   }: {
     # GNOME Shell 51 falls back to Adwaita for any cursor name missing from cursors_scalable/.
-    bibata-cursors = pkgs.runCommand "stylix-bibata-cursors-check" {
-      nativeBuildInputs = [pkgs.python3];
-    } ''
-      python3 ${./_check-scalable-cursors.py} \
-        ${packages.bibata-cursors}/share/icons/Bibata-Modern-Ice
-      touch $out
-    '';
+    bibata-cursors =
+      pkgs.runCommand "stylix-bibata-cursors-check" {
+        nativeBuildInputs = [pkgs.python3];
+      } ''
+        python3 ${./_check-scalable-cursors.py} \
+          ${packages.bibata-cursors}/share/icons/Bibata-Modern-Ice
+        touch $out
+      '';
   };
   module = _: {
     nixos = {
