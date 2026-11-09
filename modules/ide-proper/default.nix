@@ -17,7 +17,9 @@ mkModule {
     Gram never downloads language servers. Global ones come from Nix; project-specific ones
     (such as rust-analyzer) come from the project's devenv, which Gram loads through direnv and
     prefers over the global ones. Extensions come from `nix-zed-extensions`, are built by Nix,
-    and load from `GRAM_SYSTEM_EXTENSIONS_DIR`.
+    and load from `GRAM_SYSTEM_EXTENSIONS_DIR`. Activation deletes Gram's extension index so
+    Gram rebuilds it on the next start; otherwise the store path's epoch mtime keeps a stale
+    index forever.
     `VISUAL` is `gram --wait`, and the **NixOS Config** launcher opens this repository in Gram.
 
     The REPL (`repl: run`) uses a Python 3 Jupyter kernel with `ipykernel`. Projects that need
@@ -127,6 +129,9 @@ mkModule {
           # Gram's Linux text system defaults to grayscale antialiasing; Zed
           # defaults to subpixel, which renders the same fonts noticeably crisper.
           text_rendering_mode = "subpixel";
+          # Gram's defaults disable `calt`, which turns off programming ligatures such as `==`
+          # and `->`; Zed leaves it enabled.
+          buffer_font_features.calt = true;
 
           title_bar = {
             show_menus = false;
@@ -185,6 +190,14 @@ mkModule {
           };
         };
       };
+
+      # Gram rebuilds its extension index only when the index is older than an extension
+      # directory, but `GRAM_SYSTEM_EXTENSIONS_DIR` is a store path with the epoch mtime, so a
+      # stale index (for example, one written before the directory existed) never refreshes and
+      # Nix-provided extensions such as Hackatime never load. Drop the index so Gram rebuilds it.
+      home.activation.gramExtensionIndex = lib.hm.dag.entryAfter ["writeBoundary"] ''
+        run rm -f "${config.xdg.dataHome}/gram/extensions/index.json"
+      '';
 
       home.sessionVariables.VISUAL = "gram --wait";
 
