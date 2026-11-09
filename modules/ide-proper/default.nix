@@ -129,6 +129,9 @@ mkModule {
           # Gram's Linux text system defaults to grayscale antialiasing; Zed
           # defaults to subpixel, which renders the same fonts noticeably crisper.
           text_rendering_mode = "subpixel";
+          # Gram's defaults disable `calt`, which turns off programming ligatures such as `==`
+          # and `->`; Zed leaves it enabled.
+          buffer_font_features.calt = true;
 
           title_bar = {
             show_menus = false;
