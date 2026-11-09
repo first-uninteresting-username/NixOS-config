@@ -11,11 +11,13 @@ mkModule {
 
     Gram uses its built-in Nix support with `nil` and Alejandra formatting, Marksman and
     Prettier for Markdown, basedpyright and Ruff for Python, and the Hackatime extension for
-    coding time. Gram never downloads
-    language servers: global ones come from Nix, and project-specific ones (such as
-    rust-analyzer) come from the project's devenv, which Gram loads through direnv and prefers
-    over the global ones. Extensions come from
-    `nix-zed-extensions`, are built by Nix, and load from `GRAM_SYSTEM_EXTENSIONS_DIR`.
+    coding time. Hackatime runs `hackatime-ls`, its fork of the WakaTime language server,
+    packaged here, with `wakatime-cli` from the `wakatime` module.
+
+    Gram never downloads language servers. Global ones come from Nix; project-specific ones
+    (such as rust-analyzer) come from the project's devenv, which Gram loads through direnv and
+    prefers over the global ones. Extensions come from `nix-zed-extensions`, are built by Nix,
+    and load from `GRAM_SYSTEM_EXTENSIONS_DIR`.
     `VISUAL` is `gram --wait`, and the **NixOS Config** launcher opens this repository in Gram.
 
     The REPL (`repl: run`) uses a Python 3 Jupyter kernel with `ipykernel`. Projects that need
@@ -28,12 +30,36 @@ mkModule {
       ".cache/gram"
     ];
   };
+  packages = {pkgs, ...}: {
+    # The Hackatime extension runs the first `wakatime-ls` on PATH; nixpkgs only packages
+    # upstream WakaTime's server, so build the fork the extension ships.
+    hackatime-ls = pkgs.rustPlatform.buildRustPackage (finalAttrs: {
+      pname = "hackatime-ls";
+      version = "0.4.0";
+      src = pkgs.fetchFromGitHub {
+        owner = "espcaa";
+        repo = "zed-hackatime";
+        tag = "v${finalAttrs.version}";
+        hash = "sha256-lLC/MzZPYiJJhGnVTS50oEr4zmjTpgbRP2ZS7v/ceA4=";
+      };
+      buildAndTestSubdir = "wakatime-ls";
+      cargoHash = "sha256-VkoxCloiYenhKQqAQvx4FnTKzznFsqe2Qv0gr1ftahg=";
+      passthru.updateScript = pkgs.nix-update-script {extraArgs = ["--flake"];};
+      meta = {
+        description = "Hackatime fork of the WakaTime language server for Zed and Gram";
+        homepage = "https://github.com/espcaa/zed-hackatime";
+        license = pkgs.lib.licenses.mit;
+        mainProgram = "wakatime-ls";
+      };
+    });
+  };
   module = _: {
     home = {
       lib,
       pkgs,
       config,
       inputs,
+      packages,
       ...
     }: let
       nixLogo = "${pkgs.nixos-icons}/share/icons/hicolor/scalable/apps/nix-snowflake.svg";
@@ -72,7 +98,7 @@ mkModule {
           basedpyright
           ruff
           wakatime-cli
-          zed-wakatime-ls
+          packages.hackatime-ls
         ];
 
         settings = {
