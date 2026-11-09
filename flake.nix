@@ -81,6 +81,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    zed-extensions = {
+      url = "github:SwornSystems/nix-zed-extensions";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     hexecute-gnome = {
       url = "github:first-uninteresting-username/Hexecute-gnome";
       inputs.nixpkgs.follows = "nixpkgs";

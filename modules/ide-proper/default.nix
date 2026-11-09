@@ -6,206 +6,124 @@ mkModule {
   name = "ide-proper";
   ids = ["IDE" "ide-proper"];
   docs = ''
-    Installs Zed, which renders with the GPU. Hosts without a GPU select `ide-lite` instead.
-    It requires the `IDE` host ID.
+    Installs Gram, a Zed fork without AI features, which renders with the GPU. Hosts without a
+    GPU select `ide-lite` instead. It requires the `IDE` host ID.
 
-    Zed uses `nil` for Nix with Alejandra formatting, Marksman and Prettier for Markdown, and
-    the Hackatime extension for coding time. With secrets enabled, the wrapper exports the sops
-    `MISTRAL_API_KEY` as `CODESTRAL_API_KEY` for Codestral edit predictions. The Agent panel
-    and its status bar button are enabled. `VISUAL` is `zeditor --wait`, and the
-    **NixOS Config** launcher opens this repository in Zed.
+    Gram uses its built-in Nix support with `nil` and Alejandra formatting, Marksman and
+    Prettier for Markdown, and the Hackatime extension for coding time. Extensions come from
+    `nix-zed-extensions`, are built by Nix, and load from `GRAM_SYSTEM_EXTENSIONS_DIR`.
+    `VISUAL` is `gram --wait`, and the **NixOS Config** launcher opens this repository in Gram.
   '';
   state = {
     home.directories = [
-      ".config/zed"
-      ".local/share/zed"
-      ".cache/zed"
+      ".config/gram"
+      ".local/share/gram"
+      ".cache/gram"
     ];
   };
-  module = {
-    secretsEnable,
-    mistralApiKeyPath ? "/run/secrets/MISTRAL_API_KEY",
-  }: {
-    nixos = {
-      lib,
-      userName,
-      ...
-    }:
-      lib.optionalAttrs secretsEnable {
-        sops.secrets."MISTRAL_API_KEY" = {
-          path = mistralApiKeyPath;
-          owner = userName;
-        };
-      };
+  module = _: {
     home = {
       pkgs,
       config,
+      inputs,
       ...
     }: let
       nixLogo = "${pkgs.nixos-icons}/share/icons/hicolor/scalable/apps/nix-snowflake.svg";
       configPath = "${config.xdg.userDirs.projects}/NixOS-config";
-      keyFile = mistralApiKeyPath;
-      zedPackage =
-        if !secretsEnable
-        then pkgs.zed-editor
-        else
-          pkgs.symlinkJoin {
-            name = "zed-editor-env";
-            paths = [pkgs.zed-editor];
-            nativeBuildInputs = [pkgs.makeWrapper];
-            postBuild = ''
-              wrapProgram $out/bin/zeditor \
-                --run '[ -r "${keyFile}" ] && export CODESTRAL_API_KEY="$(cat "${keyFile}")"'
-            '';
-          };
+      zedExtensions =
+        inputs.zed-extensions.legacyPackages.${pkgs.stdenv.hostPlatform.system}.zed-extensions;
     in {
-      programs = {
-        zed-editor = {
-          enable = true;
-          package = zedPackage;
-          extensions = [
-            "nix"
-            "markdown-snippets"
-            "marksman"
-            "hackatime"
-            "git-firefly"
-            "toml"
-            "log"
-          ];
-          extraPackages = with pkgs; [
-            nil
-            alejandra
-            marksman
-            wakatime-cli
-            zed-wakatime-ls
-            nixd
-          ];
+      programs.gram = {
+        enable = true;
+        extensionPackages = with zedExtensions; [
+          markdown-snippets
+          marksman
+          hackatime
+          git-firefly
+          log
+        ];
+        extraPackages = with pkgs; [
+          nil
+          nixd
+          alejandra
+          marksman
+          wakatime-cli
+          zed-wakatime-ls
+        ];
 
-          userSettings = {
-            restore_on_startup = "last_session";
-            semantic_tokens = "combined";
+        settings = {
+          restore_on_startup = "last_session";
+          vim_mode = false;
+          autosave = "on_focus_change";
+          autoscroll_on_clicks = true;
+          middle_click_paste = false;
+          show_whitespaces = "selection";
 
-            vim_mode = false;
-            disable_ai = false;
-            show_edit_predictions = true;
-            edit_predictions = {
-              provider = "codestral";
-              mode = "subtle";
-            };
-            agent = {
-              enabled = true;
-              button = true;
-            };
-            tabs = {
-              file_icons = true;
-              git_status = true;
-            };
-            tab_bar = {
-              show = true;
-            };
-            title_bar = {
-              show_menus = false;
-              show_user_menu = true;
-              show_sign_in = false;
-              show_branch_name = true;
-              show_branch_status_icon = false;
-            };
-            diagnostics = {
-              button = true;
-            };
-            status_bar = {
-              line_endings_button = false;
-              cursor_position_button = true;
-              active_language_button = true;
-            };
-            file_finder = {
-              file_icons = true;
-            };
-            search = {
-              button = true;
-              regex = true;
-            };
-            middle_click_paste = false;
-            show_whitespaces = "selection";
-            toolbar = {
-              agent_review = false;
-              selections_menu = true;
-              quick_actions = true;
-              breadcrumbs = true;
-            };
-            minimap = {
-              thumb = "always";
-              show = "auto";
-            };
-            autoscroll_on_clicks = true;
-            autosave = "on_focus_change";
-            auto_update = false;
-            default_open_behavior = "new_window";
-            prettier = {
-              allowed = true;
-            };
-            cli_default_open_behavior = "new_window";
-            project_panel = {
-              folder_icons = true;
-              file_icons = true;
-              default_width = 240.0;
-              button = true;
-              dock = "left";
-            };
-            outline_panel = {
-              dock = "left";
-            };
-            collaboration_panel = {
-              dock = "left";
-            };
+          title_bar = {
+            show_menus = false;
+            show_branch_name = true;
+          };
+          tab_bar.show = true;
+          tabs = {
+            file_icons = true;
+            git_status = true;
+          };
+          toolbar = {
+            breadcrumbs = true;
+            quick_actions = true;
+            selections_menu = true;
+          };
+          status_bar = {
+            active_language_button = true;
+            cursor_position_button = true;
+            line_endings_button = false;
+          };
+          minimap = {
+            show = "auto";
+            thumb = "always";
+          };
+          diagnostics.button = true;
+          file_finder.file_icons = true;
+          search = {
+            button = true;
+            regex = true;
+          };
+          project_panel = {
+            button = true;
+            dock = "left";
+            default_width = 240;
+            file_icons = true;
+            folder_icons = true;
+          };
+          outline_panel.dock = "left";
 
-            lsp = {
-              nil = {
-                initialization_options = {
-                  formatting = {
-                    command = ["alejandra"];
-                  };
-                };
-              };
+          prettier.allowed = true;
+
+          lsp.nil.initialization_options.formatting.command = ["alejandra"];
+
+          languages = {
+            Markdown = {
+              format_on_save = "on";
+              formatter = "prettier";
             };
-
-            languages = {
-              Markdown = {
-                format_on_save = "on";
-                formatter = "prettier";
-                prettier = {
-                  allowed = true;
-                };
-              };
-
-              Nix = {
-                language_servers = [
-                  "nil"
-                  "!nixd"
-                  "..."
-                ];
-                formatter = {
-                  external = {
-                    command = "alejandra";
-                    arguments = [
-                      "--quiet"
-                      "--"
-                    ];
-                  };
-                };
+            Nix = {
+              language_servers = ["nil" "!nixd" "..."];
+              formatter.external = {
+                command = "alejandra";
+                arguments = ["--quiet" "--"];
               };
             };
           };
         };
       };
 
-      home.sessionVariables.VISUAL = "zeditor --wait";
+      home.sessionVariables.VISUAL = "gram --wait";
 
       xdg.desktopEntries = {
         "nixosconfig" = {
           name = "NixOS Config";
-          comment = "Open zed with nixos config";
-          exec = "${zedPackage}/bin/zeditor ${configPath}";
+          comment = "Open Gram with the NixOS config";
+          exec = "gram ${configPath}";
           icon = nixLogo;
           terminal = false;
           type = "Application";

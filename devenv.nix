@@ -29,7 +29,7 @@
     };
   };
 
-  files.".zed/settings.json" = {
+  files.".gram/settings.jsonc" = {
     copyMode = "copy";
     json = {
       languages.Nix = {

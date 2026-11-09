@@ -227,7 +227,7 @@ mkModule {
               "firefox.desktop"
               "com.mitchellh.ghostty.desktop"
               "org.gnome.Nautilus.desktop"
-              "dev.zed.Zed.desktop"
+              "app.liten.Gram.desktop"
             ];
           };
           "org/gnome/shell/extensions/Logo-menu" = {

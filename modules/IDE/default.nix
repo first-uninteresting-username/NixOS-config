@@ -7,7 +7,7 @@ mkModule {
   ids = ["IDE"];
   docs = ''
     Provides the editor-independent development tools. Select it together with one editor:
-    `ide-proper` installs Zed, which needs a GPU, and `ide-lite` installs Kate, which renders
+    `ide-proper` installs Gram, which needs a GPU, and `ide-lite` installs Kate, which renders
     on the CPU and suits remote desktops such as xrdp.
 
     `micro` is the terminal `EDITOR`. `nil`, Alejandra, `adb`, and `scrcpy` are installed for

@@ -7,7 +7,7 @@ mkModule {
   ids = ["IDE"];
   docs = ''
     Reports coding time to Hackatime for every editor selected with the `IDE` ID. It installs
-    `wakatime-cli`; the Zed, Kate, and Claude Code plugins use the one on PATH. With secrets
+    `wakatime-cli`; the Gram, Kate, and Claude Code plugins use the one on PATH. With secrets
     enabled, sops writes `~/.wakatime.cfg` with the Hackatime API URL and key.
     Run `canistopcoding` to print today's total.
 
