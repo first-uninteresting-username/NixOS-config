@@ -44,7 +44,7 @@ in {
   image = lib.mkIf cfg.image.enable generatedImage;
 
   cursor = {
-    package = pkgs.bibata-cursors;
+    package = pkgs.callPackage ./_bibata-cursors.nix {};
     name = "Bibata-Modern-Ice";
     size = 24;
   };
