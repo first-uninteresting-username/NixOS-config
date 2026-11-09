@@ -64,8 +64,24 @@ mkModule {
     }: let
       nixLogo = "${pkgs.nixos-icons}/share/icons/hicolor/scalable/apps/nix-snowflake.svg";
       configPath = "${config.xdg.userDirs.projects}/NixOS-config";
+      # Upstream's overlay reads `"${prev.path}/…"`, which copies nixpkgs into the store and
+      # fails under read-only evaluation (`nix flake check --no-build`). Redefine that helper
+      # with path concatenation so evaluation never needs the copy.
       zedExtensions =
-        inputs.zed-extensions.legacyPackages.${pkgs.stdenv.hostPlatform.system}.zed-extensions;
+        (pkgs.appendOverlays [
+          inputs.zed-extensions.overlays.default
+          (_: prev: {
+            fetch-cargo-vendor-util = prev.writers.writePython3Bin "fetch-cargo-vendor-util" {
+              libraries = with prev.python3Packages;
+                [
+                  requests
+                  tomli-w
+                ]
+                ++ requests.optional-dependencies.socks;
+              flakeIgnore = ["E501"];
+            } (builtins.readFile (prev.path + "/pkgs/build-support/rust/fetch-cargo-vendor-util.py"));
+          })
+        ]).zed-extensions;
       kernelPython = pkgs.python3.withPackages (ps: [ps.ipykernel]);
     in {
       # Gram's REPL runs Jupyter kernels and finds them in the Jupyter data directory.
