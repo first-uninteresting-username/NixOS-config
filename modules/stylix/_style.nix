@@ -7,6 +7,7 @@
   pkgs,
   inputs,
   theme,
+  packages,
 }: let
   cfg = theme;
   inherit (config.lib.stylix) colors;
@@ -44,7 +45,7 @@ in {
   image = lib.mkIf cfg.image.enable generatedImage;
 
   cursor = {
-    package = pkgs.callPackage ./_bibata-cursors.nix {};
+    package = packages.bibata-cursors;
     name = "Bibata-Modern-Ice";
     size = 24;
   };

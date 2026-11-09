@@ -5,6 +5,23 @@
 mkModule {
   name = "stylix";
   ids = ["stylix"];
+  packages = {pkgs, ...}: {
+    bibata-cursors = pkgs.callPackage ./_bibata-cursors.nix {};
+  };
+  checks = {
+    pkgs,
+    packages,
+    ...
+  }: {
+    # GNOME Shell 51 falls back to Adwaita for any cursor name missing from cursors_scalable/.
+    bibata-cursors = pkgs.runCommand "stylix-bibata-cursors-check" {
+      nativeBuildInputs = [pkgs.python3];
+    } ''
+      python3 ${./_check-scalable-cursors.py} \
+        ${packages.bibata-cursors}/share/icons/Bibata-Modern-Ice
+      touch $out
+    '';
+  };
   module = _: {
     nixos = {
       lib,
@@ -12,6 +29,7 @@ mkModule {
       config,
       theme,
       inputs,
+      packages,
       ...
     }: {
       imports = [
@@ -27,7 +45,7 @@ mkModule {
         programs.dconf.enable = true;
 
         stylix =
-          (import ./_style.nix {inherit config lib pkgs inputs theme;})
+          (import ./_style.nix {inherit config lib pkgs inputs theme packages;})
           // {
             enable = true;
             autoEnable = false;
@@ -40,6 +58,7 @@ mkModule {
       inputs,
       config,
       pkgs,
+      packages,
       osConfig ? null,
       ...
     }: {
@@ -52,7 +71,7 @@ mkModule {
         gtk.enable = true;
 
         stylix =
-          (lib.optionalAttrs (osConfig == null) (import ./_style.nix {inherit config lib pkgs inputs theme;}))
+          (lib.optionalAttrs (osConfig == null) (import ./_style.nix {inherit config lib pkgs inputs theme packages;}))
           // {
             autoEnable = true;
             enable = true;
