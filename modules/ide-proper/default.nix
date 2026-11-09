@@ -10,9 +10,13 @@ mkModule {
     GPU select `ide-lite` instead. It requires the `IDE` host ID.
 
     Gram uses its built-in Nix support with `nil` and Alejandra formatting, Marksman and
-    Prettier for Markdown, and the Hackatime extension for coding time. Extensions come from
+    Prettier for Markdown, rust-analyzer for Rust, and the Hackatime extension for coding
+    time. Gram never downloads language servers, so they come from Nix. Extensions come from
     `nix-zed-extensions`, are built by Nix, and load from `GRAM_SYSTEM_EXTENSIONS_DIR`.
     `VISUAL` is `gram --wait`, and the **NixOS Config** launcher opens this repository in Gram.
+
+    The REPL (`repl: run`) uses a Python 3 Jupyter kernel with `ipykernel`. Projects that need
+    other packages register their own kernel from a virtual environment.
   '';
   state = {
     home.directories = [
@@ -23,6 +27,7 @@ mkModule {
   };
   module = _: {
     home = {
+      lib,
       pkgs,
       config,
       inputs,
@@ -32,7 +37,21 @@ mkModule {
       configPath = "${config.xdg.userDirs.projects}/NixOS-config";
       zedExtensions =
         inputs.zed-extensions.legacyPackages.${pkgs.stdenv.hostPlatform.system}.zed-extensions;
+      kernelPython = pkgs.python3.withPackages (ps: [ps.ipykernel]);
     in {
+      # Gram's REPL runs Jupyter kernels and finds them in the Jupyter data directory.
+      xdg.dataFile."jupyter/kernels/python3/kernel.json".text = builtins.toJSON {
+        argv = [
+          (lib.getExe kernelPython)
+          "-m"
+          "ipykernel_launcher"
+          "-f"
+          "{connection_file}"
+        ];
+        display_name = "Python 3";
+        language = "python";
+      };
+
       programs.gram = {
         enable = true;
         extensionPackages = with zedExtensions; [
@@ -47,6 +66,7 @@ mkModule {
           nixd
           alejandra
           marksman
+          rust-analyzer
           wakatime-cli
           zed-wakatime-ls
         ];
