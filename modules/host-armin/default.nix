@@ -23,7 +23,11 @@ mkModule {
 
       environment.systemPackages = with pkgs; [
         framework-tool
-        framework-tool-tui
+        # libgit2-sys refuses to vendor libgit2, and nixpkgs omits the system library.
+        (framework-tool-tui.overrideAttrs (previous: {
+          nativeBuildInputs = (previous.nativeBuildInputs or []) ++ [pkg-config];
+          buildInputs = (previous.buildInputs or []) ++ [libgit2];
+        }))
       ];
 
       services = {
