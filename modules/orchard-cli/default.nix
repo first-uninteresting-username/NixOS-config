@@ -81,15 +81,15 @@ mkModule {
     };
   };
   packages = {pkgs, ...}: let
-    version = "0.37.1";
+    version = "0.40.1";
     sourceInfo = {
       x86_64-linux = {
         arch = "amd64";
-        hash = "sha256-iRrLBkmbMdflVLNoUMaGYY1LijPOnOyF/ouTtayOErM=";
+        hash = "sha256-DcB7QxcF7hphn4xd4Lcb6Z6xD1EZQshc15lHyUy77UU=";
       };
       aarch64-linux = {
         arch = "arm64";
-        hash = "sha256-FAD+c2pPhyKlYT12uFA2vVevMI1sdo/rm7e2d4GxPuI=";
+        hash = "sha256-bxv+TREAXrRvcDso7FO+uuz7+Qzvu2DODJlKDUCj6ow=";
       };
     };
     sources = pkgs.lib.mapAttrs (_: source:

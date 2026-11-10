@@ -17,12 +17,12 @@ in
     (pkgs.wakatime-cli.override {buildGoModule = pkgs.buildGo127Module;}).overrideAttrs
     (finalAttrs: previous: let
       attrs = {
-        version = "2.28.0";
+        version = "2.28.4";
         src = pkgs.fetchFromGitHub {
           owner = "wakatime";
           repo = "wakatime-cli";
           tag = "v${finalAttrs.version}";
-          hash = "sha256-GWZLCL+u4tQQ0k5cQaYOPc/pZbjfrP73/SEooNusrRc=";
+          hash = "sha256-HkLeRuhIcOnX7ZW3YwYYPQH9Rujb60UjczztNurLS3I=";
         };
         vendorHash = "sha256-ElSlITp0zD77nn2afNeAn/Dn17je+hyKD+mCLevBZGE=";
         # Upstream applies `exclude_ai` only to file heartbeats, so per-prompt session heartbeats
