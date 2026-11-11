@@ -6,12 +6,11 @@
     "baseURL": "https://ai.kavyansh.org/v1"
   },
   "models": {
-    "allam-2-7b": {
-      "limit": {
-        "context": 4096,
-        "output": 4096
-      }
-    },
+    "aura-2-en": {},
+    "bge-base-en-v1.5": {},
+    "bge-large-en-v1.5": {},
+    "bge-m3": {},
+    "bge-small-en-v1.5": {},
     "claude-haiku-4-5": {},
     "claude-haiku-5-5": {},
     "claude-opus-4-5": {},
@@ -24,25 +23,33 @@
     "claude-sonnet-4-6": {},
     "claude-sonnet-5": {},
     "claude-sonnet-5-5": {},
+    "clef": {},
+    "clef-flash": {},
+    "deepseek-v4.1-flash": {},
+    "deepseek-v4.1-flash-1017": {},
+    "embeddinggemma-300m": {},
+    "flux-1-schnell": {},
+    "flux-2-dev": {},
+    "flux-2-klein-4b": {},
+    "flux-2-klein-9b": {},
+    "gemma-4-26b": {},
+    "gemma-4-31b-it": {},
+    "glm-5.2": {},
     "glm-5.3": {},
+    "glm-5.3-flash": {},
+    "gpt-6-astra": {},
+    "gpt-6.1-sol": {},
     "grok-4.6": {},
     "grok-4.7": {},
+    "kimi-k2.6": {},
+    "kimi-k2.7-code": {},
     "kimi-k3": {},
+    "kimi-k3.1-pro": {},
     "llama3.1-70b": {},
     "llama3.1-8b": {},
-    "meta-llama/llama-prompt-guard-2-22m": {
-      "limit": {
-        "context": 512,
-        "output": 512
-      }
-    },
-    "meta-llama/llama-prompt-guard-2-86m": {
-      "limit": {
-        "context": 512,
-        "output": 512
-      }
-    },
+    "lucid-origin": {},
     "mistral-7b": {},
+    "nova-3": {},
     "openai-gpt-5": {},
     "openai-gpt-5-mini": {},
     "openai-gpt-5-nano": {},
@@ -52,14 +59,12 @@
     "openai-gpt-5.4-mini": {},
     "openai-gpt-5.4-nano": {},
     "openai-gpt-5.5": {},
-    "openai/gpt-oss-120b": {},
-    "openai/gpt-oss-20b": {},
-    "openai/gpt-oss-safeguard-20b": {},
-    "qwen/qwen3.8-27b": {
-      "limit": {
-        "context": 131072,
-        "output": 16384
-      }
-    }
+    "phoenix-1.0": {},
+    "plamo-embedding-1b": {},
+    "qwen-3.8-27b": {},
+    "qwen3-embedding-0.6b": {},
+    "sdxl-lightning": {},
+    "twelvelabs-pegasus-1-5": {},
+    "whisper-large-v3-turbo": {}
   }
 }
