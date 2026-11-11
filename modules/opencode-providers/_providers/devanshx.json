@@ -1,0 +1,23 @@
+{
+  "name": "Devanshx Free AI",
+  "package": "@ai-sdk/openai-compatible",
+  "apiKeySecret": "DEVANSHX_LLM_API_KEY",
+  "settings": {
+    "baseURL": "https://llm.devanshx.com/v1"
+  },
+  "models": {
+    "anthropic/claude-haiku-5-5": {},
+    "anthropic/claude-opus-5-5": {},
+    "anthropic/claude-sonnet-5-5": {},
+    "deepseek/deepseek-v4.1-flash-1017": {},
+    "google/gemini-3.1-pro": {},
+    "google/gemini-3.5-flash": {},
+    "google/gemini-3.8-flash": {},
+    "google/gemini-4-argon": {},
+    "google/gemma-4-26b-a4b-it": {},
+    "moonshotai/kimi-k3.1-pro": {},
+    "openai/gpt-6-astra": {},
+    "openai/gpt-6.1-sol": {},
+    "zhipuai/glm-5.3": {}
+  }
+}
