@@ -252,8 +252,18 @@ mkModule {
     The `shell` host ID installs Yazi; select `fish` for shell integration.
 
     `fetchall` prints system, Git, project, and weather information. Run `fetchall config` to
-    pick components and appearance (saved in `~/.config/fetchall`), and `fetchall auth github`
-    or `fetchall auth hackatime` to enable the GitHub and Hackatime components; their tokens
-    live in the Secret Service keyring.
+    pick components and appearance (saved in `~/.config/fetchall`).
+  '';
+  imperativeSteps = ''
+    Sign `fetchall` in to GitHub and Hackatime to enable their components. Each command opens
+    a browser; the tokens go to the Secret Service keyring, so run them in a desktop session:
+
+    ```bash
+    fetchall auth github
+    fetchall auth hackatime
+    ```
+
+    For GitHub, paste the device code that `fetchall` copied to the clipboard, then install the
+    Fetchall CLI GitHub app on the page that opens next.
   '';
 }
