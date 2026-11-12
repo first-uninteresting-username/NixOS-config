@@ -55,7 +55,7 @@ mkModule {
         };
       };
     home = {pkgs, ...}: {
-      home.packages = with pkgs; [onefetch meld];
+      home.packages = with pkgs; [meld];
       programs = {
         git = {
           enable = true;

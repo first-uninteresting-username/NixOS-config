@@ -19,8 +19,32 @@ mkModule {
       ".local/share/direnv"
       ".cache/blesh"
       ".local/state/blesh"
+      ".config/fetchall"
     ];
     home.files = [".bash_history"];
+  };
+  packages = {pkgs, ...}: {
+    fetchall = pkgs.rustPlatform.buildRustPackage (finalAttrs: {
+      pname = "fetchall";
+      version = "1.1.2";
+      src = pkgs.fetchFromGitHub {
+        owner = "MadAvidCoder";
+        repo = "fetchall";
+        tag = "v${finalAttrs.version}";
+        hash = "sha256-bLSkIEOtMJTO7kd9SgJjB2tml8HKZufhk3J0pjxJOrM=";
+      };
+      cargoHash = "sha256-i507Swgoowr1GetQZZMT9W59Qqbd+Eqc0vIP2Ugy6qQ=";
+      nativeBuildInputs = [pkgs.pkg-config];
+      buildInputs = [pkgs.aws-lc pkgs.libgit2];
+      env.LIBGIT2_NO_VENDOR = 1;
+      passthru.updateScript = pkgs.nix-update-script {extraArgs = ["--flake"];};
+      meta = {
+        description = "Neofetch-style system, Git, GitHub, Hackatime, and weather summary";
+        homepage = "https://github.com/MadAvidCoder/fetchall";
+        license = pkgs.lib.licenses.gpl3Only;
+        mainProgram = "fetchall";
+      };
+    });
   };
   module = _: {
     nixos = {
@@ -40,6 +64,7 @@ mkModule {
       pkgs,
       lib,
       inputs,
+      packages,
       ...
     }: {
       imports = [
@@ -135,87 +160,6 @@ mkModule {
             settings = {vim_keys = true;};
           };
 
-          fastfetch = {
-            enable = true;
-            settings = {
-              display = {
-                separator = "  ";
-                color = "blue";
-              };
-              modules = [
-                {
-                  type = "title";
-                  key = "";
-                  color = {
-                    user = "blue";
-                    at = "white";
-                    host = "blue";
-                  };
-                }
-                {
-                  type = "os";
-                  key = "󱄅";
-                }
-                {
-                  type = "kernel";
-                  key = "";
-                }
-                {
-                  type = "uptime";
-                  key = "󰅐";
-                }
-                "break"
-                {
-                  type = "board";
-                  key = "󱩊";
-                }
-                {
-                  type = "cpu";
-                  key = "";
-                }
-                {
-                  type = "gpu";
-                  key = "󰢮";
-                }
-                {
-                  type = "memory";
-                  key = "";
-                  format = "{1} / {2}";
-                }
-                {
-                  type = "disk";
-                  key = "󰋊";
-                  format = "{1} / {2} ({9})";
-                }
-                {
-                  type = "display";
-                  key = "󰍹";
-                }
-                "break"
-                {
-                  type = "de";
-                  key = "󰧨";
-                }
-                {
-                  type = "wm";
-                  key = "";
-                }
-                {
-                  type = "shell";
-                  key = "";
-                }
-                {
-                  type = "terminal";
-                  key = "";
-                }
-                {
-                  type = "packages";
-                  key = "󰏖";
-                }
-              ];
-            };
-          };
-
           yazi = {
             enable = true;
             shellWrapperName = "yy";
@@ -250,6 +194,7 @@ mkModule {
             trash-cli
             duf
             xh
+            packages.fetchall
           ];
           shellAliases = {
             cat = "bat --style=plain --pager=never";
@@ -305,5 +250,20 @@ mkModule {
 
     Run `yazi` directly when you want to keep the parent shell's working directory.
     The `shell` host ID installs Yazi; select `fish` for shell integration.
+
+    `fetchall` prints system, Git, project, and weather information. Run `fetchall config` to
+    pick components and appearance (saved in `~/.config/fetchall`).
+  '';
+  imperativeSteps = ''
+    Sign `fetchall` in to GitHub and Hackatime to enable their components. Each command opens
+    a browser; the tokens go to the Secret Service keyring, so run them in a desktop session:
+
+    ```bash
+    fetchall auth github
+    fetchall auth hackatime
+    ```
+
+    For GitHub, paste the device code that `fetchall` copied to the clipboard, then install the
+    Fetchall CLI GitHub app on the page that opens next.
   '';
 }
