@@ -24,12 +24,20 @@ mkModule {
 
     The REPL (`repl: run`) uses a Python 3 Jupyter kernel with `ipykernel`. Projects that need
     other packages register their own kernel from a virtual environment.
+
+    It also installs the Godot editor. The GDScript extension talks to the language server of
+    a running Godot editor on port 6005 through `nc`, so open the project in Godot before
+    editing its scripts in Gram. To open scripts from Godot in Gram, set **Editor Settings >
+    Text Editor > External** to `gram` with the arguments `{project} {file}:{line}:{col}`.
   '';
   state = {
     home.directories = [
       ".config/gram"
       ".local/share/gram"
       ".cache/gram"
+      ".config/godot"
+      ".local/share/godot"
+      ".cache/godot"
     ];
   };
   packages = {pkgs, ...}: {
@@ -107,6 +115,7 @@ mkModule {
           hackatime
           git-firefly
           log
+          gdscript
         ];
         extraPackages = with pkgs; [
           nil
@@ -117,6 +126,8 @@ mkModule {
           ruff
           wakatime-cli
           packages.hackatime-ls
+          # The GDScript extension bridges to Godot's language server with `nc`.
+          netcat
         ];
 
         settings = {
@@ -198,6 +209,8 @@ mkModule {
       home.activation.gramExtensionIndex = lib.hm.dag.entryAfter ["writeBoundary"] ''
         run rm -f "${config.xdg.dataHome}/gram/extensions/index.json"
       '';
+
+      home.packages = [pkgs.godot];
 
       home.sessionVariables.VISUAL = "gram --wait";
 
