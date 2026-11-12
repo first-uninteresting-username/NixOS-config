@@ -21,6 +21,7 @@ mkModule {
       ".config/SLSsteam"
       ".config/CloudRedirect"
       ".local/share/Lumen"
+      ".local/share/godot/app_userdata/GRADIENT"
     ];
   };
   module = _: {
@@ -40,6 +41,7 @@ mkModule {
     home = {
       lib,
       inputs,
+      packages,
       pkgs,
       ...
     }: {
@@ -51,6 +53,7 @@ mkModule {
         heroic
         protonplus
         luanti
+        packages.gradient
       ];
 
       home.activation.steamCefAndStplugin = lib.hm.dag.entryAfter ["writeBoundary"] ''
@@ -110,7 +113,8 @@ mkModule {
 
     artefacts = lib.filter (path: lib.hasInfix "-${name}-" path) ldAudit;
   in
-    lib.optionalAttrs (system == "x86_64-linux") {
+    {gradient = import ./_gradient.nix {inherit pkgs;};}
+    // lib.optionalAttrs (system == "x86_64-linux") {
       slsteam-moon =
         if artefacts == []
         then throw "no ${name} path in the Steam wrapper's LD_AUDIT, so its derivation cannot be reached"
