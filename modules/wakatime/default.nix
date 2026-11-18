@@ -14,10 +14,9 @@ mkModule {
     AI coding sync is off (`sync_ai_disabled = true`), so only human activity is logged. The
     `exclude_ai` rule stays configured so that re-enabling it reports AI heartbeats only inside
     `~/Agents`. The overlay patches `exclude_ai` to also match the working directory of AI
-    session heartbeats (such as `Claude <session>`), which have no file path. `exclude_ai`
-    needs wakatime-cli 2.27.1 or later, so the module overlays a newer release than nixpkgs and
-    exports it as the `wakatime` package. `nix run .#update-packages` keeps that release current.
-    Evaluation fails once nixpkgs ships 2.27.1 or later; then remove the overlay and export.
+    session heartbeats (such as `Claude <session>`), which have no file path, and exports the
+    patched build as the `wakatime` package. `exclude_ai` needs wakatime-cli 2.27.1 or later,
+    so evaluation fails if nixpkgs ships an older release.
   '';
   # Exported so CI builds the overlaid release (and runs its tests) whenever this module changes.
   packages = {pkgs, ...}: {default = import ./_package.nix pkgs;};

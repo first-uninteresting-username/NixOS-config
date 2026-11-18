@@ -131,7 +131,6 @@ release list and skips releases marked as pre-releases. `orchard-cli` and
 A package built with `overrideAttrs` keeps its Nixpkgs `meta.position`, so the runner skips
 it. Pass `pos = builtins.unsafeGetAttrPos "version" attrs` in the override so the position
 names the module file, and give nix-update the same file with `--override-filename`.
-`modules/wakatime/_package.nix` follows this pattern.
 
 ## Selection
 

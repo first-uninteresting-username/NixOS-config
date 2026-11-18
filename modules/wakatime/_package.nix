@@ -1,41 +1,16 @@
 # SPDX-FileCopyrightText: 2026 first-uninteresting-username
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
-# nixpkgs ships 2.26.15, which ignores `exclude_ai`; 2.28.0 needs Go 1.27.3.
+# Nixpkgs' wakatime-cli with the AI session patch.
 # Takes the package set to build from: the overlay passes `prev`, the export passes `pkgs`.
 pkgs: let
-  # `exclude_ai` first shipped in this release.
+  # `exclude_ai` first shipped in this release; older releases silently ignore it.
   minimum = "2.27.1";
 in
-  # Fail instead of downgrading once Nixpkgs catches up: then delete this file and the overlay.
-  if pkgs.lib.versionAtLeast pkgs.wakatime-cli.version minimum
-  then
-    throw ''
-      wakatime: Nixpkgs now ships wakatime-cli ${pkgs.wakatime-cli.version} (>= ${minimum}).
-      Remove modules/wakatime/_package.nix and its overlay and package export.''
-  else
-    (pkgs.wakatime-cli.override {buildGoModule = pkgs.buildGo127Module;}).overrideAttrs
-    (finalAttrs: previous: let
-      attrs = {
-        version = "2.28.4";
-        src = pkgs.fetchFromGitHub {
-          owner = "wakatime";
-          repo = "wakatime-cli";
-          tag = "v${finalAttrs.version}";
-          hash = "sha256-HkLeRuhIcOnX7ZW3YwYYPQH9Rujb60UjczztNurLS3I=";
-        };
-        vendorHash = "sha256-ElSlITp0zD77nn2afNeAn/Dn17je+hyKD+mCLevBZGE=";
-        # Upstream applies `exclude_ai` only to file heartbeats, so per-prompt session heartbeats
-        # ("Claude <id>") still log AI time for any project. Match their working directory too.
-        patches = (previous.patches or []) ++ [./_exclude-ai-session-project-path.diff];
-        passthru =
-          previous.passthru
-          // {
-            updateScript = pkgs.nix-update-script {
-              extraArgs = ["--flake" "--override-filename" "modules/wakatime/_package.nix"];
-            };
-          };
-      };
-      # The update runner and nix-update locate the pins through this repository position.
-    in
-      attrs // {pos = builtins.unsafeGetAttrPos "version" attrs;})
+  assert pkgs.lib.assertMsg (pkgs.lib.versionAtLeast pkgs.wakatime-cli.version minimum)
+  "wakatime: Nixpkgs ships wakatime-cli ${pkgs.wakatime-cli.version}, but exclude_ai needs ${minimum}.";
+    pkgs.wakatime-cli.overrideAttrs (previous: {
+      # Upstream applies `exclude_ai` only to file heartbeats, so per-prompt session heartbeats
+      # ("Claude <id>") still log AI time for any project. Match their working directory too.
+      patches = (previous.patches or []) ++ [./_exclude-ai-session-project-path.diff];
+    })
