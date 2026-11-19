@@ -1,0 +1,20 @@
+{
+  "name": "Horizon",
+  "package": "@ai-sdk/openai-compatible",
+  "apiKeySecret": "HORIZON_API_KEY",
+  "settings": {
+    "baseURL": "https://horizon-api.dino.icu/v1"
+  },
+  "models": {
+    "deepseek/deepseek-v4-flash": {},
+    "deepseek/deepseek-v4.1-flash": {},
+    "minimax/minimax-m3.1-flash": {},
+    "mistral/mistral-large-4": {},
+    "moonshotai/kimi-k2.7-code": {},
+    "openai/gpt-6-luna": {},
+    "qwen/qwen-3.8-max": {},
+    "xiaomi/mimo-v2.6-flash": {},
+    "zai/glm-5.3": {},
+    "zai/glm-5.3-flash": {}
+  }
+}
