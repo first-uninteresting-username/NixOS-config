@@ -275,6 +275,9 @@ mkModule {
             history-size = 200;
             toggle-menu = ["<Super>b"];
           };
+          "org/gnome/shell/extensions/hackastats" = {
+            position = 0;
+          };
           "org/gnome/shell/extensions/vitals" = {
             position-in-panel = 0;
           };
