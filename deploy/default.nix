@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 # deploy-rs nodes and a `rebuild-<node>` app for each. Deploy with `nix run config#rebuild-<node>`.
+# The apps skip `nix flake check`, because CI already runs the checks on main.
 {
   lib,
   inputs,
@@ -61,12 +62,13 @@ in {
         program = lib.getExe (pkgs.writeShellApplication {
           name = "rebuild-${name}";
           runtimeInputs = [pkgs.deploy-rs];
-          # Extra arguments go to deploy-rs, for example `--dry-activate`.
+          # Skip deploy-rs's default `nix flake check`, which would build every check locally;
+          # CI runs them. Extra arguments go to deploy-rs, for example `--dry-activate`.
           text = ''
-            deploy ${lib.escapeShellArg "${self}#${name}"} "$@"
+            deploy --skip-checks ${lib.escapeShellArg "${self}#${name}"} "$@"
           '';
         });
-        meta.description = "Build ${name} on the target and activate it with deploy-rs";
+        meta.description = "Deploy ${name} with deploy-rs, skipping the flake checks that CI runs";
       })
     self.deploy.nodes);
 }
