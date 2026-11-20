@@ -171,7 +171,7 @@ provides Alejandra, nixd, yamllint, and `flake-check` (`nix flake check --no-bui
 | Host configuration | Also `nixos-rebuild build --flake .#<host>` when practical |
 | Check behavior | Build `.#checks.<system>.<name>` |
 | Shared `home` behavior | Evaluate the standalone Home Manager fixtures |
-| `lib/modules/` | Run `lib/modules/tests/run.py` |
+| `lib/modules/` | Build the `module-library-*` checks and run `lib/modules/tests/run.py` |
 | Common arguments | Regenerate the module reference |
 | Markdown only | Review content and paths; no Nix build needed |
 

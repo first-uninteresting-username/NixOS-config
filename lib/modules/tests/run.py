@@ -2,7 +2,11 @@
 # SPDX-FileCopyrightText: 2026 first-uninteresting-username
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Run isolated fixtures against the repository's pinned inputs, without migration."""
+"""Check that invalid module-library fixtures fail with precise diagnostics.
+
+Nix cannot capture a throw message, so this runs outside the sandbox. The passing fixtures run
+as the module-library-evaluation flake check.
+"""
 
 import argparse
 import json
@@ -12,7 +16,6 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parents[3]
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument("--diagnostics-only", action="store_true")
 parser.add_argument("--system", choices=["x86_64-linux", "aarch64-linux"])
 args = parser.parse_args()
 systems = [args.system] if args.system else ["x86_64-linux", "aarch64-linux"]
@@ -39,14 +42,6 @@ def require(condition, message, result):
     if not condition:
         raise SystemExit(f"{message}\n{result.stdout}\n{result.stderr}")
 
-
-if not args.diagnostics_only:
-    for architecture in systems:
-        result = evaluate("results", architecture)
-        require(result.returncode == 0, f"Fixtures failed on {architecture}", result)
-        tests = json.loads(result.stdout)
-        require(all(tests.values()), f"A fixture returned false on {architecture}", result)
-        print(f"{architecture}: {len(tests)} evaluation fixtures passed", flush=True)
 
 for architecture in systems:
     # A nonzero exit alone could hide a syntax or fetch failure; require contextual messages.
