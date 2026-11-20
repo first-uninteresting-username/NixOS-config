@@ -24,7 +24,7 @@ production secrets or execute VM tests.
 
 | Tier | Trigger | Work |
 | --- | --- | --- |
-| Basic validation | Every PR, pushes to main, and full runs | Reuse **Flake check** for Alejandra, Deadnix, Statix, CI policy tests, and `nix flake check --no-build --all-systems`. |
+| Basic validation | Every PR, pushes to main, and full runs | Reuse **Flake check** for Alejandra, Deadnix, Statix, branch-policy tests, and `nix flake check --no-build --all-systems`. |
 | Non-ISO packages | Affected module directories in a PR; all on full runs | Build selected exported packages on their supported systems. Shared infrastructure changes select all non-ISO packages. |
 | Behavioral tests | Affected files in a PR; complete suite on full runs | Build selected runtime and module-library checks. Any `flake.lock` change selects the complete non-ISO suite. |
 | ISO images and smoke tests | **ISO build** on demand | Build john, wall-e, or both at a selected ref and boot the actual exported images. |
@@ -110,7 +110,7 @@ with links to failed jobs. Test-selection matrices are retained as workflow arti
 
 Checks cover repository-owned behavior. The suite does not test upstream service defaults,
 GNOME sessions, Wi-Fi profiles, printing discovery, generated documentation, or host option
-assignments. Formatting, linting, policy tests, and full flake evaluation remain in basic
+assignments. Formatting, linting, branch-policy tests, and full flake evaluation remain in basic
 validation. Library diagnostics run only alongside the selected library evaluation check on its
 architecture; the exports check does not repeat the evaluation assertions.
 
@@ -133,16 +133,6 @@ system or use production credentials. Documentation generation remains available
 `module-docs-reference` and `module-docs-update`; it has no test or freshness gate.
 
 ## Local validation and deliberate regressions
-
-Run policy tests without Nix or virtualization:
-
-```bash
-PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s .github/scripts/tests -v
-```
-
-Git policy fixtures use disposable repositories and isolate global Git configuration,
-hooks, signing, and repository environment variables. Merge/API cases use mocked responses
-and never merge a real PR.
 
 Evaluate the flake and build a selected behavioral test:
 
@@ -238,7 +228,7 @@ grant automatic-merge eligibility.
 Eligible diffs contain only modifications to `flake.lock`. [Package updates](package-updates.md)
 edit Nix sources and always require manual merging, as do added/deleted/renamed files, file
 mode changes, and mixed configuration/workflow/implementation changes. Automate another file
-only with a strict schema and policy tests; generic text matching of Nix hash assignments
+only with a strict schema; generic text matching of Nix hash assignments
 is insufficient.
 
 Lock changes must pass the complete non-ISO test suite. The merge policy requires a

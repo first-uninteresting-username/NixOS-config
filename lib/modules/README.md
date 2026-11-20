@@ -275,31 +275,19 @@ Declarations retain `source` and `directory` for later output-ownership metadata
 
 ## Validation
 
-Run the focused evaluation and diagnostic fixtures against the repository's pinned inputs:
+The root flake exports the fixtures as checks. `module-library-evaluation` runs the pure
+assertions and evaluates production-module standalone Home Manager activation derivations
+without building their application dependencies. `module-library-exports` builds the synthetic
+package/check artifacts, including a package-consuming check with its own explicit host fixture.
 
 ```bash
-python3 lib/modules/tests/run.py
+nix build .#checks.x86_64-linux.module-library-evaluation .#checks.x86_64-linux.module-library-exports
 ```
 
-Build the isolated package/check fixtures on x86_64-linux:
+Nix cannot capture a failure message, so a separate runner verifies that invalid fixtures fail
+with precise diagnostics and that unused arguments only warn. It covers both supported systems
+by default; the selected CI evaluation job passes its own architecture:
 
 ```bash
-nix build --impure --no-link --expr \
-  '(import ./lib/modules/tests { inputs = (builtins.getFlake (toString ./.)).inputs; }).build'
+python3 lib/modules/tests/run.py [--system <system>]
 ```
-
-The runner evaluates both supported systems and verifies failure messages and unused-argument
-warnings. The build executes a package-consuming check with its own explicit host fixture.
-The root flake exports these evaluation and package/check fixtures under `module-library-*`
-and evaluates production-module standalone Home Manager activation derivations on both supported
-systems without building their application dependencies.
-The exports check builds only the synthetic package/check artifacts. The evaluation check owns
-the pure assertions and production-home evaluation. Its selected CI job runs diagnostic checks
-for that job's architecture:
-
-```bash
-python3 lib/modules/tests/run.py --diagnostics-only --system <system>
-```
-
-Basic CI does not run the separate fixture runner. Full flake evaluation still validates all
-exported check derivations without executing their builds.

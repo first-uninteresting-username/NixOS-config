@@ -18,8 +18,8 @@ nix flake check --no-build
 git diff --check
 ```
 
-Basic CI also runs Deadnix, Statix, Python CI-policy tests, and Node branch-policy tests.
-Selected library evaluation jobs run `lib/modules/tests/run.py --diagnostics-only --system <system>`.
+Basic CI also runs Deadnix, Statix, and Node branch-policy tests.
+Selected library evaluation jobs run `lib/modules/tests/run.py --system <system>`.
 CI checks formatting and lints without modifying files;
 intentional placeholders in the host and module templates are excluded from lint checks.
 

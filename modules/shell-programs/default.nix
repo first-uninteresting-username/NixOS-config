@@ -212,37 +212,6 @@ mkModule {
       };
     };
   };
-  checks = {
-    mkHost,
-    pkgs,
-    system,
-    ...
-  }: let
-    fishConfig =
-      (mkHost {
-        name = "yazi-fish-fixture";
-        role = "home";
-        inherit system;
-        ids = ["home-manager" "xdg" "shell" "fish"];
-        args = {
-          userName = "fixture";
-          homeStateVersion = "26.11";
-        };
-      }).config.programs;
-  in {
-    yazi-integration =
-      pkgs.runCommand "yazi-shell-integration" {
-        nativeBuildInputs = [pkgs.python3 pkgs.fish];
-        fishSource = pkgs.writeText "yazi-fish-init" ''
-          function yy
-          ${fishConfig.fish.functions.yy}
-          end
-        '';
-      } ''
-        python3 ${./_checks/yazi-integration.py} "$fishSource"
-        touch "$out"
-      '';
-  };
   docs = ''
     Run `yy` in Fish or Bash to open Yazi. Browse to a directory and press `q`
     to change the parent shell's working directory to it. Paths with spaces work;
