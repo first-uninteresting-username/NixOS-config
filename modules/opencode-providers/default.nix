@@ -14,7 +14,12 @@ in
           name = builtins.replaceStrings [".json"] [""] file;
           value = builtins.fromJSON (builtins.readFile (providerDir + "/${file}"));
         }) (builtins.filter (f: builtins.match ".*\\.json" f != null)
-          (builtins.attrNames (builtins.readDir providerDir))));
+          # Git does not track empty directories, so the directory may be absent.
+          (builtins.attrNames (
+            if builtins.pathExists providerDir
+            then builtins.readDir providerDir
+            else {}
+          ))));
       secretPath = provider: "${opencodeProviderSecretDir}/${provider.apiKeySecret}";
       withSecret = provider: provider ? apiKeySecret;
     in {
@@ -86,7 +91,8 @@ in
       decrypts it to `opencodeProviderSecretDir/<secret>`, and OpenCode reads it through a
       `{file:}` reference in `settings.apiKey`. The key stays out of the Nix store.
 
-      To add a provider, create its JSON file, add its key to sops, and rebuild.
+      No providers are declared by default. To add one, create `_providers/<id>.json`, add its
+      key to sops, and rebuild.
 
       A model entry can set `limit.context` and `limit.output`. Set `limit.output` when the
       provider caps output tokens below OpenCode's default; otherwise every request fails.
