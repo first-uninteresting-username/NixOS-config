@@ -3,66 +3,43 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 # Starts interactive sessions in ~/Agents unless the current directory or one of its parents
-# contains AGENTS.md. Invocations with subcommands, prompts, paths, or print/help/version flags
-# run unchanged. Arguments after a flag in `valueFlags` (one argument) or `variadicFlags` (every
-# following non-flag argument) are flag values, not prompts. The wrapper-only flags are removed
-# from the arguments: --here keeps the current directory and --agents always switches to
-# ~/Agents.
+# contains AGENTS.md. Other arguments are not inspected, except that `stayFlags` (such as
+# Claude Code's --print) keep the current directory. The wrapper-only --here flag keeps the
+# current directory and is removed from the arguments.
 {
   lib,
-  valueFlags ? [],
-  variadicFlags ? [],
+  stayFlags ? [],
 }: let
-  flagCase = flags: skip:
-    lib.optionalString (flags != []) ''
-      ${lib.concatMapStringsSep "|" lib.escapeShellArg flags}) agentsFallbackSkip=${skip} ;;
-    '';
+  stayCase = lib.optionalString (stayFlags != []) ''
+    ${lib.concatMapStringsSep "|" lib.escapeShellArg stayFlags})
+      agentsFallbackApplies=0
+      set -- "$@" "$agentsFallbackArg"
+      ;;
+  '';
 in ''
   agentsFallbackApplies=1
-  agentsFallbackForce=0
   agentsFallbackCount=$#
   while [ "$agentsFallbackCount" -gt 0 ]; do
     agentsFallbackArg=$1
     shift
-    if [ "$agentsFallbackArg" = --here ]; then
-      agentsFallbackApplies=0
-      agentsFallbackForce=0
-    elif [ "$agentsFallbackArg" = --agents ]; then
-      agentsFallbackApplies=1
-      agentsFallbackForce=1
-    else
-      set -- "$@" "$agentsFallbackArg"
-    fi
+    case $agentsFallbackArg in
+      --here) agentsFallbackApplies=0 ;;
+      ${stayCase}      *) set -- "$@" "$agentsFallbackArg" ;;
+    esac
     agentsFallbackCount=$((agentsFallbackCount - 1))
   done
-  if [ "$agentsFallbackForce" = 1 ]; then
+  if [ ! -t 0 ] || [ ! -t 1 ] || [ -e /AGENTS.md ]; then
+    agentsFallbackApplies=0
+  fi
+  agentsFallbackDir=$PWD
+  while [ "$agentsFallbackApplies" = 1 ] && [ -n "$agentsFallbackDir" ]; do
+    if [ -e "$agentsFallbackDir/AGENTS.md" ]; then
+      agentsFallbackApplies=0
+    fi
+    agentsFallbackDir=''${agentsFallbackDir%/*}
+  done
+  if [ "$agentsFallbackApplies" = 1 ]; then
     mkdir -p "$HOME/Agents"
     cd "$HOME/Agents"
-  elif [ -t 0 ] && [ -t 1 ]; then
-    agentsFallbackSkip=0
-    for agentsFallbackArg in "$@"; do
-      case $agentsFallbackArg in
-        -p|--print|-h|--help|-v|--version) agentsFallbackApplies=0 ;;
-        ${flagCase valueFlags "1"}${flagCase variadicFlags "2"}-*) agentsFallbackSkip=0 ;;
-        *)
-          if [ "$agentsFallbackSkip" = 0 ]; then
-            agentsFallbackApplies=0
-          elif [ "$agentsFallbackSkip" = 1 ]; then
-            agentsFallbackSkip=0
-          fi
-          ;;
-      esac
-    done
-    agentsFallbackDir=$PWD
-    while [ "$agentsFallbackApplies" = 1 ] && [ -n "$agentsFallbackDir" ]; do
-      if [ -e "$agentsFallbackDir/AGENTS.md" ]; then
-        agentsFallbackApplies=0
-      fi
-      agentsFallbackDir=''${agentsFallbackDir%/*}
-    done
-    if [ "$agentsFallbackApplies" = 1 ] && [ ! -e /AGENTS.md ]; then
-      mkdir -p "$HOME/Agents"
-      cd "$HOME/Agents"
-    fi
   fi
 ''

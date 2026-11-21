@@ -7,12 +7,11 @@ mkModule {
   ids = ["agents"];
   docs = ''
     Installs Claude Desktop and Claude Code and preserves their local configuration.
-    Interactive Claude Code and OpenCode sessions started outside a directory tree containing
-    an `AGENTS.md` open in `~/Agents` instead. Pass `--here` to either command to stay in the
-    current directory, or `--agents` to open in `~/Agents` even when an `AGENTS.md` is present or
-    the invocation would otherwise run unchanged. Flag values, such as `opus` in `--model opus`,
-    do not count as prompts. The wrapper removes these flags before starting the agent; when
-    both are given, the last one wins.
+    Claude Code and OpenCode started from a terminal outside a directory tree containing an
+    `AGENTS.md` open in `~/Agents` instead, whatever other arguments are given, including
+    prompts and subcommands. Pass `--here` to either command to stay in the current directory,
+    for example with a relative OpenCode directory argument. Claude Code's `-p`/`--print` also
+    stays. The wrapper removes `--here` before starting the agent.
     Both agents load the MCP servers that other modules declare in `programs.mcp.servers`.
     In `~/Agents` and its subdirectories, both agents run tools without permission prompts:
     Claude Code starts in bypass permissions mode unless another permission mode is passed,
@@ -29,7 +28,7 @@ mkModule {
       inherit pkgs;
       fallback = import ./_fallback.nix {
         inherit lib;
-        inherit (import ./_flags.nix) valueFlags variadicFlags;
+        stayFlags = ["-p" "--print"];
       };
     };
   };
@@ -73,17 +72,12 @@ mkModule {
     }: let
       llmAgents = inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system};
 
-      # Claude Code flags that take a value. Optional values (such as --resume [id]) count too,
-      # because the CLI consumes a following non-flag argument as their value.
       claudeFallback = import ./_fallback.nix {
         inherit lib;
-        inherit (import ./_flags.nix) valueFlags variadicFlags;
+        stayFlags = ["-p" "--print"];
       };
 
-      opencodeFallback = import ./_fallback.nix {
-        inherit lib;
-        valueFlags = ["--server" "--session" "-s" "--prompt" "--completions" "--log-level"];
-      };
+      opencodeFallback = import ./_fallback.nix {inherit lib;};
 
       inAgentsWorkspace = ''
         agentsBypassApplies=0
