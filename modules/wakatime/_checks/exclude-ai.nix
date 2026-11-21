@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Claude sessions inside and outside ~/Agents report to a recording fake Hackatime API.
-# AI heartbeats may reach it only for ~/Agents; human heartbeats are always sent.
+# AI heartbeats may reach it only for ~/Agents/Projects; human heartbeats are always sent.
 {
   pkgs,
   package,
@@ -59,10 +59,10 @@
 
         # (working directory, session, project name, whether Claude edited a file)
         sessions = [
-            ("/home/u/Agents/edit", "11111111-0000-4000-8000-000000000001", "agents-edit", True),
-            ("/home/u/Agents/chat", "11111111-0000-4000-8000-000000000002", "agents-chat", False),
-            ("/home/u/Projects/edit", "22222222-0000-4000-8000-000000000001", "projects-edit", True),
-            ("/home/u/Projects/chat", "22222222-0000-4000-8000-000000000002", "projects-chat", False),
+            ("/home/u/Agents/Projects/edit", "11111111-0000-4000-8000-000000000001", "kept-edit", True),
+            ("/home/u/Agents/Projects/chat", "11111111-0000-4000-8000-000000000002", "kept-chat", False),
+            ("/home/u/Agents/edit", "22222222-0000-4000-8000-000000000001", "excluded-edit", True),
+            ("/home/u/Agents/chat", "22222222-0000-4000-8000-000000000002", "excluded-chat", False),
         ]
 
         def transcript(cwd, session, edit):
@@ -98,7 +98,7 @@
         api_url = http://127.0.0.1:8000/api/v1
         api_key = 00000000-0000-4000-8000-000000000000
         sync_ai_disabled = false
-        exclude_ai = ^(?!/home/u/Agents(/|$))
+        exclude_ai = ^(?!/home/u/Agents/Projects(/|$))
         EOF""")
             machine.succeed("chown -R u:users /home/u")
 
@@ -108,7 +108,7 @@
         # Claude Code runs AI sync directly; editor plugins trigger it with a human heartbeat.
         for name, arguments in [
             ("ai sync", "--sync-ai-activity"),
-            ("editor heartbeat", "--entity /home/u/Projects/edit/main.go --write --plugin 'zed/1 zed-wakatime/1'"),
+            ("editor heartbeat", "--entity /home/u/Agents/edit/main.go --write --plugin 'zed/1 zed-wakatime/1'"),
         ]:
             with subtest(name):
                 reset()
@@ -120,10 +120,10 @@
                 for heartbeat in heartbeats:
                     print(heartbeat.get("category"), heartbeat["type"], heartbeat["entity"], heartbeat.get("project"))
                 ai = [h for h in heartbeats if h.get("category") == "ai coding"]
-                leaked = sorted({h["entity"] for h in ai if not h.get("project", "").startswith("agents-")})
+                leaked = sorted({h["entity"] for h in ai if not h.get("project", "").startswith("kept-")})
                 assert not leaked, f"CHECKS_V2_REGRESSION:wakatime-exclude-ai-session: {leaked}"
                 kept = {h.get("project") for h in ai}
-                assert kept == {"agents-edit", "agents-chat"}, f"~/Agents AI activity missing: {kept}"
+                assert kept == {"kept-edit", "kept-chat"}, f"~/Agents/Projects AI activity missing: {kept}"
                 if name == "editor heartbeat":
                     assert any(h.get("category") != "ai coding" for h in heartbeats), "human heartbeat missing"
       '';

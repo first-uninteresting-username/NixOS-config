@@ -11,12 +11,12 @@ mkModule {
     enabled, sops writes `~/.wakatime.cfg` with the Hackatime API URL and key.
     Run `canistopcoding` to print today's total.
 
-    AI coding sync is off (`sync_ai_disabled = true`), so only human activity is logged. The
-    `exclude_ai` rule stays configured so that re-enabling it reports AI heartbeats only inside
-    `~/Agents`. The overlay patches `exclude_ai` to also match the working directory of AI
-    session heartbeats (such as `Claude <session>`), which have no file path, and exports the
-    patched build as the `wakatime` package. `exclude_ai` needs wakatime-cli 2.27.1 or later,
-    so evaluation fails if nixpkgs ships an older release.
+    Human activity is logged everywhere, but AI coding heartbeats (parsed from Claude, Codex,
+    Cursor, and similar transcripts) are reported only inside `~/Agents/Projects`; the
+    `exclude_ai` rule drops them everywhere else. The overlay patches `exclude_ai` to also
+    match the working directory of AI session heartbeats (such as `Claude <session>`), which
+    have no file path, and exports the patched build as the `wakatime` package. `exclude_ai`
+    needs wakatime-cli 2.27.1 or later, so evaluation fails if nixpkgs ships an older release.
   '';
   # Exported so CI builds the overlaid release (and runs its tests) whenever this module changes.
   packages = {pkgs, ...}: {default = import ./_package.nix pkgs;};
@@ -71,8 +71,7 @@ mkModule {
               api_url = https://hackatime.hackclub.com/api/hackatime/v1
               api_key = ${config.sops.placeholder.wakatime_api_key}
               heartbeat_rate_limit_seconds = 1
-              sync_ai_disabled = true
-              exclude_ai = ^(?!${lib.escapeRegex "${home}/Agents"}(/|$))
+              exclude_ai = ^(?!${lib.escapeRegex "${home}/Agents/Projects"}(/|$))
             '';
             path = "${home}/.wakatime.cfg";
             owner = userName;
