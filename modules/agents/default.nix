@@ -10,14 +10,29 @@ mkModule {
     Interactive Claude Code and OpenCode sessions started outside a directory tree containing
     an `AGENTS.md` open in `~/Agents` instead. Pass `--here` to either command to stay in the
     current directory, or `--agents` to open in `~/Agents` even when an `AGENTS.md` is present or
-    the invocation would otherwise run unchanged. The wrapper removes these flags before starting
-    the agent; when both are given, the last one wins.
+    the invocation would otherwise run unchanged. Flag values, such as `opus` in `--model opus`,
+    do not count as prompts. The wrapper removes these flags before starting the agent; when
+    both are given, the last one wins.
     Both agents load the MCP servers that other modules declare in `programs.mcp.servers`.
     In `~/Agents` and its subdirectories, both agents run tools without permission prompts:
     Claude Code starts in bypass permissions mode unless another permission mode is passed,
     and OpenCode interactive and `run` sessions auto-approve permissions that are not
     explicitly denied. Other directories keep the default permission behavior.
   '';
+  # Runs the Claude Code fallback in a pseudo-terminal and checks where each invocation starts.
+  checks = {
+    pkgs,
+    lib,
+    ...
+  }: {
+    claude-fallback = import ./_checks/fallback.nix {
+      inherit pkgs;
+      fallback = import ./_fallback.nix {
+        inherit lib;
+        inherit (import ./_flags.nix) valueFlags variadicFlags;
+      };
+    };
+  };
   imperativeSteps = ''
     Open Claude Desktop and follow the sign-in prompts.
 
@@ -58,52 +73,17 @@ mkModule {
     }: let
       llmAgents = inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system};
 
-      # Starts interactive sessions in ~/Agents unless the current directory or one of its
-      # parents contains AGENTS.md. Invocations with subcommands, prompts, paths, or
-      # print/help/version flags run unchanged. The wrapper-only flags are removed from the
-      # arguments: --here keeps the current directory and --agents always switches to ~/Agents.
-      agentsFallback = ''
-        agentsFallbackApplies=1
-        agentsFallbackForce=0
-        agentsFallbackCount=$#
-        while [ "$agentsFallbackCount" -gt 0 ]; do
-          agentsFallbackArg=$1
-          shift
-          if [ "$agentsFallbackArg" = --here ]; then
-            agentsFallbackApplies=0
-            agentsFallbackForce=0
-          elif [ "$agentsFallbackArg" = --agents ]; then
-            agentsFallbackApplies=1
-            agentsFallbackForce=1
-          else
-            set -- "$@" "$agentsFallbackArg"
-          fi
-          agentsFallbackCount=$((agentsFallbackCount - 1))
-        done
-        if [ "$agentsFallbackForce" = 1 ]; then
-          mkdir -p "$HOME/Agents"
-          cd "$HOME/Agents"
-        elif [ -t 0 ] && [ -t 1 ]; then
-          for agentsFallbackArg in "$@"; do
-            case $agentsFallbackArg in
-              -p|--print|-h|--help|-v|--version) agentsFallbackApplies=0 ;;
-              -*) ;;
-              *) agentsFallbackApplies=0 ;;
-            esac
-          done
-          agentsFallbackDir=$PWD
-          while [ "$agentsFallbackApplies" = 1 ] && [ -n "$agentsFallbackDir" ]; do
-            if [ -e "$agentsFallbackDir/AGENTS.md" ]; then
-              agentsFallbackApplies=0
-            fi
-            agentsFallbackDir=''${agentsFallbackDir%/*}
-          done
-          if [ "$agentsFallbackApplies" = 1 ] && [ ! -e /AGENTS.md ]; then
-            mkdir -p "$HOME/Agents"
-            cd "$HOME/Agents"
-          fi
-        fi
-      '';
+      # Claude Code flags that take a value. Optional values (such as --resume [id]) count too,
+      # because the CLI consumes a following non-flag argument as their value.
+      claudeFallback = import ./_fallback.nix {
+        inherit lib;
+        inherit (import ./_flags.nix) valueFlags variadicFlags;
+      };
+
+      opencodeFallback = import ./_fallback.nix {
+        inherit lib;
+        valueFlags = ["--server" "--session" "-s" "--prompt" "--completions" "--log-level"];
+      };
 
       inAgentsWorkspace = ''
         agentsBypassApplies=0
@@ -162,14 +142,14 @@ mkModule {
           fi
         '';
 
-      withAgentsFallback = package: name: extraRun:
+      withAgentsFallback = package: name: fallback: extraRun:
         pkgs.symlinkJoin {
           inherit (package) name;
           paths = [package];
           nativeBuildInputs = [pkgs.makeWrapper];
           postBuild = ''
             wrapProgram $out/bin/${name} \
-              --run ${lib.escapeShellArg (agentsFallback + extraRun)}
+              --run ${lib.escapeShellArg (fallback + extraRun)}
           '';
           # Keeps passthru attributes, such as OpenCode's jsonschema, visible to Home Manager.
           passthru = package.passthru or {};
@@ -200,13 +180,15 @@ mkModule {
 
       programs = {
         opencode = {
-          package = withAgentsFallback llmAgents.opencode2 "opencode2" opencodeAuto;
+          package = withAgentsFallback llmAgents.opencode2 "opencode2" opencodeFallback opencodeAuto;
           enable = true;
           enableMcpIntegration = true;
         };
         claude-code = {
           enable = true;
-          package = withAgentsFallback llmAgents.claude-code "claude" (claudeBypass + claudeNode);
+          package =
+            withAgentsFallback llmAgents.claude-code "claude" claudeFallback
+            (claudeBypass + claudeNode);
           enableMcpIntegration = true;
         };
       };
