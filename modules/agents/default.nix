@@ -187,6 +187,7 @@ mkModule {
           NixOS configuration.
         - Create persistent skills in the NixOS configuration, not in `~/.claude` or
           `~/.config/opencode`, so they are managed declaratively.
+        - When a command needs root privileges, use `run0` instead of `sudo`.
         - The NixOS configuration lives in `./NixOS-config`. If it is missing, clone it:
 
         ```bash
