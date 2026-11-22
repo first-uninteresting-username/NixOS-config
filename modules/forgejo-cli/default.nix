@@ -22,6 +22,7 @@ in
     module = {
       forgejoHost ? defaultHost,
       forgejoKeysPath ? "/run/secrets/rendered/forgejo-cli-keys.json",
+      forgejoTokenPath ? "/run/secrets/forgejo_token",
     }: {
       nixos = {
         config,
@@ -32,7 +33,10 @@ in
       }: {
         config = lib.optionalAttrs secretsEnable {
           sops = {
-            secrets."forgejo_token" = {};
+            secrets."forgejo_token" = {
+              path = forgejoTokenPath;
+              owner = userName;
+            };
             templates."forgejo-cli-keys.json" = {
               content = keysJson forgejoHost config.sops.placeholder.forgejo_token;
               path = forgejoKeysPath;
@@ -58,8 +62,18 @@ in
               --set-default FJ_FALLBACK_HOST ${lib.escapeShellArg "https://${forgejoHost}"}
           '';
         };
+
+        # Forgejo treats the username as the token when the password is `x-oauth-basic`.
+        credentialHelper = pkgs.writeShellScript "forgejo-git-credential" ''
+          token=${lib.escapeShellArg forgejoTokenPath}
+          [ "''${1-}" = get ] && [ -r "$token" ] || exit 0
+          printf 'username=%s\npassword=x-oauth-basic\n' "$(< "$token")"
+        '';
       in {
         home.packages = [fj];
+        # Authenticates git over HTTPS, including `fj repo clone`, which uses git's helpers.
+        programs.git.settings.credential."https://${forgejoHost}".helper =
+          lib.mkIf secretsEnable "${credentialHelper}";
         # The rendered secret lives outside the home directory, so sops never creates
         # root-owned parent directories there. The link is read-only for `fj auth` commands.
         xdg.dataFile."forgejo-cli/keys.json" = lib.mkIf secretsEnable {
@@ -86,12 +100,15 @@ in
       With secrets enabled, sops-nix renders the `forgejo_token` application token into the
       `fj` login file at `forgejoKeysPath`, and Home Manager links it to
       `~/.local/share/forgejo-cli/keys.json`. The token stays out of the Nix store, and
-      `fj auth` commands cannot change the declarative login. Without secrets, run
+      `fj auth` commands cannot change the declarative login. A git credential helper scoped
+      to `forgejoHost` reads the same token from `forgejoTokenPath`, so HTTPS
+      clones and pushes through `git` or `fj` authenticate too. Without secrets, run
       `fj auth login` once; `~/.local/share/forgejo-cli` persists when preservation is enabled.
     '';
     imperativeSteps = ''
       With secrets enabled, create an application token at
-      `https://git.hackclub.app/user/settings/applications` and store it in sops:
+      `https://git.hackclub.app/user/settings/applications` with repository read and write
+      access, and store it in sops:
 
       ```bash
       sops-easy secrets/secrets.yaml
