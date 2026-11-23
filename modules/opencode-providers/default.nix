@@ -9,7 +9,8 @@ in
     ids = ["agents"];
     module = {opencodeProviderSecretDir ? "/run/secrets/opencode-providers"}: let
       # Each _providers/<id>.json holds an OpenCode `providers.<id>` entry. The extra
-      # `apiKeySecret` field names the sops secret that holds the provider's API key.
+      # `apiKeySecret` field names the sops secret that holds the provider's API key, and the
+      # extra `modelFilter` field is a regex the sync tool applies to model IDs.
       providers = builtins.listToAttrs (map (file: {
           name = builtins.replaceStrings [".json"] [""] file;
           value = builtins.fromJSON (builtins.readFile (providerDir + "/${file}"));
@@ -45,7 +46,7 @@ in
       }: {
         # OpenCode substitutes the {file:} reference at startup, so keys stay out of the store.
         programs.opencode.settings.providers = lib.mapAttrs (_: provider:
-          lib.recursiveUpdate (removeAttrs provider ["apiKeySecret"])
+          lib.recursiveUpdate (removeAttrs provider ["apiKeySecret" "modelFilter"])
           (lib.optionalAttrs (secretsEnable && withSecret provider) {
             settings.apiKey = "{file:${secretPath provider}}";
           }))
@@ -54,7 +55,8 @@ in
     };
     packages = {pkgs, ...}: {
       # Refreshes a provider file's model list from its OpenAI-compatible /models endpoint.
-      # Existing per-model settings are kept; models the endpoint no longer lists are removed.
+      # Existing per-model settings are kept; models the endpoint no longer lists, or that do
+      # not match the file's optional `modelFilter` regex, are removed.
       sync-models = pkgs.writeShellApplication {
         name = "opencode-provider-sync-models";
         runtimeInputs = [pkgs.curl pkgs.jq];
@@ -71,7 +73,9 @@ in
             keyFile=''${OPENCODE_PROVIDER_SECRET_DIR:-/run/secrets/opencode-providers}/$secret
             auth=(-H "Authorization: Bearer $(cat "$keyFile")")
           fi
-          ids=$(curl -fsS "''${auth[@]}" "''${baseUrl%/}/models" | jq '[.data[].id]')
+          filter=$(jq -r '.modelFilter // ""' "$file")
+          ids=$(curl -fsS "''${auth[@]}" "''${baseUrl%/}/models" \
+            | jq --arg re "$filter" '[.data[].id | select(test($re))]')
           tmp=$(mktemp)
           jq --argjson ids "$ids" '
             . as $p | .models = ([$ids[] | {key: ., value: ($p.models[.] // {})}] | sort_by(.key) | from_entries)
@@ -90,6 +94,10 @@ in
       The optional `apiKeySecret` field names a sops secret. With secrets enabled, sops-nix
       decrypts it to `opencodeProviderSecretDir/<secret>`, and OpenCode reads it through a
       `{file:}` reference in `settings.apiKey`. The key stays out of the Nix store.
+
+      The optional `modelFilter` field is a regular expression (jq `test` syntax). The sync
+      tool keeps only model IDs that match it; for example, `":free$"` keeps only free models.
+      OpenCode never sees this field.
 
       A model entry can set `limit.context` and `limit.output`. Set `limit.output` when the
       provider caps output tokens below OpenCode's default; otherwise every request fails.
