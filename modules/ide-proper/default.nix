@@ -46,15 +46,15 @@ mkModule {
     # upstream WakaTime's server, so build the fork the extension ships.
     hackatime-ls = pkgs.rustPlatform.buildRustPackage (finalAttrs: {
       pname = "hackatime-ls";
-      version = "0.4.0";
+      version = "0.4.1";
       src = pkgs.fetchFromGitHub {
         owner = "espcaa";
         repo = "zed-hackatime";
         tag = "v${finalAttrs.version}";
-        hash = "sha256-lLC/MzZPYiJJhGnVTS50oEr4zmjTpgbRP2ZS7v/ceA4=";
+        hash = "sha256-8GtnsM15HoOCDdAVeIPLaTdlIiNhW8GV2jXqUb/wXaQ=";
       };
       buildAndTestSubdir = "wakatime-ls";
-      cargoHash = "sha256-VkoxCloiYenhKQqAQvx4FnTKzznFsqe2Qv0gr1ftahg=";
+      cargoHash = "sha256-Ktlrc5MM1sEGgCi38jK19pW8EOCQBNnqyUWRzJQVL/8=";
       passthru.updateScript = pkgs.nix-update-script {extraArgs = ["--flake"];};
       meta = {
         description = "Hackatime fork of the WakaTime language server for Zed and Gram";
