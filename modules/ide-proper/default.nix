@@ -11,7 +11,8 @@ mkModule {
 
     Gram uses its built-in Nix support with `nil` and Alejandra formatting, Marksman and
     Prettier for Markdown, basedpyright and Ruff for Python, and the Hackatime extension for
-    coding time. Hackatime runs `hackatime-ls`, its fork of the WakaTime language server,
+    coding time. The Dockerfile extension covers Dockerfiles and Docker Compose files with
+    `dockerfile-language-server` and Docker's `docker-language-server`. Hackatime runs `hackatime-ls`, its fork of the WakaTime language server,
     packaged here, with `wakatime-cli` from the `wakatime` module.
 
     Gram never downloads language servers. Global ones come from Nix; project-specific ones
@@ -116,6 +117,7 @@ mkModule {
           git-firefly
           log
           gdscript
+          dockerfile
         ];
         extraPackages = with pkgs; [
           nil
@@ -126,6 +128,9 @@ mkModule {
           ruff
           wakatime-cli
           packages.hackatime-ls
+          # The Dockerfile extension runs these from PATH instead of downloading them.
+          dockerfile-language-server
+          docker-language-server
           # The GDScript extension bridges to Godot's language server with `nc`.
           netcat
         ];
