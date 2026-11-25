@@ -9,7 +9,8 @@ in
     ids = ["agents"];
     module = {opencodeProviderSecretDir ? "/run/secrets/opencode-providers"}: let
       # Each _providers/<id>.json holds an OpenCode `providers.<id>` entry. The extra
-      # `apiKeySecret` field names the sops secret that holds the provider's API key.
+      # `apiKeySecret` field names the sops secret that holds the provider's API key, and the
+      # extra `modelFilter` field is a regex the sync tool applies to model IDs.
       providers = builtins.listToAttrs (map (file: {
           name = builtins.replaceStrings [".json"] [""] file;
           value = builtins.fromJSON (builtins.readFile (providerDir + "/${file}"));
@@ -45,7 +46,7 @@ in
       }: {
         # OpenCode substitutes the {file:} reference at startup, so keys stay out of the store.
         programs.opencode.settings.providers = lib.mapAttrs (_: provider:
-          lib.recursiveUpdate (removeAttrs provider ["apiKeySecret"])
+          lib.recursiveUpdate (removeAttrs provider ["apiKeySecret" "modelFilter"])
           (lib.optionalAttrs (secretsEnable && withSecret provider) {
             settings.apiKey = "{file:${secretPath provider}}";
           }))
@@ -54,7 +55,8 @@ in
     };
     packages = {pkgs, ...}: {
       # Refreshes a provider file's model list from its OpenAI-compatible /models endpoint.
-      # Existing per-model settings are kept; models the endpoint no longer lists are removed.
+      # Existing per-model settings are kept; models the endpoint no longer lists, or that do
+      # not match the file's optional `modelFilter` regex, are removed.
       sync-models = pkgs.writeShellApplication {
         name = "opencode-provider-sync-models";
         runtimeInputs = [pkgs.curl pkgs.jq];
@@ -71,7 +73,9 @@ in
             keyFile=''${OPENCODE_PROVIDER_SECRET_DIR:-/run/secrets/opencode-providers}/$secret
             auth=(-H "Authorization: Bearer $(cat "$keyFile")")
           fi
-          ids=$(curl -fsS "''${auth[@]}" "''${baseUrl%/}/models" | jq '[.data[].id]')
+          filter=$(jq -r '.modelFilter // ""' "$file")
+          ids=$(curl -fsS "''${auth[@]}" "''${baseUrl%/}/models" \
+            | jq --arg re "$filter" '[.data[].id | select(test($re))]')
           tmp=$(mktemp)
           jq --argjson ids "$ids" '
             . as $p | .models = ([$ids[] | {key: ., value: ($p.models[.] // {})}] | sort_by(.key) | from_entries)
@@ -91,26 +95,63 @@ in
       decrypts it to `opencodeProviderSecretDir/<secret>`, and OpenCode reads it through a
       `{file:}` reference in `settings.apiKey`. The key stays out of the Nix store.
 
-      No providers are declared by default. To add one, create `_providers/<id>.json`, add its
-      key to sops, and rebuild.
+      The optional `modelFilter` field is a regular expression (jq `test` syntax). The sync
+      tool keeps only model IDs that match it; for example, `":free$"` keeps only free models.
+      OpenCode never sees this field.
 
       A model entry can set `limit.context` and `limit.output`. Set `limit.output` when the
       provider caps output tokens below OpenCode's default; otherwise every request fails.
     '';
     imperativeSteps = ''
-      With secrets enabled, store each provider's API key in sops under the name given by its
-      `apiKeySecret` field:
+      ### Add a provider
 
-      ```bash
-      sops-easy secrets/secrets.yaml
-      ```
+      These steps work for any OpenAI-compatible endpoint. Run them from the repository root.
 
-      To refresh a provider's model list from its OpenAI-compatible `/models` endpoint, run
-      this from the repository root, then commit the changed file. It keeps existing per-model
-      settings such as `limit` and removes models the endpoint no longer lists:
+      1. Create `modules/opencode-providers/_providers/<id>.json`. The file name becomes the
+         provider ID in OpenCode, and `apiKeySecret` names the sops secret for the key:
+
+         ```json
+         {
+           "name": "Example",
+           "package": "@ai-sdk/openai-compatible",
+           "apiKeySecret": "EXAMPLE_API_KEY",
+           "settings": {"baseURL": "https://api.example.com/v1"},
+           "models": {}
+         }
+         ```
+
+      2. Store the key in sops. The command prompts for the key, so it stays out of shell
+         history:
+
+         ```bash
+         read -rsp 'API key: ' key && run0 sops-easy set secrets/secrets.yaml \
+           '["EXAMPLE_API_KEY"]' "\"$key\"" && run0 chown "$USER": secrets/secrets.yaml
+         ```
+
+      3. Fill `models` from the provider's `/models` endpoint. Before the first rebuild the
+         key is not yet in `/run/secrets`, so point the sync tool at a temporary copy:
+
+         ```bash
+         d=$(mktemp -d) && read -rsp 'API key: ' key && printf %s "$key" > "$d/EXAMPLE_API_KEY"
+         OPENCODE_PROVIDER_SECRET_DIR=$d nix run .#opencode-providers-sync-models -- \
+           modules/opencode-providers/_providers/<id>.json
+         rm -r "$d"
+         ```
+
+      4. Commit the JSON file and `secrets/secrets.yaml`, then rebuild. The models appear in
+         OpenCode's model picker as `<id>/<model>`.
+
+      ### Maintain a provider
+
+      Refresh the model list after the rebuild with the command below, then commit the changed
+      file. It keeps per-model settings such as `limit` and removes models the endpoint no
+      longer lists:
 
       ```bash
       nix run .#opencode-providers-sync-models -- modules/opencode-providers/_providers/<id>.json
       ```
+
+      To rotate a key, repeat step 2. To remove a provider, delete its JSON file and run
+      `run0 sops-easy unset secrets/secrets.yaml '["EXAMPLE_API_KEY"]'`.
     '';
   }
