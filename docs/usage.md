@@ -39,20 +39,13 @@ modules = [
 ];
 ```
 
-### CloudRedirect release updates
+### CloudRedirect
 
-The `nix-crab` input pins CloudRedirect's upstream hook to a versioned release URL.
-This keeps dependency updates and CI from fetching different files through the moving `latest` URL.
-
-To update the hook, change the release version in
-`inputs.nix-crab.inputs.cloudredirect.url` in `flake.nix`, then run:
-
-```bash
-nix flake update nix-crab/cloudredirect
-nix flake check --no-build
-```
-
-The regular flake update keeps this release pinned until you change its URL.
+CloudRedirect is disabled in `modules/gaming/default.nix` because it is broken. Steam's client
+is 64-bit now, and cloudredirect-moon only ships a 32-bit `cloud_redirect.so`, which the
+client cannot load. Set `programs.nix-crab.cloudredirect.enable = true` again once
+cloudredirect-moon publishes a 64-bit hook. The hook comes from nix-crab's
+`cloudredirect-moon` input, so updating that input picks up a new build.
 
 ### Remote deployments
 

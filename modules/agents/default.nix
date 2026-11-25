@@ -17,6 +17,8 @@ mkModule {
     Claude Code starts in bypass permissions mode unless another permission mode is passed,
     and OpenCode interactive and `run` sessions auto-approve permissions that are not
     explicitly denied. Other directories keep the default permission behavior.
+    Claude Code does not load the Exa connector from claude.ai; the local Exa MCP server
+    replaces it.
   '';
   # Runs the Claude Code fallback in a pseudo-terminal and checks where each invocation starts.
   checks = {
@@ -64,6 +66,12 @@ mkModule {
     };
   };
   module = _: {
+    # User settings stay mutable, so the denial lives in a managed settings drop-in.
+    nixos = {pkgs, ...}: {
+      environment.etc."claude-code/managed-settings.d/50-deny-claude-ai-exa.json".source = (pkgs.formats.json {}).generate "deny-claude-ai-exa.json" {
+        deniedMcpServers = [{serverName = "claude.ai Exa";}];
+      };
+    };
     home = {
       inputs,
       lib,
