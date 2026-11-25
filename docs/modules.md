@@ -86,9 +86,8 @@ A module's `default` package exports under its module name. Other packages expor
 `<module>-<package>`; checks follow the same rule. Exports exist independently of host
 selection. Installing a package requires an explicit system or home setting.
 
-For example, `programs-desktop` installs Inkscape and Flow Desktop and exports
-`programs-desktop-flow-desktop`. Other renamed outputs include `update-rebuild`,
-`secrets-sops-easy`, `GNOME-hackastats`, and `GNOME-hexecute-gnome`.
+For example, `orchard-cli` exports `orchard-cli`. Other renamed outputs include
+`update-rebuild`, `secrets-sops-easy`, `GNOME-hackastats`, and `GNOME-hexecute-gnome`.
 ISO packages are `host-john` and `host-wall-e`; their checks remain `iso-john` and
 `iso-wall-e` in the separate ISO tier.
 
