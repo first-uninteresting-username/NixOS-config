@@ -16,7 +16,7 @@ nix run .#update-packages
 Pass export names to update only some packages:
 
 ```bash
-nix run .#update-packages -- orchard-cli programs-desktop-flow-desktop
+nix run .#update-packages -- orchard-cli karakeep-mcp
 ```
 
 The runner edits the package sources in place; review, build, and commit the result
@@ -123,8 +123,7 @@ in {
 
 `--override-filename` names the module file because each subpackage is a `fetchurl`
 derivation whose source position lies in Nixpkgs. `--use-github-releases` reads the GitHub
-release list and skips releases marked as pre-releases. `orchard-cli` and
-`programs-desktop-flow-desktop` follow this pattern.
+release list and skips releases marked as pre-releases. `orchard-cli` follows this pattern.
 
 ### Overrides of Nixpkgs packages
 
