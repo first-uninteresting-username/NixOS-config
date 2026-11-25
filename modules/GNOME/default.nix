@@ -343,6 +343,10 @@ mkModule {
             screenshot = [];
             show-screenshot-ui = [];
           };
+          # Twice-yearly "donate to GNOME" notification
+          "org/gnome/settings-daemon/plugins/housekeeping" = {
+            donation-reminder-enabled = false;
+          };
           "org/gnome/settings-daemon/plugins/media-keys" = {
             screensaver = ["<Super>p"];
           };
