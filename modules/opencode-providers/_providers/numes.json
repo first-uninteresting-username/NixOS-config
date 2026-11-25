@@ -1,0 +1,20 @@
+{
+  "name": "Numes",
+  "package": "@ai-sdk/openai-compatible",
+  "apiKeySecret": "NUMES_API_KEY",
+  "modelFilter": ":free$",
+  "settings": {
+    "baseURL": "https://api.numes.ai/api/v1"
+  },
+  "models": {
+    "dealignai/deepseek-v4.1-flash-uncensored-fp8:free": {},
+    "dealignai/glm-5.3-flash-uncensored-fp8:free": {},
+    "dealignai/glm-5.3-uncensored-fp8:free": {},
+    "deepseek/deepseek-v4.1-flash:free": {},
+    "moonshotai/kimi-k3.1-pro:free": {},
+    "nvidia/nemotron-3-ultra-550b-a55b:free": {},
+    "uniboshi/kimi-k3-abliterated-v1:free": {},
+    "z-ai/glm-5.3-flash:free": {},
+    "z-ai/glm-5.3:free": {}
+  }
+}
