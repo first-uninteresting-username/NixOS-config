@@ -32,8 +32,10 @@ mkModule {
       programs.nix-crab = {
         slssteam.enable = true;
         slssteam-moon.enable = true;
-        # Both pinned and current nix-crab require this for Steam hook injection.
-        cloudredirect.enable = true;
+        # Broken: Steam's client is 64-bit now, but cloudredirect-moon only ships
+        # a 32-bit cloud_redirect.so, so the preload is ignored with "wrong ELF
+        # class" in every 64-bit process. Re-enable once a 64-bit hook exists.
+        cloudredirect.enable = false;
         cloudredirect.moon.enable = true;
       };
     };
