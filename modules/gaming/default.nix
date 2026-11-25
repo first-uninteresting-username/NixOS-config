@@ -110,12 +110,14 @@ mkModule {
     in
       lib.concatMap (line: lib.splitString ":" (lib.removePrefix "LD_AUDIT=" line)) lines;
 
-    artefacts = lib.filter (path: lib.hasInfix "-${name}-" path) ldAudit;
+    # nix-crab stages the hook in an "SLSsteam-audit" derivation, so match the
+    # loaded object rather than a store path name.
+    artefacts = lib.filter (lib.hasSuffix "/SLSsteam.so") ldAudit;
   in
     lib.optionalAttrs (system == "x86_64-linux") {
       slsteam-moon =
         if artefacts == []
-        then throw "no ${name} path in the Steam wrapper's LD_AUDIT, so its derivation cannot be reached"
+        then throw "no SLSsteam.so in the Steam wrapper's LD_AUDIT, so ${name} cannot be reached"
         else
           pkgs.runCommand name {} ''
             mkdir -p "$out"
