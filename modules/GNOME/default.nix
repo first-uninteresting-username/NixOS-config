@@ -245,6 +245,10 @@ mkModule {
             use-custom-icon = false;
             hide-softwarecentre = false;
           };
+          # Keep blur when power-profiles-daemon is in power-saver mode
+          "org/gnome/shell/extensions/blur-my-shell" = {
+            power-saver = false;
+          };
           "org/gnome/shell/extensions/blur-my-shell/appfolder" = {
             brightness = 0.6;
             sigma = 30;

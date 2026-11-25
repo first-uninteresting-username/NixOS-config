@@ -42,6 +42,14 @@ mkModule {
         fprintd.enable = true;
       };
 
+      # PAM tries the fingerprint before the password, so keep the wait short.
+      security.pam.services = let
+        fprintdArgs = ["max-tries=1" "timeout=5"];
+      in {
+        sudo.rules.auth.fprintd.args = fprintdArgs;
+        sudo-i.rules.auth.fprintd.args = fprintdArgs;
+      };
+
       hardware = {
         firmware = [pkgs.linux-firmware];
         cpu.amd.updateMicrocode = true;
