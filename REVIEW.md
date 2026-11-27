@@ -123,6 +123,8 @@ the `rebuild` helper for validation; that helper boots remote `main`.
 - [ ] Development tools remain in devenv, including the Alejandra commit hook.
 - [ ] Commits follow Conventional Commits and include only task-related files. Continue the
   task PR or create its dedicated branch; never commit or push directly to `main`.
+- [ ] Agent-authored commits end with a `Co-Authored-By` trailer naming the agent's model in
+  Claude's format, such as `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 - [ ] The PR follows the repository template and describes resulting behavior, validation,
   documentation, and limitations truthfully. Leave merging and deployment to the maintainer.
 
