@@ -158,6 +158,7 @@ mkModule {
               private-grammar-checker-harper
               consent-o-matic
               lichess-tools-by-siderite
+              linkding-extension
             ];
 
             settings = {
