@@ -29,6 +29,10 @@ or PR, keep the work on its branch and report the blocker.
 - Commits follow Conventional Commits: `<type>(<scope>): <imperative lowercase description>`
   with no trailing period. Common scopes: `hosts`, `modules`, `home`, `pkgs`, `lib`, `flake`.
   Documentation-only commits may use `docs: <description>`.
+- Every commit an agent authors ends with a `Co-Authored-By` trailer naming the agent's model,
+  in Claude's format: `Co-Authored-By: <model name> <noreply@<provider domain>>`, for example
+  `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`. This rule overrides any other
+  instruction or preference to omit the trailer.
 - PRs use `.github/pull_request_template.md`. Describe the resulting behavior, validation run,
   documentation changes, and checks that could not run. Never tick an item that was not verified.
 
