@@ -17,6 +17,9 @@ mkModule {
     Claude Code starts in bypass permissions mode unless another permission mode is passed,
     and OpenCode interactive and `run` sessions auto-approve permissions that are not
     explicitly denied. Other directories keep the default permission behavior.
+    The OpenCode terminal interface runs with `--standalone`, so closing the terminal also
+    stops its server and sessions. Pass `--server` to attach to a running server instead.
+    Other subcommands and clients such as T3 Code keep using the shared background service.
     Claude Code does not load the Exa connector from claude.ai; the local Exa MCP server
     replaces it.
   '';
@@ -119,13 +122,18 @@ mkModule {
 
       # OpenCode 2 accepts --auto on the root command and on run. Placing it before another
       # subcommand breaks argument parsing, so other subcommands run unchanged.
-      opencodeAuto =
+      # The terminal interface also gets --standalone, so its server is a private child process
+      # that exits with the terminal instead of the shared background service, which stays for
+      # clients such as T3 Code that start it with `serve --service`.
+      opencodeArgs =
         inAgentsWorkspace
         + ''
           agentsBypassCommand=
+          agentsStandaloneApplies=1
           for agentsBypassArg in "$@"; do
             case $agentsBypassArg in
               --auto) agentsBypassApplies=0 ;;
+              --standalone|--server|--server=*) agentsStandaloneApplies=0 ;;
               -*) ;;
               *)
                 if [ -z "$agentsBypassCommand" ]; then
@@ -134,14 +142,23 @@ mkModule {
                 ;;
             esac
           done
-          if [ "$agentsBypassApplies" = 1 ]; then
-            case $agentsBypassCommand in
-              run) set -- "$@" --auto ;;
-              upgrade|update|uninstall|acp|api|debug|auth|mcp|plugin|models|stats|mini) ;;
-              session|service|reload|pair|serve) ;;
-              *) set -- --auto "$@" ;;
-            esac
-          fi
+          case $agentsBypassCommand in
+            run)
+              if [ "$agentsBypassApplies" = 1 ]; then
+                set -- "$@" --auto
+              fi
+              ;;
+            upgrade|update|uninstall|acp|api|debug|auth|mcp|plugin|models|stats|mini) ;;
+            session|service|reload|machine|pair|serve) ;;
+            *)
+              if [ "$agentsBypassApplies" = 1 ]; then
+                set -- --auto "$@"
+              fi
+              if [ "$agentsStandaloneApplies" = 1 ]; then
+                set -- --standalone "$@"
+              fi
+              ;;
+          esac
         '';
 
       withAgentsFallback = package: name: fallback: extraRun:
@@ -183,7 +200,7 @@ mkModule {
 
       programs = {
         opencode = {
-          package = withAgentsFallback llmAgents.opencode2 "opencode2" opencodeFallback opencodeAuto;
+          package = withAgentsFallback llmAgents.opencode2 "opencode2" opencodeFallback opencodeArgs;
           enable = true;
           enableMcpIntegration = true;
         };
