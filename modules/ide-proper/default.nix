@@ -18,9 +18,11 @@ mkModule {
     Gram never downloads language servers. Global ones come from Nix; project-specific ones
     (such as rust-analyzer) come from the project's devenv, which Gram loads through direnv and
     prefers over the global ones. Extensions come from `nix-zed-extensions`, are built by Nix,
-    and load from `GRAM_SYSTEM_EXTENSIONS_DIR`. Activation deletes Gram's extension index so
-    Gram rebuilds it on the next start; otherwise the store path's epoch mtime keeps a stale
-    index forever.
+    and load from `GRAM_SYSTEM_EXTENSIONS_DIR`. When the extension set changes, activation
+    deletes Gram's extension index so Gram rebuilds it on the next start; otherwise the store
+    path's epoch mtime keeps a stale index forever. Activation keeps the index when the
+    extensions are unchanged: on a launch that rebuilds the index, Gram 3.5.2 does not start
+    extension language servers such as Hackatime for files restored from the last session.
     `VISUAL` is `gram --wait`, and the **NixOS Config** launcher opens this repository in Gram.
 
     The REPL (`repl: run`) uses a Python 3 Jupyter kernel with `ipykernel`. Projects that need
@@ -210,10 +212,22 @@ mkModule {
       # Gram rebuilds its extension index only when the index is older than an extension
       # directory, but `GRAM_SYSTEM_EXTENSIONS_DIR` is a store path with the epoch mtime, so a
       # stale index (for example, one written before the directory existed) never refreshes and
-      # Nix-provided extensions such as Hackatime never load. Drop the index so Gram rebuilds it.
-      home.activation.gramExtensionIndex = lib.hm.dag.entryAfter ["writeBoundary"] ''
-        run rm -f "${config.xdg.dataHome}/gram/extensions/index.json"
-      '';
+      # Nix-provided extensions such as Hackatime never load. Drop the index when the extension
+      # set changes so Gram rebuilds it. Keep it otherwise: after a rebuild, extension language
+      # servers register too late for files restored at startup, so Hackatime never starts for
+      # them (#738).
+      home.activation.gramExtensionIndex = let
+        extensions = pkgs.writeText "gram-extension-packages" (
+          lib.concatMapStringsSep "\n" toString config.programs.gram.extensionPackages
+        );
+        directory = "${config.xdg.dataHome}/gram/extensions";
+      in
+        lib.hm.dag.entryAfter ["writeBoundary"] ''
+          if ! cmp -s ${extensions} "${directory}/nix-extension-packages"; then
+            run rm -f "${directory}/index.json"
+            run install -D -m 644 ${extensions} "${directory}/nix-extension-packages"
+          fi
+        '';
 
       home.packages = [pkgs.godot];
 
